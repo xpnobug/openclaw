@@ -21,6 +21,7 @@ import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { loadSkills } from "./controllers/skills.ts";
+import { loadModelConfig, loadAgentSessions } from "./ui-zh-CN-adapter.ts";
 import {
   inferBasePathFromPathname,
   normalizeBasePath,
@@ -251,6 +252,9 @@ export async function refreshActiveTab(host: SettingsHost) {
   if (host.tab === "config") {
     await loadConfigSchema(host as unknown as OpenClawApp);
     await loadConfig(host as unknown as OpenClawApp);
+  }
+  if (host.tab === "model-config") {
+    await loadModelConfig(host as unknown as MoltbotApp);
   }
   if (host.tab === "debug") {
     await loadDebug(host as unknown as OpenClawApp);
