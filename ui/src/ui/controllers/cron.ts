@@ -116,7 +116,7 @@ export async function addCronJob(state: CronState) {
             to: state.cronForm.deliveryTo.trim() || undefined,
           }
         : undefined;
-    const agentId = state.cronForm.agentId.trim();
+    const agentId = (state.cronForm.agentId ?? "").trim();
     const job = {
       name: state.cronForm.name.trim(),
       description: state.cronForm.description.trim() || undefined,
@@ -224,7 +224,7 @@ export async function updateCronJob(state: CronState, jobId: string) {
   try {
     const schedule = buildCronSchedule(state.cronForm);
     const payload = buildCronPayload(state.cronForm);
-    const agentId = state.cronForm.agentId.trim();
+    const agentId = (state.cronForm.agentId ?? "").trim();
     const patch = {
       name: state.cronForm.name.trim(),
       description: state.cronForm.description.trim() || undefined,
