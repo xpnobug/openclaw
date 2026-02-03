@@ -157,7 +157,8 @@ function renderSessionRow(
  */
 function renderSessionsList(props: AgentContentProps) {
   const sessions = props.sessionsResult?.sessions ?? [];
-  const defaults = props.sessionsResult?.defaults ?? { modelProvider: null, model: null };
+  const sessionsDefaults = props.sessionsResult?.defaults ?? { modelProvider: null, model: null };
+  const defaults = { provider: sessionsDefaults.modelProvider, model: sessionsDefaults.model };
 
   return html`
     <div class="mc-section">

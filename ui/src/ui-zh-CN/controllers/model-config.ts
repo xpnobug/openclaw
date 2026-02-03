@@ -1725,7 +1725,8 @@ export async function loadAgentSessions(state: ModelConfigState): Promise<void> 
 }
 
 /**
- * 更新会话模型 (per-session model override)
+ * 更新会话模型 - 通过发送 /model 命令切换
+ * Update session model via /model command
  */
 export async function patchSessionModel(
   state: ModelConfigState,
@@ -1734,16 +1735,20 @@ export async function patchSessionModel(
 ): Promise<void> {
   if (!state.client || !state.connected) return;
 
-  const params: Record<string, unknown> = { key: sessionKey };
-  // 只有当 model 不是 undefined 时才添加到参数中
-  params.model = model;
-
   try {
-    await state.client.request("sessions.patch", params);
-    // 重新加载会话列表 / Reload session list
+    // 发送 /model 命令到对应会话
+    const command = model ? `/model ${model}` : "/model default";
+    const idempotencyKey = `model-switch-${sessionKey}-${Date.now()}`;
+    await state.client.request("chat.send", {
+      sessionKey,
+      message: command,
+      idempotencyKey,
+    });
+    // 等待命令处理完成后刷新会话列表
+    await new Promise((resolve) => setTimeout(resolve, 500));
     await loadAgentSessions(state);
   } catch (err) {
-    state.agentSessionsError = `更新会话模型失败: ${String(err)}`;
+    state.agentSessionsError = `切换模型失败: ${String(err)}`;
   }
 }
 
