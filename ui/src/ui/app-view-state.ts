@@ -28,29 +28,6 @@ import type {
 } from "./types.ts";
 import type { ChatAttachment, ChatQueueItem, CronFormState } from "./ui-types.ts";
 import type { NostrProfileFormState } from "./views/channels.nostr-profile-form.ts";
-import type {
-  ProviderConfig,
-  AgentDefaults,
-  GatewayConfig,
-  ToolsConfig,
-  AgentWithTools,
-  PermissionsTabId,
-  AgentSessionsListResult,
-  AgentIdentityEntry,
-  WorkspaceFileInfo,
-  ProviderFormState,
-  ChannelsConfigData,
-  SkillsConfig,
-  SkillSourceFilter,
-  SkillStatusFilter,
-  SkillEditState,
-  SkillConfigMessage,
-  SkillEditorState,
-  SkillCreateState,
-  SkillDeleteState,
-  EditableSkillSource,
-  SkillEditorMode,
-} from "./ui-zh-CN-adapter.ts";
 
 export type AppViewState = {
   settings: UiSettings;

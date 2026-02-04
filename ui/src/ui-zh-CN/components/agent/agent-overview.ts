@@ -2,11 +2,12 @@
  * Agent 概览面板组件
  * Agent overview panel component
  *
- * 显示基本信息和模型选择
- * Display basic info and model selection
+ * 显示基本信息、模型选择和会话管理
+ * Display basic info, model selection and session management
  */
 import { html, nothing } from "lit";
 import type { AgentsListResult, AgentIdentityResult, AgentsFilesListResult } from "../../../ui/types";
+import type { SessionRow, SessionsListResult } from "../../controllers/model-config";
 import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -15,6 +16,22 @@ import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
 
 const icons = {
   refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 会话管理标签 / Session management labels
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SESSION_LABELS = {
+  title: "会话管理",
+  desc: "查看和管理该 Agent 的会话，为每个会话指定使用的模型",
+  sessionKey: "会话",
+  sessionModel: "模型",
+  sessionUpdated: "最后更新",
+  inheritDefault: "继承默认",
+  noSessions: "暂无会话",
+  loading: "加载中...",
+  refresh: "刷新",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -36,6 +53,14 @@ export type AgentOverviewProps = {
   onConfigSave: () => void;
   onModelChange: (agentId: string, modelId: string | null) => void;
   onModelFallbacksChange: (agentId: string, fallbacks: string[]) => void;
+  // 会话管理 / Session management
+  sessionsLoading: boolean;
+  sessionsResult: SessionsListResult | null;
+  sessionsError: string | null;
+  availableModels: Array<{ id: string; name: string; provider: string }>;
+  onSessionsRefresh: () => void;
+  onSessionModelChange: (sessionKey: string, model: string | null) => void;
+  onSessionNavigate: (sessionKey: string) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -171,24 +196,36 @@ function resolveModelFallbacks(model?: unknown): string[] | null {
  * Build model dropdown options
  */
 function buildModelOptions(configForm: Record<string, unknown> | null, current?: string | null) {
-  const cfg = configForm as ConfigSnapshot | null;
-  const models = cfg?.agents?.defaults?.models;
-  if (!models || typeof models !== "object") {
-    return html`<option value="" disabled>无可用模型</option>`;
-  }
-
   const options: Array<{ value: string; label: string }> = [];
-  for (const [modelId, modelRaw] of Object.entries(models)) {
-    const trimmed = modelId.trim();
-    if (!trimmed) continue;
-    const alias = modelRaw?.alias?.trim();
-    const label = alias && alias !== trimmed ? `${alias} (${trimmed})` : trimmed;
-    options.push({ value: trimmed, label });
+
+  // 从 models.providers 提取模型列表
+  // Extract models from models.providers
+  const modelsNode = (configForm as Record<string, unknown> | null)?.models as Record<string, unknown> | undefined;
+  const providers = modelsNode?.providers as Record<string, unknown> | undefined;
+
+  if (providers && typeof providers === "object") {
+    for (const [providerKey, providerValue] of Object.entries(providers)) {
+      if (!providerValue || typeof providerValue !== "object") continue;
+      const provider = providerValue as Record<string, unknown>;
+      const models = provider.models as Array<Record<string, unknown>> | undefined;
+      if (!Array.isArray(models)) continue;
+
+      for (const model of models) {
+        const modelId = (model.id as string)?.trim();
+        const modelName = (model.name as string)?.trim();
+        if (!modelId) continue;
+
+        const fullId = `${providerKey}/${modelId}`;
+        const label = modelName && modelName !== modelId ? `${modelName} (${fullId})` : fullId;
+        options.push({ value: fullId, label });
+      }
+    }
   }
 
   // 如果当前值不在选项中，添加它
+  // If current value is not in options, add it
   if (current && !options.some((opt) => opt.value === current)) {
-    options.unshift({ value: current, label: `当前 (${current})` });
+    options.unshift({ value: current, label: `${current} (当前)` });
   }
 
   if (options.length === 0) {
@@ -209,8 +246,142 @@ function parseFallbackList(value: string): string[] {
     .filter(Boolean);
 }
 
+/**
+ * 格式化时间为相对时间
+ * Format timestamp to relative time
+ */
+function formatAgo(ts: number): string {
+  const now = Date.now();
+  const diff = now - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins} 分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} 小时前`;
+  const days = Math.floor(hours / 24);
+  return `${days} 天前`;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// 渲染函数 / Render Function
+// 会话渲染函数 / Session Render Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * 渲染单个会话行
+ * Render a single session row
+ */
+function renderSessionRow(
+  session: SessionRow,
+  availableModels: AgentOverviewProps["availableModels"],
+  defaultModel: { provider: string | null; model: string | null },
+  onModelChange: (sessionKey: string, model: string | null) => void,
+  onNavigate: (sessionKey: string) => void,
+) {
+  const displayName = session.displayName ?? session.label ?? session.key;
+  const currentModel = session.model
+    ? `${session.modelProvider ?? ""}/${session.model}`.replace(/^\//, "")
+    : "";
+  const defaultModelId = defaultModel.model
+    ? `${defaultModel.provider ?? ""}/${defaultModel.model}`.replace(/^\//, "")
+    : "";
+
+  return html`
+    <div class="session-row">
+      <div class="session-row__key" title=${session.key}>
+        <a
+          class="session-row__link"
+          href="javascript:void(0)"
+          @click=${(e: Event) => {
+            e.preventDefault();
+            onNavigate(session.key);
+          }}
+        >${displayName}</a>
+        ${session.kind !== "direct"
+          ? html`<span class="session-row__kind">${session.kind}</span>`
+          : nothing}
+      </div>
+      <div class="session-row__model">
+        <select
+          class="mc-select mc-select--sm"
+          @change=${(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value;
+            onModelChange(session.key, value || null);
+          }}
+        >
+          <option value="" ?selected=${!currentModel}>${SESSION_LABELS.inheritDefault}${defaultModelId ? ` (${defaultModelId})` : ""}</option>
+          ${availableModels.map(
+            (m) => html`<option value=${m.id} ?selected=${m.id === currentModel}>${m.name} (${m.provider})</option>`,
+          )}
+        </select>
+      </div>
+      <div class="session-row__updated">
+        ${session.updatedAt ? formatAgo(session.updatedAt) : "-"}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 渲染会话列表区域
+ * Render sessions list section
+ */
+function renderSessionsSection(props: AgentOverviewProps) {
+  const {
+    sessionsLoading,
+    sessionsResult,
+    sessionsError,
+    availableModels,
+    onSessionsRefresh,
+    onSessionModelChange,
+    onSessionNavigate,
+  } = props;
+
+  const sessions = sessionsResult?.sessions ?? [];
+  const sessionsDefaults = sessionsResult?.defaults ?? { modelProvider: null, model: null };
+  const defaults = { provider: sessionsDefaults.modelProvider, model: sessionsDefaults.model };
+
+  return html`
+    <div class="mc-card" style="margin-top: 16px;">
+      <div class="mc-card__header">
+        <h4 class="mc-card__title">${SESSION_LABELS.title}</h4>
+        <button
+          class="mc-btn mc-btn--sm"
+          ?disabled=${sessionsLoading}
+          @click=${onSessionsRefresh}
+          title=${SESSION_LABELS.refresh}
+        >
+          ${icons.refresh}
+          ${sessionsLoading ? SESSION_LABELS.loading : SESSION_LABELS.refresh}
+        </button>
+      </div>
+      <div class="mc-card__content">
+        ${sessionsError
+          ? html`<div class="mc-error">${sessionsError}</div>`
+          : nothing}
+
+        <div class="sessions-list">
+          ${sessions.length > 0
+            ? html`
+                <div class="sessions-list__header">
+                  <div class="sessions-list__col sessions-list__col--key">${SESSION_LABELS.sessionKey}</div>
+                  <div class="sessions-list__col sessions-list__col--model">${SESSION_LABELS.sessionModel}</div>
+                  <div class="sessions-list__col sessions-list__col--updated">${SESSION_LABELS.sessionUpdated}</div>
+                </div>
+                <div class="sessions-list__body">
+                  ${sessions.map((session) =>
+                    renderSessionRow(session, availableModels, defaults, onSessionModelChange, onSessionNavigate),
+                  )}
+                </div>
+              `
+            : html`<div class="mc-empty">${sessionsLoading ? SESSION_LABELS.loading : SESSION_LABELS.noSessions}</div>`}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 主渲染函数 / Main Render Function
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -227,9 +398,6 @@ export function renderAgentOverview(props: AgentOverviewProps) {
     agentIdentityError,
     configLoading,
     configSaving,
-    configDirty,
-    onConfigReload,
-    onConfigSave,
     onModelChange,
     onModelFallbacksChange,
   } = props;
@@ -237,7 +405,6 @@ export function renderAgentOverview(props: AgentOverviewProps) {
   const config = resolveAgentConfig(configForm, agent.id);
   const workspace = resolveWorkspace(config, agentFilesList, agent.id);
   const model = resolveModelLabel(config.entry?.model ?? config.defaults?.model);
-  const defaultModel = resolveModelLabel(config.defaults?.model);
   const modelPrimary = resolveModelPrimary(config.entry?.model);
   const defaultPrimary = resolveModelPrimary(config.defaults?.model);
   const effectivePrimary = modelPrimary ?? defaultPrimary ?? null;
@@ -334,19 +501,8 @@ export function renderAgentOverview(props: AgentOverviewProps) {
         </div>
       </div>
 
-      <!-- 操作按钮 / Action buttons -->
-      <div class="mc-actions" style="margin-top: 16px;">
-        <button class="mc-btn mc-btn--sm" ?disabled=${configLoading || configSaving} @click=${onConfigReload}>
-          ${icons.refresh} ${configLoading ? LABELS.actions.loading : LABELS.actions.reload}
-        </button>
-        <button
-          class="mc-btn mc-btn--sm mc-btn--primary"
-          ?disabled=${!configDirty || configLoading || configSaving}
-          @click=${onConfigSave}
-        >
-          ${configSaving ? LABELS.actions.saving : LABELS.actions.save}
-        </button>
-      </div>
+      <!-- 会话管理区域 / Session management area -->
+      ${renderSessionsSection(props)}
     </div>
   `;
 }

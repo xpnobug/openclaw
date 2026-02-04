@@ -303,6 +303,14 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         onConfigSave: props.onConfigSave,
         onModelChange: props.onModelChange,
         onModelFallbacksChange: props.onModelFallbacksChange,
+        // 会话管理 / Session management
+        sessionsLoading: props.agentSessionsLoading,
+        sessionsResult: props.agentSessionsResult,
+        sessionsError: props.agentSessionsError,
+        availableModels: props.agentAvailableModels,
+        onSessionsRefresh: props.onAgentSessionsRefresh,
+        onSessionModelChange: props.onAgentSessionModelChange,
+        onSessionNavigate: props.onAgentSessionNavigate,
       });
 
     case "files":
@@ -525,19 +533,13 @@ function renderGlobalPanel(props: AgentsConfigProps) {
         <div class="agents-detail">
           <div class="agents-detail__header">
             <h2 class="agents-detail__title">${LABELS.globalPanels.agent}</h2>
-            <p class="agents-detail__subtitle">Agent 默认参数和会话管理</p>
+            <p class="agents-detail__subtitle">Agent 全局默认参数</p>
           </div>
           <div class="agents-detail__content">
             ${renderAgentContent({
               agentDefaults: props.agentDefaults,
               availableModels: props.agentAvailableModels,
               onAgentDefaultsUpdate: props.onAgentDefaultsUpdate,
-              sessionsLoading: props.agentSessionsLoading,
-              sessionsResult: props.agentSessionsResult,
-              sessionsError: props.agentSessionsError,
-              onSessionsRefresh: props.onAgentSessionsRefresh,
-              onSessionModelChange: props.onAgentSessionModelChange,
-              onSessionNavigate: props.onAgentSessionNavigate,
             })}
           </div>
         </div>

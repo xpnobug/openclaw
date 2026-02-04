@@ -113,6 +113,7 @@ export type AgentIdentityEntry = {
   default?: boolean;
   workspace?: string;
   identity?: AgentIdentityConfig;
+  model?: string | { primary?: string; fallbacks?: string[] };
 };
 
 export type ModelConfigState = {
@@ -357,6 +358,7 @@ function extractAgentsList(config: Record<string, unknown>): AgentIdentityEntry[
             emoji: identity.emoji as string | undefined,
             avatar: identity.avatar as string | undefined,
           } : undefined,
+          model: entry.model as string | { primary?: string; fallbacks?: string[] } | undefined,
         };
       });
   }
@@ -412,7 +414,16 @@ export function hasModelConfigChanges(state: ModelConfigState): boolean {
 
   const originalJson = JSON.stringify(state.modelConfigOriginal);
 
-  return currentJson !== originalJson;
+  if (currentJson !== originalJson) return true;
+
+  // 检查 Agent 模型配置是否有更改
+  if (state.modelConfigAgentsList && state.modelConfigAgentsListOriginal) {
+    const agentsJson = JSON.stringify(state.modelConfigAgentsList);
+    const agentsOriginalJson = JSON.stringify(state.modelConfigAgentsListOriginal);
+    if (agentsJson !== agentsOriginalJson) return true;
+  }
+
+  return false;
 }
 
 /**
@@ -1086,6 +1097,124 @@ export function updateGatewayConfig(
 }
 
 /**
+ * 更新 Agent 的主模型配置
+ * Update agent's primary model config
+ */
+export function updateAgentModel(
+  state: ModelConfigState,
+  agentId: string,
+  modelId: string | null,
+): void {
+  if (!state.modelConfigFullSnapshot) {
+    console.warn("[updateAgentModel] modelConfigFullSnapshot 为空");
+    return;
+  }
+
+  // 深度复制配置
+  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
+  const agents = (config.agents ?? {}) as Record<string, unknown>;
+  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+
+  // 查找目标 agent
+  const agentIndex = list.findIndex((a) => a.id === agentId);
+  if (agentIndex === -1) {
+    console.warn("[updateAgentModel] 未找到 agent:", agentId);
+    return;
+  }
+
+  const agent = list[agentIndex];
+
+  if (!modelId) {
+    // 清除模型配置，使用默认值
+    delete agent.model;
+  } else {
+    // 保留 fallbacks 如果有的话
+    const existing = agent.model;
+    if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+      const record = existing as Record<string, unknown>;
+      const fallbacks = record.fallbacks;
+      if (Array.isArray(fallbacks) && fallbacks.length > 0) {
+        agent.model = { primary: modelId, fallbacks };
+      } else {
+        agent.model = modelId;
+      }
+    } else {
+      agent.model = modelId;
+    }
+  }
+
+  // 更新配置快照（触发 UI 重新渲染）
+  state.modelConfigFullSnapshot = config;
+
+  // 同步更新 modelConfigAgentsList 以便正确检测变更
+  state.modelConfigAgentsList = list.map((a) => ({
+    id: a.id as string,
+    name: a.name as string | undefined,
+    default: a.default as boolean | undefined,
+    workspace: a.workspace as string | undefined,
+    identity: a.identity as AgentIdentityConfig | undefined,
+    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
+  }));
+
+  console.log("[updateAgentModel] 已更新 agent", agentId, "模型为", modelId);
+}
+
+/**
+ * 更新 Agent 的备选模型配置
+ * Update agent's fallback models config
+ */
+export function updateAgentModelFallbacks(
+  state: ModelConfigState,
+  agentId: string,
+  fallbacks: string[],
+): void {
+  if (!state.modelConfigFullSnapshot) return;
+
+  // 深度复制配置
+  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
+  const agents = (config.agents ?? {}) as Record<string, unknown>;
+  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+
+  // 查找目标 agent
+  const agentIndex = list.findIndex((a) => a.id === agentId);
+  if (agentIndex === -1) return;
+
+  const agent = list[agentIndex];
+
+  // 获取当前主模型
+  const existing = agent.model;
+  let primary: string | null = null;
+
+  if (typeof existing === "string") {
+    primary = existing.trim() || null;
+  } else if (existing && typeof existing === "object" && !Array.isArray(existing)) {
+    const record = existing as Record<string, unknown>;
+    if (typeof record.primary === "string") {
+      primary = record.primary.trim() || null;
+    }
+  }
+
+  if (fallbacks.length === 0) {
+    // 没有备选模型，使用简单字符串或清除
+    if (primary) {
+      agent.model = primary;
+    } else {
+      delete agent.model;
+    }
+  } else {
+    // 有备选模型，使用对象格式
+    if (primary) {
+      agent.model = { primary, fallbacks };
+    } else {
+      agent.model = { fallbacks };
+    }
+  }
+
+  // 更新配置快照
+  state.modelConfigFullSnapshot = config;
+}
+
+/**
  * 选择要编辑身份的 Agent
  */
 export function selectAgentForIdentity(
@@ -1676,8 +1805,10 @@ export function removeAgentToolsDenyEntry(
 
 /**
  * 加载会话列表
+ * @param state 状态对象
+ * @param agentId 可选的 Agent ID，用于过滤会话
  */
-export async function loadAgentSessions(state: ModelConfigState): Promise<void> {
+export async function loadAgentSessions(state: ModelConfigState, agentId?: string): Promise<void> {
   if (!state.client || !state.connected) return;
   if (state.agentSessionsLoading) return;
 
@@ -1685,11 +1816,18 @@ export async function loadAgentSessions(state: ModelConfigState): Promise<void> 
   state.agentSessionsError = null;
 
   try {
-    const res = (await state.client.request("sessions.list", {
+    const params: Record<string, unknown> = {
       limit: 50,
       includeGlobal: false,
       includeUnknown: false,
-    })) as SessionsListResult | undefined;
+    };
+
+    // 如果指定了 agentId，添加过滤条件
+    if (agentId) {
+      params.agentId = agentId;
+    }
+
+    const res = (await state.client.request("sessions.list", params)) as SessionsListResult | undefined;
 
     if (res) {
       state.agentSessionsResult = res;
@@ -1702,28 +1840,25 @@ export async function loadAgentSessions(state: ModelConfigState): Promise<void> 
 }
 
 /**
- * 更新会话模型 - 通过发送 /model 命令切换
- * Update session model via /model command
+ * 更新会话模型 - 通过 sessions.patch API 直接修改
+ * Update session model via sessions.patch API
  */
 export async function patchSessionModel(
   state: ModelConfigState,
   sessionKey: string,
   model: string | null,
+  agentId?: string,
 ): Promise<void> {
   if (!state.client || !state.connected) return;
 
   try {
-    // 发送 /model 命令到对应会话
-    const command = model ? `/model ${model}` : "/model default";
-    const idempotencyKey = `model-switch-${sessionKey}-${Date.now()}`;
-    await state.client.request("chat.send", {
-      sessionKey,
-      message: command,
-      idempotencyKey,
+    // 使用 sessions.patch API 直接修改模型
+    await state.client.request("sessions.patch", {
+      key: sessionKey,
+      model: model || null,  // null 表示清除模型覆盖，使用默认值
     });
-    // 等待命令处理完成后刷新会话列表
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    await loadAgentSessions(state);
+    // 刷新会话列表
+    await loadAgentSessions(state, agentId);
   } catch (err) {
     state.agentSessionsError = `切换模型失败: ${String(err)}`;
   }

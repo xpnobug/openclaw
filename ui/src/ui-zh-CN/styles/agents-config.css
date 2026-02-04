@@ -225,6 +225,11 @@
   border-radius: var(--radius-sm);
 }
 
+.agents-sidebar__section {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
 .agents-sidebar__section-title {
   font-size: 10px;
   font-weight: 600;
@@ -234,15 +239,19 @@
   padding: 8px 14px 4px;
 }
 
+.agents-sidebar__links {
+  padding: 0 12px 12px;
+}
+
 .agents-sidebar__link {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
-  padding: 10px 14px;
-  margin-bottom: 4px;
+  padding: 12px 14px;
+  margin-bottom: 6px;
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-lg);
   background: transparent;
   color: var(--muted);
   font-size: 13px;
@@ -250,12 +259,28 @@
   cursor: pointer;
   transition:
     background var(--duration-fast) ease,
-    color var(--duration-fast) ease;
+    color var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
 }
 
 .agents-sidebar__link:hover {
   background: var(--bg-hover);
   color: var(--text);
+}
+
+.agents-sidebar__link--active {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.agents-sidebar__link--active .agents-sidebar__link-icon {
+  color: var(--accent);
+}
+
+:root[data-theme="light"] .agents-sidebar__link--active {
+  background: white;
 }
 
 .agents-sidebar__link-icon {
@@ -294,9 +319,8 @@
 .agents-detail__content {
   flex: 1;
   overflow-y: auto;
-  /* GPU 加速优化 / GPU acceleration */
-  will-change: auto;
-  transform: translateZ(0);
+  /* GPU 加速优化已移除，因为 transform 会影响 fixed 定位的弹窗 */
+  /* GPU acceleration removed as transform affects fixed positioned modals */
 }
 
 /* Tab 内容切换动画 - 使用 CSS 变量控制 / Tab content transition animation */

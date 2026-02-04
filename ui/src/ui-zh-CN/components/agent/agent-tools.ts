@@ -352,11 +352,11 @@ export function renderAgentTools(props: AgentToolsProps) {
   const agentConfig = agentToolsConfigs.find((a) => a.id === agentId)?.tools ?? {};
 
   return html`
-    <div class="permissions-content">
+    <div class="config-content">
       <!-- 头部说明 -->
-      <div class="permissions-header">
+      <div class="config-content__header">
         <h3 class="permissions-title">工具权限</h3>
-        <p class="permissions-desc">
+        <p class="config-content__desc">
           配置 ${agentName ?? agentId} 可以使用的工具。可以选择预设配置档案，或单独控制每个工具的启用/禁用状态。
         </p>
       </div>

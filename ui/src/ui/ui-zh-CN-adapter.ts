@@ -99,6 +99,8 @@ export {
   updateModelField,
   updateAgentDefaults,
   updateGatewayConfig,
+  updateAgentModel,
+  updateAgentModelFallbacks,
   getAvailableModels,
   hasModelConfigChanges,
   getPermissionsAgents,
@@ -187,6 +189,8 @@ import {
   updateModelField as updateModelFieldInternal,
   updateAgentDefaults as updateAgentDefaultsInternal,
   updateGatewayConfig as updateGatewayConfigInternal,
+  updateAgentModel as updateAgentModelInternal,
+  updateAgentModelFallbacks as updateAgentModelFallbacksInternal,
   getAvailableModels as getAvailableModelsInternal,
   hasModelConfigChanges as hasModelConfigChangesInternal,
   getPermissionsAgents as getPermissionsAgentsInternal,
@@ -474,8 +478,8 @@ function buildAgentsConfigProps(state: AppViewState): AgentsConfigProps {
     agentSessionsResult: state.agentSessionsResult,
     agentSessionsError: state.agentSessionsError,
 
-    // 配置表单
-    configForm: null,  // TODO: 从 model config 获取
+    // 配置表单 - 使用完整配置快照 / Use full config snapshot
+    configForm: state.modelConfigFullSnapshot as AgentsConfigProps["configForm"],
     configLoading: state.modelConfigLoading,
     configSaving: state.modelConfigSaving,
     configApplying: state.modelConfigApplying,
@@ -492,7 +496,13 @@ function buildAgentsConfigProps(state: AppViewState): AgentsConfigProps {
     agentFilesList: state.workspaceFiles.length > 0 ? {
       agentId: state.workspaceAgentId ?? "",
       workspace: state.workspaceDir ?? "",
-      files: state.workspaceFiles.map(f => ({ name: f.name, path: f.path ?? f.name, missing: false }))
+      files: state.workspaceFiles.map(f => ({
+        name: f.name,
+        path: f.path ?? f.name,
+        missing: !f.exists,
+        size: f.size,
+        updatedAtMs: f.modifiedAt,
+      }))
     } : null,
     agentFilesLoading: state.workspaceLoading,
     agentFilesError: state.workspaceError,
@@ -590,6 +600,11 @@ function buildAgentsConfigProps(state: AppViewState): AgentsConfigProps {
         state.agentSkillsAgentId = null;
         state.agentSkillsReport = null;
         state.agentSkillsError = null;
+
+        // 加载该 Agent 的会话列表
+        // Load sessions for this agent
+        state.agentSessionsResult = null;
+        void loadAgentSessionsInternal(state, agentId);
       }
     },
     onPanelChange: (panel) => {
@@ -645,8 +660,8 @@ function buildAgentsConfigProps(state: AppViewState): AgentsConfigProps {
     onConfigApply: () => void applyModelConfigInternal(state),
 
     // 模型回调
-    onModelChange: () => {},  // TODO
-    onModelFallbacksChange: () => {},  // TODO
+    onModelChange: (agentId, modelId) => updateAgentModelInternal(state, agentId, modelId),
+    onModelFallbacksChange: (agentId, fallbacks) => updateAgentModelFallbacksInternal(state, agentId, fallbacks),
 
     // 工具回调
     onToolsToggleExpanded: () => toggleToolsExpandedInternal(state),
@@ -738,8 +753,18 @@ function buildAgentsConfigProps(state: AppViewState): AgentsConfigProps {
 
     // Agent 默认设置回调 / Agent defaults callbacks
     onAgentDefaultsUpdate: (path, value) => updateAgentDefaultsInternal(state, path, value),
-    onAgentSessionsRefresh: () => loadAgentSessionsInternal(state),
-    onAgentSessionModelChange: (sessionKey, model) => patchSessionModelInternal(state, sessionKey, model),
+    onAgentSessionsRefresh: () => {
+      // 获取当前选中的 Agent ID
+      const rawId = state.agentsSelectedId;
+      const agentId = parseGlobalPanel(rawId) ? null : rawId;
+      void loadAgentSessionsInternal(state, agentId ?? undefined);
+    },
+    onAgentSessionModelChange: (sessionKey, model) => {
+      // 获取当前选中的 Agent ID
+      const rawId = state.agentsSelectedId;
+      const agentId = parseGlobalPanel(rawId) ? null : rawId;
+      void patchSessionModelInternal(state, sessionKey, model, agentId ?? undefined);
+    },
     onAgentSessionNavigate: (sessionKey) => {
       state.sessionKey = sessionKey;
       state.chatMessage = "";
@@ -865,7 +890,12 @@ export function renderModelConfigTab(state: AppViewState) {
     agentSessionsResult: state.agentSessionsResult,
     agentSessionsError: state.agentSessionsError,
     onAgentSessionsRefresh: () => loadAgentSessionsInternal(state),
-    onAgentSessionModelChange: (sessionKey, model) => patchSessionModelInternal(state, sessionKey, model),
+    onAgentSessionModelChange: (sessionKey, model) => {
+      // 获取当前选中的 Agent ID
+      const rawId = state.agentsSelectedId;
+      const agentId = parseGlobalPanel(rawId) ? null : rawId;
+      void patchSessionModelInternal(state, sessionKey, model, agentId ?? undefined);
+    },
     onAgentSessionNavigate: (sessionKey) => {
       state.sessionKey = sessionKey;
       state.chatMessage = "";
