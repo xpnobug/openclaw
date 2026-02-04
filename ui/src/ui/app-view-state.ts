@@ -162,10 +162,6 @@ export type AppViewState = {
   cronRunsJobId: string | null;
   cronRuns: CronRunLogEntry[];
   cronBusy: boolean;
-  cronExpandedJobId: string | null;
-  cronDeleteConfirmJobId: string | null;
-  cronShowCreateModal: boolean;
-  cronEditJobId: string | null;
   skillsLoading: boolean;
   skillsReport: SkillStatusReport | null;
   skillsError: string | null;
@@ -190,86 +186,6 @@ export type AppViewState = {
   logsLevelFilters: Record<LogLevel, boolean>;
   logsAutoFollow: boolean;
   logsTruncated: boolean;
-  // 模型配置状态
-  modelConfigLoading: boolean;
-  modelConfigSaving: boolean;
-  modelConfigApplying: boolean;
-  modelConfigProviders: Record<string, ProviderConfig>;
-  modelConfigAgentDefaults: AgentDefaults;
-  modelConfigGateway: GatewayConfig;
-  modelConfigExpandedProviders: Set<string>;
-  modelConfigOriginal: {
-    providers: Record<string, ProviderConfig>;
-    agentDefaults: AgentDefaults;
-    gateway: GatewayConfig;
-    channels: ChannelsConfigData | null;
-  } | null;
-  // 完整配置快照（用于保存）
-  modelConfigFullSnapshot: Record<string, unknown> | null;
-  modelConfigHash: string | null;
-  // 当前选中的配置区块
-  modelConfigActiveSection: ConfigSectionId;
-  // 通道配置
-  modelConfigChannelsConfig: ChannelsConfigData | null;
-  modelConfigSelectedChannel: string | null;
-  // 权限管理状态（模型配置页面）
-  permissionsLoading: boolean;
-  permissionsSaving: boolean;
-  permissionsDirty: boolean;
-  permissionsSelectedAgent: string | null;
-  permissionsActiveTab: PermissionsTabId;
-  // 工具权限状态
-  toolsConfig: ToolsConfig | null;
-  toolsConfigOriginal: ToolsConfig | null;
-  agentToolsConfigs: AgentWithTools[];
-  agentToolsConfigsOriginal: AgentWithTools[];
-  toolsSelectedAgent: string | null;
-  toolsExpanded: boolean;
-  // 会话管理状态 (Agent 设置页)
-  agentSessionsLoading: boolean;
-  agentSessionsResult: AgentSessionsListResult | null;
-  agentSessionsError: string | null;
-  // Agent 身份配置状态 / Agent identity config state
-  modelConfigAgentsList: AgentIdentityEntry[];
-  modelConfigAgentsListOriginal: AgentIdentityEntry[];
-  modelConfigSelectedAgentId: string | null;
-  // 工作区文件状态 / Workspace file state
-  workspaceFiles: WorkspaceFileInfo[];
-  workspaceDir: string;
-  workspaceAgentId: string;
-  workspaceSelectedFile: string | null;
-  workspaceEditorContent: string;
-  workspaceOriginalContent: string;
-  workspaceLoading: boolean;
-  workspaceSaving: boolean;
-  workspaceError: string | null;
-  workspaceEditorMode: "edit" | "preview" | "split";
-  workspaceExpandedFolders: Set<string>;
-  // 添加供应商弹窗状态 / Add provider modal state
-  addProviderModalShow: boolean;
-  addProviderForm: ProviderFormState;
-  addProviderError: string | null;
-  // 技能管理状态 (Skills management state for changeoradd)
-  skillsConfigLoading: boolean;
-  skillsConfigSaving: boolean;
-  skillsConfigError: string | null;
-  skillsConfigReport: SkillStatusReport | null;
-  skillsConfig: SkillsConfig | null;
-  skillsConfigOriginal: SkillsConfig | null;
-  skillsConfigFilter: string;
-  skillsConfigSourceFilter: SkillSourceFilter;
-  skillsConfigStatusFilter: SkillStatusFilter;
-  skillsConfigExpandedGroups: Set<string>;
-  skillsConfigSelectedSkill: string | null;
-  skillsConfigBusySkill: string | null;
-  skillsConfigMessages: Record<string, SkillConfigMessage>;
-  skillsConfigAllowlistMode: "all" | "whitelist";
-  skillsConfigAllowlistDraft: Set<string>;
-  skillsConfigEdits: Record<string, SkillEditState>;
-  // 技能编辑器状态 / Skills editor state (Phase 5-6)
-  skillsConfigEditor: SkillEditorState;
-  skillsConfigCreate: SkillCreateState;
-  skillsConfigDelete: SkillDeleteState;
   client: GatewayBrowserClient | null;
   connect: () => void;
   setTab: (tab: Tab) => void;
@@ -330,18 +246,4 @@ export type AppViewState = {
   handleLogsLevelFilterToggle: (level: LogLevel) => void;
   handleLogsAutoFollowToggle: (next: boolean) => void;
   handleCallDebugMethod: (method: string, params: string) => Promise<void>;
-  // 技能编辑器处理函数 / Skills editor handlers (Phase 5-6)
-  handleSkillEditorOpen: (skillKey: string, skillName: string, source: EditableSkillSource) => Promise<void>;
-  handleSkillEditorClose: () => void;
-  handleSkillEditorContentChange: (content: string) => void;
-  handleSkillEditorModeChange: (mode: SkillEditorMode) => void;
-  handleSkillEditorSave: () => Promise<void>;
-  handleSkillCreateOpen: (source?: EditableSkillSource) => void;
-  handleSkillCreateClose: () => void;
-  handleSkillCreateNameChange: (name: string) => void;
-  handleSkillCreateSourceChange: (source: EditableSkillSource) => void;
-  handleSkillCreateConfirm: () => Promise<void>;
-  handleSkillDeleteOpen: (skillKey: string, skillName: string, source: EditableSkillSource) => void;
-  handleSkillDeleteClose: () => void;
-  handleSkillDeleteConfirm: () => Promise<void>;
 };

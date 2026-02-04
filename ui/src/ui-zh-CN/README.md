@@ -7,6 +7,57 @@
 5. Workspace - 工作区文件编辑器（SOUL.md、IDENTITY.md 等）
 6. Permissions - 命令执行权限和工具权限管理
 
+
+以下是 Fork 项目同步上游代码的操作步骤：
+
+  ---
+  Fork 项目同步上游仓库指南
+
+  1. 查看远程仓库配置
+
+  git remote -v
+
+  确认已配置 upstream 指向上游仓库：
+  - origin - 你的 fork 仓库
+  - upstream - 上游原始仓库
+
+  如果没有 upstream，需要先添加：
+  git remote add upstream https://github.com/openclaw/openclaw.git
+
+  2. 获取上游最新代码
+
+  git fetch upstream main
+
+  3. 变基到上游最新代码
+
+  git rebase upstream/main
+
+  4. 解决冲突（如有）
+
+  如果出现冲突：
+
+  1. 查看冲突文件：
+  git diff --name-only --diff-filter=U
+  2. 编辑冲突文件，手动合并 <<<<<<<、=======、>>>>>>> 标记之间的内容
+  3. 标记冲突已解决并继续：
+  git add <冲突文件>
+  git rebase --continue
+  4. 如需放弃 rebase：
+  git rebase --abort
+
+  5. 强制推送到远程
+
+  由于 rebase 改变了提交历史，需要强制推送：
+
+  git push --force-with-lease origin <分支名>
+
+  --force-with-lease 比 --force 更安全，会检查远程是否有其他人的新提交。
+
+  ---
+  注意事项：
+  - 在 rebase 前确保本地改动已提交
+  - 强制推送会覆盖远程历史，确保该分支只有你在使用
+
 ---
 
 ## 一、目录结构

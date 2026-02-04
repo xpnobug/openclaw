@@ -254,10 +254,6 @@ export class OpenClawApp extends LitElement {
   @state() cronRunsJobId: string | null = null;
   @state() cronRuns: CronRunLogEntry[] = [];
   @state() cronBusy = false;
-  @state() cronExpandedJobId: string | null = null;
-  @state() cronDeleteConfirmJobId: string | null = null;
-  @state() cronShowCreateModal = false;
-  @state() cronEditJobId: string | null = null;
 
   @state() skillsLoading = false;
   @state() skillsReport: SkillStatusReport | null = null;
@@ -293,6 +289,10 @@ export class OpenClawApp extends LitElement {
   @state() logsMaxBytes = 250_000;
   @state() logsAtBottom = true;
 
+  @state() cronExpandedJobId: string | null = null;
+  @state() cronDeleteConfirmJobId: string | null = null;
+  @state() cronShowCreateModal = false;
+  @state() cronEditJobId: string | null = null;
   // 模型配置页面状态
   @state() modelConfigLoading = false;
   @state() modelConfigSaving = false;

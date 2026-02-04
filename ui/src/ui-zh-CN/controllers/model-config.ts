@@ -25,7 +25,6 @@ import type {
   GatewayConfig,
   ModelConfig,
 } from "../views/model-config";
-import type { ConfigSectionId } from "../types/config-sections";
 import type { ChannelsConfigData } from "../types/channel-config";
 import type { ProviderFormState } from "../components/providers-content";
 import type {
@@ -138,8 +137,6 @@ export type ModelConfigState = {
   // 完整配置快照（用于保存）
   modelConfigFullSnapshot: Record<string, unknown> | null;
   modelConfigHash: string | null;
-  // 当前选中的配置区块
-  modelConfigActiveSection: ConfigSectionId;
   // 通道配置
   modelConfigChannelsConfig: ChannelsConfigData | null;
   modelConfigSelectedChannel: string | null;
@@ -1129,26 +1126,6 @@ export function updateAgentIdentity(
 
   list[index] = agent;
   state.modelConfigAgentsList = list;
-}
-
-/**
- * 切换配置区块
- */
-export function setActiveSection(
-  state: ModelConfigState,
-  sectionId: string,
-): void {
-  state.modelConfigActiveSection = sectionId as ConfigSectionId;
-
-  // 切换到权限管理时自动加载权限数据
-  if (sectionId === "permissions" && !state.execApprovalsSnapshot && !state.permissionsLoading) {
-    void loadPermissions(state);
-  }
-
-  // 切换到 Agent 设置时自动加载会话列表
-  if (sectionId === "agent" && !state.agentSessionsResult && !state.agentSessionsLoading) {
-    void loadAgentSessions(state);
-  }
 }
 
 // ============================================
