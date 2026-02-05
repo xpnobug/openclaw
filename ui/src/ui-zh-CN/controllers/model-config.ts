@@ -832,6 +832,13 @@ export async function saveModelConfig(state: ModelConfigState): Promise<void> {
 export async function applyModelConfig(state: ModelConfigState): Promise<void> {
   if (!state.client || !state.connected) return;
 
+  // 防止重复调用
+  if (state.modelConfigApplying) {
+    console.warn("[applyModelConfig] 已在应用中，跳过重复调用");
+    return;
+  }
+
+  console.log("[applyModelConfig] 开始应用配置");
   state.modelConfigApplying = true;
   state.lastError = null;
 
@@ -856,18 +863,24 @@ export async function applyModelConfig(state: ModelConfigState): Promise<void> {
         // 主配置保存失败
         console.warn("主配置保存失败");
       } else {
+        console.log("[applyModelConfig] 调用 config.apply");
         await state.client.request("config.apply", {
           raw,
           baseHash: state.modelConfigHash,
+          // 立即触发重启，避免与配置文件监听器的重启冲突
+          // 配置文件监听器会在检测到文件变化后也触发重启
+          // 如果延迟触发，会导致两次重启
+          restartDelayMs: 0,
         });
+        console.log("[applyModelConfig] config.apply 完成，Gateway 将重启");
+        // config.apply 会触发 Gateway 重启，不需要手动重新加载配置
+        // Gateway 重启后 UI 会自动重连并重新加载数据
+        // 这里直接返回，避免在重启过程中执行额外操作
+        return;
       }
     }
 
-    // 重新加载配置以获取最新状态
-    if (mainConfigChanged) {
-      await loadModelConfig(state);
-    }
-    // 重新加载权限配置
+    // 只有在没有主配置更改时才重新加载权限配置
     if (state.execApprovalsSnapshot) {
       await loadPermissions(state);
     }
