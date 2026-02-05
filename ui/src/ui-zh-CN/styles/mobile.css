@@ -499,6 +499,12 @@
     width: 100%;
   }
 
+  /* 文件列表 - 移除高度限制 */
+  .ws-file-list {
+    max-height: none;
+    height: auto;
+  }
+
   .ws-editor {
     display: none;
   }
