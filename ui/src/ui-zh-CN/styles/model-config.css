@@ -5979,16 +5979,37 @@
   }
 
   .cron-job-card__meta {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px 12px;
+  }
+
+  .cron-job-card__meta-item {
+    min-width: 0;
+  }
+
+  .cron-job-card__meta-label {
+    font-size: 10px;
+  }
+
+  .cron-job-card__meta-value {
+    font-size: 12px;
   }
 
   .cron-job-card__actions {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
   }
 
   .cron-job-card__actions .mc-btn {
-    width: 100%;
     justify-content: center;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  /* 删除按钮单独占一行 */
+  .cron-job-card__actions .mc-btn--danger {
+    grid-column: span 2;
   }
 
   .cron-schedule-tabs {

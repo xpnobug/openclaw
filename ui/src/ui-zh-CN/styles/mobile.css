@@ -401,6 +401,28 @@
     grid-template-columns: 1fr;
   }
 
+  /* 任务卡片详情优化 */
+  .cron-job-card__details {
+    padding: 0 14px 14px;
+  }
+
+  .cron-job-card__meta {
+    padding: 12px 0;
+  }
+
+  /* 运行历史列表 */
+  .cron-run-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .cron-run-item > div:last-child {
+    text-align: left;
+    width: 100%;
+  }
+
   /* ─────────────────────────────────────────
      Channels - 通道
      ───────────────────────────────────────── */
