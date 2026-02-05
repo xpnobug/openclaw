@@ -35,6 +35,9 @@ export type AgentFilesProps = {
   editorMode?: "edit" | "preview" | "split";
   expandedFolders?: Set<string>;
 
+  // 移动端视图模式 / Mobile view mode
+  mobileView?: "list" | "editor";
+
   // 回调函数 / Callbacks
   onLoadFiles: (agentId: string) => void;
   onSelectFile: (name: string) => void;
@@ -44,6 +47,7 @@ export type AgentFilesProps = {
   onModeChange?: (mode: "edit" | "preview" | "split") => void;
   onFolderToggle?: (folderName: string) => void;
   onFileCreate?: (fileName: string) => void;
+  onMobileBack?: () => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,6 +94,7 @@ export function renderAgentFiles(props: AgentFilesProps) {
     agentFileSaving,
     editorMode = "edit",
     expandedFolders = new Set<string>(),
+    mobileView = "list",
     onLoadFiles,
     onSelectFile,
     onFileDraftChange,
@@ -98,6 +103,7 @@ export function renderAgentFiles(props: AgentFilesProps) {
     onModeChange,
     onFolderToggle,
     onFileCreate,
+    onMobileBack,
   } = props;
 
   // 检查是否需要加载文件列表 / Check if need to load files list
@@ -142,6 +148,7 @@ export function renderAgentFiles(props: AgentFilesProps) {
     error: agentFilesError,
     editorMode,
     expandedFolders,
+    mobileView,
 
     // 回调映射 / Callback mappings
     onFileSelect: onSelectFile,
@@ -159,6 +166,7 @@ export function renderAgentFiles(props: AgentFilesProps) {
     onModeChange: onModeChange ?? (() => {}),
     onFileCreate: onFileCreate ?? (() => {}),
     onFolderToggle,
+    onMobileBack,
     // 不显示 Agent 选择器（因为已经在 Agent 详情页内）
     // Don't show agent selector (already in agent details page)
     onAgentChange: undefined,

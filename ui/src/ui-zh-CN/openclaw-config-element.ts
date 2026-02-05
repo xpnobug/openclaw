@@ -124,6 +124,7 @@ type InternalState = ModelConfigState & SkillsConfigState & {
   // 文件编辑器状态
   filesEditorMode: "edit" | "preview" | "split";
   filesExpandedFolders: Set<string>;
+  filesMobileView: "list" | "editor";
 };
 
 // 默认 Cron 表单
@@ -214,6 +215,7 @@ export class OpenClawConfigElement extends LitElement {
       // 文件编辑器
       filesEditorMode: "edit",
       filesExpandedFolders: new Set(),
+      filesMobileView: "list",
     } as InternalState;
   }
 
@@ -720,6 +722,7 @@ export class OpenClawConfigElement extends LitElement {
       agentFileSaving: s.workspaceSaving,
       filesEditorMode: s.filesEditorMode,
       filesExpandedFolders: s.filesExpandedFolders,
+      filesMobileView: s.filesMobileView,
 
       // 工具面板
       toolsConfig: s.toolsConfig,
@@ -905,6 +908,8 @@ export class OpenClawConfigElement extends LitElement {
       },
       onSelectFile: (name) => {
         selectWorkspaceFile(s, name).then(update);
+        // 移动端选择文件后切换到编辑器视图
+        s.filesMobileView = "editor";
       },
       onFileDraftChange: (_name, content) => {
         s.workspaceEditorContent = content;
@@ -926,6 +931,7 @@ export class OpenClawConfigElement extends LitElement {
         update();
       },
       onFileCreate: (fileName) => { createWorkspaceFile(s, fileName); update(); },
+      onFilesMobileBack: () => { s.filesMobileView = "list"; update(); },
 
       // 技能回调
       onSkillsRefresh: () => { loadSkillsStatus(s).then(update); },

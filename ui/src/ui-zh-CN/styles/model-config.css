@@ -3073,6 +3073,16 @@
   min-width: 0;
 }
 
+/* 返回按钮 - 桌面端隐藏 / Back button - hidden on desktop */
+.ws-editor__back-btn {
+  display: none;
+}
+
+/* 文件列表包装器 / File list wrapper */
+.ws-file-list-wrapper {
+  display: contents;
+}
+
 :root[data-theme="light"] .ws-editor {
   background: white;
 }

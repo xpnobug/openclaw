@@ -86,6 +86,7 @@ export type AgentsConfigProps = {
   agentFileSaving: boolean;
   filesEditorMode?: "edit" | "preview" | "split";
   filesExpandedFolders?: Set<string>;
+  filesMobileView?: "list" | "editor";
 
   // 工具面板数据 / Tools panel data
   toolsConfig: ToolsConfig | null;
@@ -196,6 +197,7 @@ export type AgentsConfigProps = {
   onFilesEditorModeChange?: (mode: "edit" | "preview" | "split") => void;
   onFilesFolderToggle?: (folderName: string) => void;
   onFileCreate?: (fileName: string) => void;
+  onFilesMobileBack?: () => void;
 
   // 技能回调 / Skills callbacks
   onSkillsRefresh: () => void;
@@ -326,6 +328,7 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         agentFileSaving: props.agentFileSaving,
         editorMode: props.filesEditorMode,
         expandedFolders: props.filesExpandedFolders,
+        mobileView: props.filesMobileView,
         onLoadFiles: props.onLoadFiles,
         onSelectFile: props.onSelectFile,
         onFileDraftChange: props.onFileDraftChange,
@@ -334,6 +337,7 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         onModeChange: props.onFilesEditorModeChange,
         onFolderToggle: props.onFilesFolderToggle,
         onFileCreate: props.onFileCreate,
+        onMobileBack: props.onFilesMobileBack,
       });
 
     case "tools":
