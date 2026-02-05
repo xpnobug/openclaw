@@ -2,6 +2,30 @@
 
 > 自包含的中文可视化配置界面，解决配置繁琐和权限安全问题。
 
+## 界面预览
+
+### 页面整体
+
+![页面整体预览](https://fastly.jsdelivr.net/gh/bucketio/img5@main/2026/02/05/1770287825627-a0662bdf-fc2d-4434-be94-9f37bcc91bec.png)
+
+### Agent 配置
+
+| 文件管理 | 工具权限 |
+|:---:|:---:|
+| ![文件管理](https://fastly.jsdelivr.net/gh/bucketio/img7@main/2026/02/05/1770288023563-0a136e31-afa8-46ed-a360-90023195d433.png) | ![工具权限](https://fastly.jsdelivr.net/gh/bucketio/img4@main/2026/02/05/1770288052621-ffc70ae6-c574-4d13-9b45-8a49066ee777.png) |
+
+| 技能管理 | 定时任务 |
+|:---:|:---:|
+| ![技能管理](https://fastly.jsdelivr.net/gh/bucketio/img9@main/2026/02/05/1770288079872-4a2246bd-a74e-4e10-81f2-d160a2d80cac.png) | ![定时任务](https://fastly.jsdelivr.net/gh/bucketio/img2@main/2026/02/05/1770288103982-08a3e4f3-87d1-404d-bef1-8aa49c03c1e7.png) |
+
+### 全局配置
+
+| 模型供应商 | 渠道配置 |
+|:---:|:---:|
+| ![模型供应商](https://fastly.jsdelivr.net/gh/bucketio/img1@main/2026/02/05/1770288142016-060136a6-89e3-4c09-9b25-de480814cb85.png) | ![渠道配置](https://fastly.jsdelivr.net/gh/bucketio/img4@main/2026/02/05/1770288186075-f3671fb7-af41-4c62-baac-124a77766478.png) |
+
+---
+
 ## 特性
 
 - **Agent-centric 设计** - 以 Agent 为中心的配置管理
@@ -146,6 +170,7 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
 ```
 
 **好处**：
+- 仅需修改两个文件 navigation.ts，app-render.ts
 - 同步上游代码时，只需保留 `ui-zh-CN` 整个目录
 - 外部只通过 `import "../ui-zh-CN"` 导入
 - 内部可自由重构，不影响外部
@@ -156,7 +181,7 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
 
 ### 在主 UI 中集成
 
-详细集成步骤请参考 [集成指南](./docs/integration-guide.md)。
+详细集成步骤请参考 [集成指南](https://github.com/xpnobug/openclaw/blob/ui-zh-CN/ui/src/ui-zh-CN/docs/integration-guide.md)。
 
 #### 快速配置清单
 
