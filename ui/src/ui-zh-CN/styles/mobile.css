@@ -120,11 +120,18 @@
   }
 
   .agents-sidebar__item {
-    flex: 0 0 auto;
+    flex: 0 0 auto !important;
+    width: auto !important;
     padding: 6px 12px;
     margin-bottom: 0;
     border-radius: var(--radius-md);
     gap: 8px;
+    max-width: none;
+  }
+
+  .agents-sidebar__item--active {
+    flex: 0 0 auto !important;
+    width: auto !important;
   }
 
   .agents-sidebar__item-avatar {
@@ -173,7 +180,8 @@
   }
 
   .agents-sidebar__link {
-    flex: 0 0 auto;
+    flex: 0 0 auto !important;
+    width: auto !important;
     padding: 6px 12px;
     margin-bottom: 0;
     font-size: 12px;
@@ -206,7 +214,8 @@
   /* ─────────────────────────────────────────
      Agent Header - Agent 头部（移动端隐藏，因为顶部已显示）
      ───────────────────────────────────────── */
-  .agent-header {
+  .agent-header,
+  .agents-detail__header {
     display: none;
   }
 
