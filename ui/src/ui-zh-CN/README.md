@@ -89,7 +89,8 @@ ui-zh-CN/
 │       └── skills-files.ts     # 技能文件操作
 │
 └── docs/                       # 设计文档
-    └── agent-centric-refactor.md
+    ├── agent-centric-refactor.md  # Agent-centric 重构设计
+    └── integration-guide.md       # 主 UI 集成指南
 ```
 
 ---
@@ -153,6 +154,23 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
 
 ## 使用方式
 
+### 在主 UI 中集成
+
+详细集成步骤请参考 [集成指南](./docs/integration-guide.md)。
+
+#### 快速配置清单
+
+| 文件 | 配置项 |
+|------|--------|
+| `navigation.ts` | `TAB_GROUPS` - 添加到 Settings 分组 |
+| `navigation.ts` | `Tab` 类型 - 添加 `"model-config"` |
+| `navigation.ts` | `TAB_PATHS` - 路径映射 `/model-config` |
+| `navigation.ts` | `iconForTab()` - 图标 `"brain"` |
+| `navigation.ts` | `titleForTab()` - 标题 `"可视化配置"` |
+| `navigation.ts` | `subtitleForTab()` - 副标题描述 |
+| `app-render.ts` | 导入 `import "../ui-zh-CN"` |
+| `app-render.ts` | 渲染 `<openclaw-config-zh>` 组件 |
+
 ### 在 HTML 中使用
 
 ```html
@@ -161,6 +179,13 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
   .connected=${isConnected}
 ></openclaw-config-zh>
 ```
+
+### 组件属性
+
+| 属性 | 类型 | 说明 |
+|------|------|------|
+| `.client` | `GatewayBrowserClient` | Gateway RPC 客户端实例 |
+| `.connected` | `boolean` | 与 Gateway 的连接状态 |
 
 ### 事件监听
 
@@ -176,6 +201,11 @@ element.addEventListener('navigate-channels', () => {
   // 跳转到通道配置页面
 });
 ```
+
+| 事件 | Detail 类型 | 说明 |
+|------|-------------|------|
+| `session-navigate` | `{ sessionKey: string }` | 请求跳转到指定会话 |
+| `navigate-channels` | - | 请求跳转到 Channels 页面 |
 
 ---
 
