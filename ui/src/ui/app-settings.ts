@@ -252,10 +252,6 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadConfigSchema(host as unknown as OpenClawApp);
     await loadConfig(host as unknown as OpenClawApp);
   }
-  if (host.tab === "model-config") {
-    // model-config 页面由 <openclaw-config-zh> 组件自己管理数据加载
-    // The model-config page data loading is handled by the <openclaw-config-zh> component itself
-  }
   if (host.tab === "debug") {
     await loadDebug(host as unknown as OpenClawApp);
     host.eventLog = host.eventLogBuffer;

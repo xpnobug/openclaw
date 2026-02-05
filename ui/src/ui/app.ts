@@ -269,11 +269,6 @@ export class OpenClawApp extends LitElement {
   @state() logsMaxBytes = 250_000;
   @state() logsAtBottom = true;
 
-  @state() cronExpandedJobId: string | null = null;
-  @state() cronDeleteConfirmJobId: string | null = null;
-  @state() cronShowCreateModal = false;
-  @state() cronEditJobId: string | null = null;
-
   client: GatewayBrowserClient | null = null;
   private chatScrollFrame: number | null = null;
   private chatScrollTimeout: number | null = null;
