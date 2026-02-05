@@ -2,7 +2,6 @@ import { html, nothing } from "lit";
 import type { AppViewState } from "./app-view-state.ts";
 import { parseAgentSessionKey } from "../../../src/routing/session-key.js";
 import { ChatHost, refreshChatAvatar } from "./app-chat.ts";
-import { renderModelConfigTab } from "./ui-zh-CN-adapter.ts";
 import { renderChatControls, renderTab, renderThemeToggle } from "./app-render.helpers.ts";
 import { OpenClawApp } from "./app.ts";
 import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
@@ -69,6 +68,9 @@ import { renderNodes } from "./views/nodes.ts";
 import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
+// 导入 ui-zh-CN 自包含组件（统一入口）
+// Import ui-zh-CN self-contained component (unified entry)
+import "../ui-zh-CN";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -913,7 +915,27 @@ export function renderApp(state: AppViewState) {
               })
             : nothing
         }
-          ${state.tab === "model-config" ? renderModelConfigTab(state) : nothing}
+          ${state.tab === "model-config" ? html`
+            <openclaw-config-zh
+              .client=${state.client}
+              .connected=${state.connected}
+              @session-navigate=${(e: CustomEvent<{ sessionKey: string }>) => {
+                state.sessionKey = e.detail.sessionKey;
+                state.chatMessage = "";
+                (state as unknown as OpenClawApp).resetToolStream();
+                (state as unknown as OpenClawApp).applySettings({
+                  ...state.settings,
+                  sessionKey: e.detail.sessionKey,
+                  lastActiveSessionKey: e.detail.sessionKey,
+                });
+                void (state as unknown as OpenClawApp).loadAssistantIdentity();
+                (state as unknown as OpenClawApp).setTab("chat");
+              }}
+              @navigate-channels=${() => {
+                (state as unknown as OpenClawApp).setTab("channels");
+              }}
+            ></openclaw-config-zh>
+          ` : nothing}
         ${
           state.tab === "config"
             ? renderConfig({

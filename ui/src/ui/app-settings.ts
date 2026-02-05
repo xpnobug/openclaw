@@ -21,7 +21,6 @@ import { loadNodes } from "./controllers/nodes.ts";
 import { loadPresence } from "./controllers/presence.ts";
 import { loadSessions } from "./controllers/sessions.ts";
 import { loadSkills } from "./controllers/skills.ts";
-import { loadModelConfig, loadAgentSessions } from "./ui-zh-CN-adapter.ts";
 import {
   inferBasePathFromPathname,
   normalizeBasePath,
@@ -254,7 +253,8 @@ export async function refreshActiveTab(host: SettingsHost) {
     await loadConfig(host as unknown as OpenClawApp);
   }
   if (host.tab === "model-config") {
-    await loadModelConfig(host as unknown as MoltbotApp);
+    // model-config 页面由 <openclaw-config-zh> 组件自己管理数据加载
+    // The model-config page data loading is handled by the <openclaw-config-zh> component itself
   }
   if (host.tab === "debug") {
     await loadDebug(host as unknown as OpenClawApp);

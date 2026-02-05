@@ -203,6 +203,116 @@ export type ModelConfigState = {
 };
 
 /**
+ * 创建初始 ModelConfigState
+ * Create initial ModelConfigState
+ */
+export function createInitialModelConfigState(): ModelConfigState {
+  return {
+    client: null,
+    connected: false,
+    lastError: null,
+
+    // 模型配置数据
+    modelConfigLoading: false,
+    modelConfigSaving: false,
+    modelConfigApplying: false,
+    modelConfigProviders: {},
+    modelConfigAgentDefaults: {},
+    modelConfigGateway: {},
+    modelConfigExpandedProviders: new Set(),
+    modelConfigOriginal: null,
+    modelConfigFullSnapshot: null,
+    modelConfigHash: null,
+    modelConfigChannelsConfig: null,
+    modelConfigSelectedChannel: null,
+
+    // 会话管理状态
+    agentSessionsLoading: false,
+    agentSessionsResult: null,
+    agentSessionsError: null,
+
+    // 权限管理状态
+    permissionsLoading: false,
+    permissionsSaving: false,
+    permissionsDirty: false,
+    execApprovalsSnapshot: null,
+    execApprovalsForm: null,
+    permissionsSelectedAgent: null,
+    permissionsActiveTab: "exec",
+
+    // 工具权限状态
+    toolsConfig: null,
+    toolsConfigOriginal: null,
+    agentToolsConfigs: [],
+    agentToolsConfigsOriginal: [],
+    toolsSelectedAgent: null,
+    toolsExpanded: true,
+
+    // Agent 身份配置状态
+    modelConfigAgentsList: [],
+    modelConfigAgentsListOriginal: [],
+    modelConfigSelectedAgentId: null,
+
+    // 工作区文件状态
+    workspaceFiles: [],
+    workspaceDir: "",
+    workspaceAgentId: "",
+    workspaceSelectedFile: null,
+    workspaceEditorContent: "",
+    workspaceOriginalContent: "",
+    workspaceLoading: false,
+    workspaceSaving: false,
+    workspaceError: null,
+    workspaceEditorMode: "edit",
+
+    // 定时任务状态
+    cronLoading: false,
+    cronBusy: false,
+    cronError: null,
+    cronStatus: null,
+    cronJobs: [],
+    cronForm: {
+      name: "",
+      description: "",
+      agentId: "",
+      enabled: true,
+      scheduleKind: "every",
+      scheduleAt: "",
+      everyAmount: "30",
+      everyUnit: "minutes",
+      cronExpr: "0 7 * * *",
+      cronTz: "",
+      payloadKind: "systemEvent",
+      payloadText: "",
+      deliver: false,
+      channel: "last",
+      to: "",
+      timeoutSeconds: "",
+      postToMainPrefix: "",
+      sessionTarget: "last",
+      wakeMode: "wake",
+    },
+    cronChannels: [],
+    cronChannelLabels: {},
+    cronChannelMeta: [],
+    cronRunsJobId: null,
+    cronRuns: [],
+    cronExpandedJobId: null,
+    cronDeleteConfirmJobId: null,
+
+    // 添加供应商弹窗状态
+    addProviderModalShow: false,
+    addProviderForm: {
+      key: "",
+      baseUrl: "",
+      apiKey: "",
+      api: "openai-completions",
+    },
+    addProviderError: null,
+  };
+}
+
+/**
  * 从配置快照中提取模型供应商数据
  */
 function extractProviders(
