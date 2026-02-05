@@ -89,30 +89,34 @@
     flex-shrink: 0;
     max-height: none;
     overflow: visible;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    padding: 8px 10px;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .agents-sidebar::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .agents-sidebar::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 2px;
   }
 
   .agents-sidebar__header {
     display: none;
   }
 
-  /* Agent 列表 - 横向滚动 */
+  /* Agent 列表 - 横向排列 */
   .agents-sidebar__list {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding: 8px 12px;
-    gap: 6px;
-    -webkit-overflow-scrolling: touch;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .agents-sidebar__list::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .agents-sidebar__list::-webkit-scrollbar-thumb {
-    background: var(--border-strong);
-    border-radius: 2px;
+    display: contents;
+    padding: 0;
+    border-bottom: none;
+    overflow: visible;
   }
 
   .agents-sidebar__item {
@@ -120,6 +124,7 @@
     padding: 6px 12px;
     margin-bottom: 0;
     border-radius: var(--radius-md);
+    gap: 8px;
   }
 
   .agents-sidebar__item-avatar {
@@ -151,10 +156,11 @@
     display: none;
   }
 
-  /* 全局配置区域 - 横向紧凑布局 */
+  /* 全局配置区域 - 与 Agent 列表同行 */
   .agents-sidebar__section {
-    padding: 8px 12px;
-    border-bottom: none;
+    display: contents;
+    padding: 0;
+    border-top: none;
   }
 
   .agents-sidebar__section-title {
@@ -162,26 +168,29 @@
   }
 
   .agents-sidebar__links {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 4px;
-    -webkit-overflow-scrolling: touch;
+    display: contents;
+    padding: 0;
   }
 
   .agents-sidebar__link {
     flex: 0 0 auto;
     padding: 6px 12px;
+    margin-bottom: 0;
     font-size: 12px;
     white-space: nowrap;
     border-radius: var(--radius-md);
     background: var(--bg-elevated);
     border: 1px solid var(--border);
+    gap: 6px;
   }
 
   .agents-sidebar__link--active {
     background: var(--accent);
     border-color: var(--accent);
+    color: white;
+  }
+
+  .agents-sidebar__link--active .agents-sidebar__link-icon {
     color: white;
   }
 
