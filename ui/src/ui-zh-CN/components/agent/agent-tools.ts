@@ -366,20 +366,6 @@ export function renderAgentTools(props: AgentToolsProps) {
 
       <!-- 工具列表（带开关） -->
       ${renderToolsListSection(props, agentConfig)}
-
-      <!-- 操作按钮 -->
-      <div class="mc-actions" style="margin-top: 16px; padding: 16px 0; border-top: 1px solid var(--border);">
-        <button class="mc-btn mc-btn--sm" ?disabled=${loading || saving} @click=${props.onReload}>
-          ${loading ? "加载中..." : "重新加载"}
-        </button>
-        <button
-          class="mc-btn mc-btn--sm mc-btn--primary"
-          ?disabled=${!dirty || loading || saving}
-          @click=${props.onSave}
-        >
-          ${saving ? "保存中..." : "保存配置"}
-        </button>
-      </div>
     </div>
   `;
 }
