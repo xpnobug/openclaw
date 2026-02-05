@@ -609,8 +609,16 @@ export class OpenClawConfigElement extends LitElement {
     if (!this.connected) {
       return html`
         <div class="agents-layout agents-layout--disconnected">
-          <div class="mc-info">
-            <p>等待连接到 Gateway...</p>
+          <div class="mc-status-card">
+            <div class="mc-status-card__icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 6v6l4 2"/>
+              </svg>
+            </div>
+            <h3 class="mc-status-card__title">等待连接</h3>
+            <p class="mc-status-card__desc">正在连接到 Gateway，请稍候...</p>
+            <div class="mc-status-card__spinner"></div>
           </div>
         </div>
       `;
@@ -620,8 +628,16 @@ export class OpenClawConfigElement extends LitElement {
     if (agentsError && !agentsList) {
       return html`
         <div class="agents-layout agents-layout--error">
-          <div class="mc-error">
-            <p>${agentsError}</p>
+          <div class="mc-status-card mc-status-card--error">
+            <div class="mc-status-card__icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h3 class="mc-status-card__title">连接失败</h3>
+            <p class="mc-status-card__desc">${agentsError}</p>
             <button class="mc-btn mc-btn--primary" @click=${() => this._loadInitialData()}>
               重试
             </button>
@@ -634,7 +650,16 @@ export class OpenClawConfigElement extends LitElement {
     if (agentsLoading && !agentsList) {
       return html`
         <div class="agents-layout agents-layout--loading">
-          <div class="mc-loading">加载中...</div>
+          <div class="mc-status-card">
+            <div class="mc-status-card__icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="M21 12a9 9 0 11-6.219-8.56"/>
+              </svg>
+            </div>
+            <h3 class="mc-status-card__title">加载中</h3>
+            <p class="mc-status-card__desc">正在加载配置数据...</p>
+            <div class="mc-status-card__spinner"></div>
+          </div>
         </div>
       `;
     }
