@@ -668,31 +668,82 @@ import type {
 
 ## 附录：代码统计
 
-### 文件行数统计
+### 文件行数统计（优化后）
 
-| 文件 | 行数 | 状态 |
-|------|------|------|
-| `controllers/model-config.ts` | 2525 | ⚠️ 需要拆分 |
-| `components/skills-content.ts` | 1943 | ⚠️ 需要拆分 |
-| `openclaw-config-element.ts` | 1217 | ⚠️ 需要精简 |
-| `components/permissions-content.ts` | 1162 | 可接受 |
-| `controllers/skills-config.ts` | 1119 | 可接受 |
-| `components/cron-content.ts` | 1017 | 可接受 |
-| `components/providers-content.ts` | 923 | ✓ 良好 |
-| 其他文件 | <700 | ✓ 良好 |
+| 文件 | 优化前 | 优化后 | 状态 |
+|------|--------|--------|------|
+| `controllers/model-config.ts` | 2525 | 164 | ✅ 已拆分为 9 个模块 |
+| `components/skills-content.ts` | 1943 | 141 | ✅ 已拆分为 11 个模块 |
+| `openclaw-config-element.ts` | 1217 | 909 | ✅ 已提取 cron 控制器 |
+| `components/permissions-content.ts` | 1162 | 1162 | 可接受 |
+| `controllers/skills-config.ts` | 1119 | 1119 | 可接受 |
+| `components/cron-content.ts` | 1017 | 1017 | 可接受 |
+| `components/providers-content.ts` | 923 | 923 | ✓ 良好 |
+
+### 新增模块文件
+
+**controllers/ 目录（从 model-config.ts 拆分）：**
+- `state.ts` - 状态类型定义和初始化
+- `providers.ts` - 供应商 CRUD 操作
+- `permissions.ts` - 权限管理操作
+- `agents.ts` - Agent 相关操作
+- `sessions.ts` - 会话管理操作
+- `config-loader.ts` - 配置加载操作
+- `tools-config.ts` - 工具配置操作
+- `cron.ts` - Cron 基础操作
+- `cron-config.ts` - Cron 配置控制器
+
+**components/skills/ 目录（从 skills-content.ts 拆分）：**
+- `index.ts` - 统一导出
+- `utils.ts` - 工具函数
+- `stats-bar.ts` - 统计栏组件
+- `global-settings.ts` - 全局设置组件
+- `filter-bar.ts` - 筛选栏组件
+- `skill-list.ts` - 技能列表组件
+- `skill-detail-modal.ts` - 技能详情弹窗
+- `editor-modal.ts` - 编辑器弹窗
+- `create-modal.ts` - 创建弹窗
+- `preview-modal.ts` - 预览弹窗
+- `delete-modal.ts` - 删除确认弹窗
+
+**types/ 目录：**
+- `channel-fields.ts` - 通道字段配置（公共字段复用）
+
+**utils/ 目录：**
+- `deep-merge.ts` - 深度合并工具
+- `sanitize.ts` - 数据清理工具
 
 ### 类型安全统计
 
-- `any` 类型使用：11 处
-- 建议：全部消除
+- `any` 类型使用：~~11 处~~ → **0 处** ✅ 已全部消除
 
-### 代码复用机会
+### 代码复用改进
 
-- 重复的字段配置：56 处
-- 重复的状态模式：120 处
-- 建议：提取公共配置和工具函数
+- 重复的字段配置：~~56 处~~ → 已提取到 `types/channel-fields.ts` ✅
+- 工具函数：已提取到 `utils/` 目录 ✅
 
 ---
 
-*文档生成时间：2026-02-06*
-*基于 ui-zh-CN 模块代码分析*
+## 优化完成总结
+
+### 已完成任务
+
+| 阶段 | 任务 | 状态 |
+|------|------|------|
+| Phase 1.1 | 消除 `any` 类型 | ✅ 完成 |
+| Phase 1.2 | 提取工具函数到 `utils/` | ✅ 完成 |
+| Phase 2.1 | 拆分 `model-config.ts` 为 9 个模块 | ✅ 完成 |
+| Phase 2.2 | 提取通道字段配置 | ✅ 完成 |
+| Phase 3.1 | 拆分 `skills-content.ts` 为 11 个模块 | ✅ 完成 |
+| Phase 3.2 | 提取 cron 控制器简化主组件 | ✅ 完成 |
+
+### 可选后续优化（低优先级）
+
+- Phase 4: 性能优化（懒加载、Shadow DOM 评估）
+- Phase 5: 代码质量（统一错误处理、异步状态管理）
+- Phase 6: 测试覆盖
+
+---
+
+*文档更新时间：2026-02-06*
+*优化完成时间：2026-02-06*
