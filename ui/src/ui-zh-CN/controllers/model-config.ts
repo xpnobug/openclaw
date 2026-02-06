@@ -43,6 +43,31 @@ export type {
   AgentOption,
 } from "../components/permissions-content";
 
+/**
+ * 深度合并两个对象
+ * Deep merge two objects
+ */
+function deepMerge<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
+  const result = { ...target } as Record<string, unknown>;
+  for (const key of Object.keys(source)) {
+    const sourceValue = source[key];
+    const targetValue = result[key];
+    if (
+      sourceValue !== null &&
+      typeof sourceValue === "object" &&
+      !Array.isArray(sourceValue) &&
+      targetValue !== null &&
+      typeof targetValue === "object" &&
+      !Array.isArray(targetValue)
+    ) {
+      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>);
+    } else {
+      result[key] = sourceValue;
+    }
+  }
+  return result as T;
+}
+
 // 重新导出工作区文件类型 / Re-export workspace file types
 export type { WorkspaceFileInfo } from "../components/workspace-content";
 
@@ -635,7 +660,7 @@ function buildConfigRaw(state: ModelConfigState): string | null {
     gatewayConfig.auth = state.modelConfigGateway.auth;
   }
 
-  // 更新 channels（合并而不是替换）
+  // 更新 channels（深度合并而不是浅合并）
   if (state.modelConfigChannelsConfig) {
     if (!updatedConfig.channels) {
       updatedConfig.channels = {};
@@ -645,10 +670,11 @@ function buildConfigRaw(state: ModelConfigState): string | null {
       if (channelId === "defaults") {
         channelsConfig.defaults = channelSettings;
       } else if (channelSettings && typeof channelSettings === "object") {
-        channelsConfig[channelId] = {
-          ...(channelsConfig[channelId] as Record<string, unknown> ?? {}),
-          ...channelSettings,
-        };
+        // 使用深度合并以正确处理嵌套配置（如 markdown.mode, tools.doc 等）
+        channelsConfig[channelId] = deepMerge(
+          (channelsConfig[channelId] as Record<string, unknown>) ?? {},
+          channelSettings as Record<string, unknown>,
+        );
       }
     }
   }
