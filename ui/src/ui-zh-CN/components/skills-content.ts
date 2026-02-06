@@ -168,12 +168,12 @@ function calculateStats(skills: SkillStatusEntry[]) {
 // ─── 技能优先级说明 / Skill priority explanation ────────────────────────────
 
 /**
- * 渲染技能优先级说明
- * Render skill priority explanation
+ * 渲染技能优先级说明（紧凑水平布局）
+ * Render skill priority explanation (compact horizontal layout)
  */
 function renderPriorityExplanation() {
   return html`
-    <div class="skills-priority-info">
+    <div class="skills-priority-info skills-priority-info--compact">
       <div class="skills-priority-info__header">
         <span class="skills-priority-info__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -183,12 +183,10 @@ function renderPriorityExplanation() {
           </svg>
         </span>
         <span class="skills-priority-info__title">技能加载优先级</span>
+        <span class="skills-priority-info__subtitle">当多个来源存在同名技能时，高优先级来源会覆盖低优先级来源的技能定义：</span>
       </div>
       <div class="skills-priority-info__content">
-        <p class="skills-priority-info__desc">
-          当多个来源存在同名技能时，高优先级来源会覆盖低优先级来源的技能定义：
-        </p>
-        <ol class="skills-priority-info__list">
+        <ol class="skills-priority-info__list skills-priority-info__list--horizontal">
           <li>
             <span class="skills-priority-info__source">额外目录</span>
             <span class="skills-priority-info__priority">最低优先级</span>
@@ -281,8 +279,14 @@ export function renderSkillsContent(props: SkillsContentProps) {
         ? html`<div class="skills-loading">正在加载技能列表...</div>`
         : groups.length === 0
           ? html`<div class="skills-empty">没有找到匹配的技能</div>`
-          : groups.map((group) => renderSkillGroup(group, props))}
+          : renderSkillTabs(groups, props)}
     </div>
+
+    <!-- 技能详情弹窗 -->
+    ${props.selectedSkill ? renderSkillDetailModal(props.selectedSkill, props) : nothing}
+
+    <!-- 文件预览弹窗 -->
+    ${props.previewState?.open ? renderPreviewModal(props) : nothing}
 
     <!-- 编辑器弹窗 -->
     ${props.editorState.open ? renderEditorModal(props) : nothing}
@@ -355,118 +359,110 @@ function renderGlobalSettings(props: SkillsContentProps) {
       <div class="skills-section__header">
         <h4 class="skills-section__title">全局设置</h4>
       </div>
-      <div class="skills-settings-grid">
-        <!-- 白名单模式 -->
-        <div class="skills-setting-item">
-          <div class="skills-setting-item__header">
-            <span class="skills-setting-item__title">内置技能模式</span>
-            <span class="skills-setting-item__desc">控制内置技能的启用方式</span>
-          </div>
-          <div class="skills-radio-group">
-            <label class="skills-radio">
-              <input
-                type="radio"
-                name="allowlist-mode"
-                value="all"
-                .checked=${props.allowlistMode === "all"}
-                @change=${() => props.onAllowlistModeChange("all")}
-              />
-              <span class="skills-radio__mark"></span>
-              <span class="skills-radio__text">允许全部</span>
-            </label>
-            <label class="skills-radio">
-              <input
-                type="radio"
-                name="allowlist-mode"
-                value="whitelist"
-                .checked=${props.allowlistMode === "whitelist"}
-                @change=${() => props.onAllowlistModeChange("whitelist")}
-              />
-              <span class="skills-radio__mark"></span>
-              <span class="skills-radio__text">仅白名单</span>
-            </label>
-          </div>
-        </div>
+      <div class="skills-settings-content">
+        <!-- 紧凑网格布局：左侧四个设置项，右侧额外目录 -->
+        <div class="skills-settings-grid-compact">
+          <!-- 左侧：四个设置项 2x2 网格 -->
+          <div class="skills-settings-left">
+            <!-- 内置技能模式 -->
+            <div class="skills-setting-item-compact">
+              <span class="skills-setting-item-compact__label">内置技能模式</span>
+              <div class="skills-radio-group-compact">
+                <label class="skills-radio-compact">
+                  <input
+                    type="radio"
+                    name="allowlist-mode"
+                    value="all"
+                    .checked=${props.allowlistMode === "all"}
+                    @change=${() => props.onAllowlistModeChange("all")}
+                  />
+                  <span class="skills-radio-compact__text">全部</span>
+                </label>
+                <label class="skills-radio-compact">
+                  <input
+                    type="radio"
+                    name="allowlist-mode"
+                    value="whitelist"
+                    .checked=${props.allowlistMode === "whitelist"}
+                    @change=${() => props.onAllowlistModeChange("whitelist")}
+                  />
+                  <span class="skills-radio-compact__text">白名单</span>
+                </label>
+              </div>
+            </div>
 
-        <!-- 安装偏好 -->
-        <div class="skills-setting-item">
-          <div class="skills-setting-item__header">
-            <span class="skills-setting-item__title">安装偏好</span>
-            <span class="skills-setting-item__desc">技能依赖的安装方式</span>
-          </div>
-          <select
-            class="skills-select"
-            .value=${props.config?.install?.preferBrew ? "true" : "false"}
-            @change=${(e: Event) => {
-              const value = (e.target as HTMLSelectElement).value === "true";
-              props.onGlobalSettingChange("preferBrew", value);
-            }}
-          >
-            <option value="true">优先使用 Homebrew</option>
-            <option value="false">使用默认方式</option>
-          </select>
-        </div>
+            <!-- 安装偏好 -->
+            <div class="skills-setting-item-compact">
+              <span class="skills-setting-item-compact__label">安装偏好</span>
+              <select
+                class="skills-select-compact"
+                .value=${props.config?.install?.preferBrew ? "true" : "false"}
+                @change=${(e: Event) => {
+                  const value = (e.target as HTMLSelectElement).value === "true";
+                  props.onGlobalSettingChange("preferBrew", value);
+                }}
+              >
+                <option value="true">Homebrew</option>
+                <option value="false">默认</option>
+              </select>
+            </div>
 
-        <!-- Node 包管理器 -->
-        <div class="skills-setting-item">
-          <div class="skills-setting-item__header">
-            <span class="skills-setting-item__title">Node 包管理器</span>
-            <span class="skills-setting-item__desc">用于安装 Node.js 技能依赖</span>
-          </div>
-          <select
-            class="skills-select"
-            .value=${props.config?.install?.nodeManager ?? "npm"}
-            @change=${(e: Event) => {
-              const value = (e.target as HTMLSelectElement).value;
-              props.onGlobalSettingChange("nodeManager", value);
-            }}
-          >
-            <option value="npm">npm</option>
-            <option value="pnpm">pnpm</option>
-            <option value="yarn">yarn</option>
-            <option value="bun">bun</option>
-          </select>
-        </div>
+            <!-- Node 包管理器 -->
+            <div class="skills-setting-item-compact">
+              <span class="skills-setting-item-compact__label">Node 包管理器</span>
+              <select
+                class="skills-select-compact"
+                .value=${props.config?.install?.nodeManager ?? "npm"}
+                @change=${(e: Event) => {
+                  const value = (e.target as HTMLSelectElement).value;
+                  props.onGlobalSettingChange("nodeManager", value);
+                }}
+              >
+                <option value="npm">npm</option>
+                <option value="pnpm">pnpm</option>
+                <option value="yarn">yarn</option>
+                <option value="bun">bun</option>
+              </select>
+            </div>
 
-        <!-- 文件监视 -->
-        <div class="skills-setting-item">
-          <div class="skills-setting-item__header">
-            <span class="skills-setting-item__title">文件监视</span>
-            <span class="skills-setting-item__desc">自动重载技能文件变更</span>
+            <!-- 文件监视 -->
+            <div class="skills-setting-item-compact">
+              <span class="skills-setting-item-compact__label">文件监视</span>
+              <label class="skills-checkbox-compact">
+                <input
+                  type="checkbox"
+                  .checked=${props.config?.load?.watch ?? false}
+                  @change=${(e: Event) => {
+                    const checked = (e.target as HTMLInputElement).checked;
+                    props.onGlobalSettingChange("watch", checked);
+                  }}
+                />
+                <span class="skills-checkbox-compact__text">启用</span>
+              </label>
+            </div>
           </div>
-          <label class="skills-checkbox">
-            <input
-              type="checkbox"
-              .checked=${props.config?.load?.watch ?? false}
-              @change=${(e: Event) => {
-                const checked = (e.target as HTMLInputElement).checked;
-                props.onGlobalSettingChange("watch", checked);
-              }}
-            />
-            <span class="skills-checkbox__text">启用文件监视</span>
-          </label>
-        </div>
-      </div>
 
-      <!-- 额外技能目录 -->
-      <div class="skills-extra-dirs">
-        <div class="skills-extra-dirs__header">
-          <span class="skills-extra-dirs__title">额外技能目录</span>
-          <span class="skills-extra-dirs__desc">每行一个目录路径</span>
+          <!-- 右侧：额外技能目录 -->
+          <div class="skills-settings-right">
+            <div class="skills-extra-dirs-compact">
+              <span class="skills-extra-dirs-compact__label">额外技能目录</span>
+              <textarea
+                class="skills-extra-dirs-compact__textarea"
+                placeholder="/path/to/skills"
+                rows="2"
+                .value=${extraDirsText}
+                @change=${(e: Event) => {
+                  const text = (e.target as HTMLTextAreaElement).value;
+                  const dirs = text
+                    .split("\n")
+                    .map((d) => d.trim())
+                    .filter((d) => d.length > 0);
+                  props.onExtraDirsChange(dirs);
+                }}
+              ></textarea>
+            </div>
+          </div>
         </div>
-        <textarea
-          class="skills-extra-dirs__textarea"
-          placeholder="/path/to/skills&#10;/another/skills/dir"
-          .value=${extraDirsText}
-          @change=${(e: Event) => {
-            const text = (e.target as HTMLTextAreaElement).value;
-            const dirs = text
-              .split("\n")
-              .map((d) => d.trim())
-              .filter((d) => d.length > 0);
-            props.onExtraDirsChange(dirs);
-          }}
-        ></textarea>
       </div>
     </div>
   `;
@@ -517,6 +513,454 @@ function renderFilterBar(props: SkillsContentProps, total: number, shown: number
       </div>
       <div class="skills-filter__count">
         显示 ${shown} / ${total}
+      </div>
+    </div>
+  `;
+}
+
+// ─── 技能标签页 / Skill tabs ─────────────────────────────────────────────────
+
+/**
+ * 渲染技能标签页
+ * Render skill tabs
+ */
+function renderSkillTabs(groups: SkillGroup[], props: SkillsContentProps) {
+  // 获取当前激活的分组（使用 expandedGroups 的第一个，或默认第一个分组）
+  const expandedArray = Array.from(props.expandedGroups);
+  const activeGroupId = expandedArray.length > 0 ? expandedArray[0] : groups[0]?.id;
+  const activeGroup = groups.find(g => g.id === activeGroupId) || groups[0];
+
+  return html`
+    <div class="skills-tabs">
+      <!-- 标签页头部 -->
+      <div class="skills-tabs__header">
+        ${groups.map((group) => html`
+          <button
+            class="skills-tabs__tab ${group.id === activeGroup?.id ? "skills-tabs__tab--active" : ""}"
+            @click=${() => {
+              // 清除其他展开状态，只展开当前分组
+              props.onGroupToggle(group.id);
+            }}
+          >
+            <span class="skills-tabs__tab-label">${getGroupShortLabel(group.id)}</span>
+            <span class="skills-tabs__tab-count">${group.skills.length}</span>
+          </button>
+        `)}
+      </div>
+
+      <!-- 标签页内容 -->
+      <div class="skills-tabs__content">
+        ${activeGroup
+          ? html`
+              <div class="skills-cards-grid">
+                ${activeGroup.skills.map((skill) => renderSkillCard(skill, props))}
+              </div>
+            `
+          : html`<div class="skills-empty">没有技能</div>`}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 获取分组的简短标签
+ * Get short label for group
+ */
+function getGroupShortLabel(groupId: string): string {
+  switch (groupId) {
+    case "bundled":
+      return "内置";
+    case "managed":
+      return "本地";
+    case "workspace":
+      return "工作区";
+    default:
+      return groupId;
+  }
+}
+
+/**
+ * 获取来源的简短标签
+ * Get short label for source
+ */
+function getSourceLabel(source: string): { label: string; type: "bundled" | "managed" | "workspace" } {
+  switch (source) {
+    case "openclaw-bundled":
+      return { label: "内置", type: "bundled" };
+    case "openclaw-managed":
+      return { label: "本地", type: "managed" };
+    case "openclaw-workspace":
+      return { label: "工作区", type: "workspace" };
+    default:
+      return { label: source, type: "workspace" };
+  }
+}
+
+// ─── 技能卡片 / Skill card ───────────────────────────────────────────────────
+
+/**
+ * 渲染技能卡片（参考图片中的卡片风格）
+ * Render skill card (reference card style from image)
+ */
+function renderSkillCard(skill: SkillStatusEntry, props: SkillsContentProps) {
+  const isBusy = props.busySkill === skill.skillKey;
+  const isSelected = props.selectedSkill === skill.skillKey;
+  const sourceInfo = getSourceLabel(skill.source);
+
+  // 提取关键词作为标签（从技能名称和描述中）
+  const tags = extractSkillTags(skill);
+
+  return html`
+    <div
+      class="skill-card ${skill.eligible ? "" : "skill-card--blocked"} ${skill.disabled ? "skill-card--disabled" : ""} ${isSelected ? "skill-card--selected" : ""}"
+    >
+      <!-- 头部：来源标签 + 操作按钮 -->
+      <div class="skill-card__header">
+        <div class="skill-card__source skill-card__source--${sourceInfo.type}">
+          ${sourceInfo.label}
+        </div>
+        <button
+          class="skill-card__toggle ${skill.disabled ? "skill-card__toggle--disabled" : "skill-card__toggle--enabled"}"
+          ?disabled=${isBusy}
+          @click=${(e: Event) => {
+            e.stopPropagation();
+            props.onSkillToggle(skill.skillKey, skill.disabled);
+          }}
+          title="${skill.disabled ? "点击启用" : "点击禁用"}"
+        >
+          ${isBusy ? "..." : skill.disabled ? "已禁用" : "已启用"}
+        </button>
+      </div>
+
+      <!-- 标题（可点击展开详情） -->
+      <h4
+        class="skill-card__title"
+        @click=${() => props.onSkillSelect(isSelected ? null : skill.skillKey)}
+      >
+        ${skill.emoji ? `${skill.emoji} ` : ""}${highlightText(skill.name, props.filter)}
+      </h4>
+
+      <!-- 描述 -->
+      <p class="skill-card__desc">${highlightText(clampText(skill.description, 80), props.filter)}</p>
+
+      <!-- 标签 -->
+      ${tags.length > 0
+        ? html`
+            <div class="skill-card__tags">
+              ${tags.slice(0, 4).map((tag) => html`
+                <span class="skill-card__tag">${tag}</span>
+              `)}
+            </div>
+          `
+        : nothing}
+
+      <!-- 底部统计 -->
+      <div class="skill-card__footer">
+        <div class="skill-card__stats">
+          <span class="skill-card__stat skill-card__stat--${skill.eligible ? "ok" : "warn"}" title="状态">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"></circle>
+              ${skill.eligible
+                ? html`<path d="M9 12l2 2 4-4"></path>`
+                : html`<path d="M15 9l-6 6M9 9l6 6"></path>`}
+            </svg>
+            ${skill.eligible ? "可用" : "受阻"}
+          </span>
+          ${skill.requirements?.bins?.length
+            ? html`
+                <span class="skill-card__stat" title="依赖">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                  </svg>
+                  ${skill.requirements.bins.length}
+                </span>
+              `
+            : nothing}
+        </div>
+        <!-- 展开详情按钮 -->
+        <button
+          class="skill-card__expand"
+          @click=${() => props.onSkillSelect(isSelected ? null : skill.skillKey)}
+          title="${isSelected ? "收起详情" : "展开详情"}"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="${isSelected ? "18 15 12 9 6 15" : "6 9 12 15 18 9"}"></polyline>
+          </svg>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 从技能中提取标签
+ * Extract tags from skill
+ */
+function extractSkillTags(skill: SkillStatusEntry): string[] {
+  const tags: string[] = [];
+
+  // 从技能名称中提取关键词
+  const nameParts = skill.name.split(/[-_\s]+/);
+  for (const part of nameParts) {
+    if (part.length >= 2 && part.length <= 10 && !tags.includes(part)) {
+      tags.push(part);
+    }
+  }
+
+  // 添加依赖相关标签
+  if (skill.requirements?.bins?.length) {
+    for (const bin of skill.requirements.bins.slice(0, 2)) {
+      if (!tags.includes(bin)) {
+        tags.push(bin);
+      }
+    }
+  }
+
+  return tags.slice(0, 4);
+}
+
+// ─── 技能详情弹窗 / Skill detail modal ───────────────────────────────────────
+
+/**
+ * 渲染技能详情弹窗
+ * Render skill detail modal
+ */
+function renderSkillDetailModal(skillKey: string, props: SkillsContentProps) {
+  const skills = props.report?.skills ?? [];
+  const skill = skills.find(s => s.skillKey === skillKey);
+
+  if (!skill) return nothing;
+
+  const isBusy = props.busySkill === skill.skillKey;
+  const edit = props.edits[skill.skillKey];
+  const isBundled = skill.source === "openclaw-bundled";
+  const isEditable = skill.source === "openclaw-managed" || skill.source === "openclaw-workspace";
+  const inAllowlist = edit?.inAllowlist ?? props.allowlistDraft.has(skill.skillKey);
+  const canInstall = skill.install.length > 0 && skill.missing.bins.length > 0;
+  const sourceInfo = getSourceLabel(skill.source);
+
+  // 缺失项
+  const missing = [
+    ...skill.missing.bins.map((b) => `bin:${b}`),
+    ...skill.missing.anyBins.map((b) => `anyBin:${b}`),
+    ...skill.missing.env.map((e) => `env:${e}`),
+    ...skill.missing.config.map((c) => `config:${c}`),
+    ...skill.missing.os.map((o) => `os:${o}`),
+  ];
+
+  // 检查是否有额外环境变量需要配置
+  const hasExtraEnv = (skill.requirements?.env ?? []).filter(e => e !== skill.primaryEnv).length > 0;
+
+  return html`
+    <div class="skill-detail-overlay" @click=${() => props.onSkillSelect(null)}>
+      <div class="skill-detail-modal" @click=${(e: Event) => e.stopPropagation()}>
+        <!-- 弹窗头部 -->
+        <div class="skill-detail__header">
+          <div class="skill-detail__title-row">
+            <div class="skill-card__source skill-card__source--${sourceInfo.type}">
+              ${sourceInfo.label}
+            </div>
+            <h3 class="skill-detail__title">
+              ${skill.emoji ? `${skill.emoji} ` : ""}${skill.name}
+            </h3>
+          </div>
+          <button class="skill-detail__close" @click=${() => props.onSkillSelect(null)}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 弹窗内容 -->
+        <div class="skill-detail__body">
+          <!-- 描述 -->
+          <p class="skill-detail__desc">${skill.description}</p>
+
+          <!-- 状态信息 -->
+          <div class="skill-detail__status">
+            <div class="skill-detail__status-item">
+              <span class="skill-detail__status-label">状态</span>
+              <span class="skill-detail__status-value skill-detail__status-value--${skill.eligible ? "ok" : "warn"}">
+                ${skill.eligible ? "可用" : "受阻"}
+              </span>
+            </div>
+            <div class="skill-detail__status-item">
+              <span class="skill-detail__status-label">启用</span>
+              <span class="skill-detail__status-value skill-detail__status-value--${skill.disabled ? "warn" : "ok"}">
+                ${skill.disabled ? "已禁用" : "已启用"}
+              </span>
+            </div>
+          </div>
+
+          <!-- 缺失项 -->
+          ${missing.length > 0
+            ? html`
+                <div class="skill-detail__section">
+                  <h4 class="skill-detail__section-title">缺失依赖</h4>
+                  <div class="skill-detail__missing-list">
+                    ${missing.map((m) => html`
+                      <span class="skill-detail__missing-item">${m}</span>
+                    `)}
+                  </div>
+                </div>
+              `
+            : nothing}
+
+          <!-- 基本信息 -->
+          <div class="skill-detail__section">
+            <h4 class="skill-detail__section-title">基本信息</h4>
+            <div class="skill-detail__info-grid">
+              <div class="skill-detail__info-row">
+                <span class="skill-detail__info-label">技能键</span>
+                <span class="skill-detail__info-value mono">${skill.skillKey}</span>
+              </div>
+              <div class="skill-detail__info-row">
+                <span class="skill-detail__info-label">文件路径</span>
+                <span class="skill-detail__info-value mono">${clampText(skill.filePath, 50)}</span>
+              </div>
+              ${skill.homepage
+                ? html`
+                    <div class="skill-detail__info-row">
+                      <span class="skill-detail__info-label">主页</span>
+                      <a class="skill-detail__info-link" href="${skill.homepage}" target="_blank" rel="noreferrer">
+                        ${skill.homepage}
+                      </a>
+                    </div>
+                  `
+                : nothing}
+              <!-- 查看文件内容按钮 -->
+              <div class="skill-detail__info-row">
+                <span class="skill-detail__info-label">技能文件</span>
+                <button
+                  class="skill-detail__view-file-btn"
+                  @click=${() => props.onPreviewOpen?.(skill.skillKey, skill.name)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                  </svg>
+                  查看 SKILL.md
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- API Key 配置 -->
+          ${skill.primaryEnv
+            ? html`
+                <div class="skill-detail__section">
+                  <h4 class="skill-detail__section-title">API Key 配置</h4>
+                  <div class="skill-detail__apikey">
+                    <label class="skill-detail__apikey-label">${skill.primaryEnv}</label>
+                    <div class="skill-detail__apikey-row">
+                      <input
+                        type="password"
+                        class="skill-detail__apikey-input"
+                        placeholder="输入 API Key"
+                        .value=${edit?.apiKey ?? ""}
+                        @input=${(e: Event) =>
+                          props.onSkillApiKeyChange(
+                            skill.skillKey,
+                            (e.target as HTMLInputElement).value,
+                          )}
+                      />
+                      <button
+                        class="mc-btn mc-btn--sm primary"
+                        ?disabled=${isBusy || !(edit?.apiKey ?? "").trim()}
+                        @click=${() => props.onSkillApiKeySave(skill.skillKey)}
+                      >
+                        保存
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              `
+            : nothing}
+
+          <!-- 白名单设置（仅内置技能） -->
+          ${isBundled && props.allowlistMode === "whitelist"
+            ? html`
+                <div class="skill-detail__section">
+                  <h4 class="skill-detail__section-title">白名单</h4>
+                  <label class="skill-detail__checkbox">
+                    <input
+                      type="checkbox"
+                      .checked=${inAllowlist}
+                      @change=${(e: Event) => {
+                        const checked = (e.target as HTMLInputElement).checked;
+                        props.onAllowlistToggle(skill.skillKey, checked);
+                      }}
+                    />
+                    <span>加入白名单</span>
+                  </label>
+                </div>
+              `
+            : nothing}
+        </div>
+
+        <!-- 弹窗底部操作 -->
+        <div class="skill-detail__footer">
+          <div class="skill-detail__footer-left">
+            <!-- 启用/禁用按钮 -->
+            <button
+              class="mc-btn mc-btn--sm ${skill.disabled ? "" : "mc-btn--danger"}"
+              ?disabled=${isBusy}
+              @click=${() => props.onSkillToggle(skill.skillKey, skill.disabled)}
+            >
+              ${isBusy ? "处理中..." : skill.disabled ? "启用技能" : "禁用技能"}
+            </button>
+
+            <!-- 安装按钮 -->
+            ${canInstall
+              ? html`
+                  <button
+                    class="mc-btn mc-btn--sm"
+                    ?disabled=${isBusy}
+                    @click=${() =>
+                      props.onInstall(skill.skillKey, skill.name, skill.install[0].id)}
+                  >
+                    ${isBusy ? "安装中..." : skill.install[0].label}
+                  </button>
+                `
+              : nothing}
+          </div>
+
+          <div class="skill-detail__footer-right">
+            <!-- 编辑按钮（仅 managed 和 workspace 技能）-->
+            ${isEditable
+              ? html`
+                  <button
+                    class="mc-btn mc-btn--sm"
+                    ?disabled=${isBusy}
+                    @click=${() =>
+                      props.onEditorOpen(
+                        skill.skillKey,
+                        skill.name,
+                        toShortSource(skill.source) as EditableSkillSource
+                      )}
+                  >
+                    编辑
+                  </button>
+                  <button
+                    class="mc-btn mc-btn--sm mc-btn--danger"
+                    ?disabled=${isBusy}
+                    @click=${() =>
+                      props.onDeleteOpen(
+                        skill.skillKey,
+                        skill.name,
+                        toShortSource(skill.source) as EditableSkillSource
+                      )}
+                  >
+                    删除
+                  </button>
+                `
+              : nothing}
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -733,8 +1177,23 @@ function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentProps) {
                         </div>
                       `
                     : nothing}
-                  <!-- SKILL.md 文档链接 (Phase 4) -->
-                  ${skill.filePath ? renderSkillDocsLink(skill.filePath) : nothing}
+                  <!-- 查看技能文件按钮 -->
+                  <div class="skills-detail-row">
+                    <span class="skills-detail-label">技能文件:</span>
+                    <button
+                      class="skill-detail__view-file-btn"
+                      @click=${() => props.onPreviewOpen?.(skill.skillKey, skill.name)}
+                    >
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                        <polyline points="10 9 9 9 8 9"></polyline>
+                      </svg>
+                      查看 SKILL.md
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1247,6 +1706,166 @@ function renderCreateModal(props: SkillsContentProps) {
       </div>
     </div>
   `;
+}
+
+// ─── 文件预览弹窗 / File preview modal ─────────────────────────────────────────
+
+/**
+ * 渲染文件预览弹窗
+ * Render file preview modal
+ */
+function renderPreviewModal(props: SkillsContentProps) {
+  const { previewState } = props;
+
+  if (!previewState) return nothing;
+
+  return html`
+    <div class="skills-modal-overlay skill-preview-overlay" @click=${props.onPreviewClose}>
+      <div class="skills-modal skill-preview-modal" @click=${(e: Event) => e.stopPropagation()}>
+        <!-- 弹窗头部 -->
+        <div class="skills-modal__header">
+          <div class="skills-modal__title">
+            <span class="skills-modal__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+            </span>
+            ${previewState.skillName ?? "技能文件"} - SKILL.md
+          </div>
+          <button class="skills-modal__close" @click=${props.onPreviewClose}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+
+        <!-- 弹窗内容 -->
+        <div class="skill-preview__body">
+          ${previewState.loading
+            ? html`<div class="skill-preview__loading">
+                <div class="skill-preview__spinner"></div>
+                <span>加载中...</span>
+              </div>`
+            : previewState.error
+              ? html`<div class="skill-preview__error">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="15" y1="9" x2="9" y2="15"></line>
+                    <line x1="9" y1="9" x2="15" y2="15"></line>
+                  </svg>
+                  <span>${previewState.error}</span>
+                </div>`
+              : html`<div class="skill-preview__content">
+                  ${renderMarkdownPreviewContent(previewState.content)}
+                </div>`}
+        </div>
+
+        <!-- 弹窗底部 -->
+        <div class="skills-modal__footer">
+          <button class="mc-btn" @click=${props.onPreviewClose}>
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * 渲染 Markdown 预览内容（增强版）
+ * Render markdown preview content (enhanced)
+ */
+function renderMarkdownPreviewContent(content: string) {
+  if (!content.trim()) {
+    return html`<div class="skill-preview__empty">文件内容为空</div>`;
+  }
+
+  // 简单处理：将内容按行分割，处理标题、代码块、列表等
+  const lines = content.split("\n");
+  const elements: ReturnType<typeof html>[] = [];
+  let inCodeBlock = false;
+  let codeContent = "";
+  let codeLang = "";
+  let inFrontmatter = false;
+  let frontmatterContent = "";
+  let frontmatterStarted = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // 处理 frontmatter (YAML)
+    if (i === 0 && line.trim() === "---") {
+      inFrontmatter = true;
+      frontmatterStarted = true;
+      continue;
+    }
+    if (inFrontmatter && line.trim() === "---") {
+      inFrontmatter = false;
+      elements.push(html`
+        <details class="skill-preview__frontmatter">
+          <summary>元数据 (Frontmatter)</summary>
+          <pre class="skill-preview__code skill-preview__code--yaml">${frontmatterContent.trim()}</pre>
+        </details>
+      `);
+      continue;
+    }
+    if (inFrontmatter) {
+      frontmatterContent += line + "\n";
+      continue;
+    }
+
+    // 处理代码块
+    if (line.startsWith("\`\`\`")) {
+      if (inCodeBlock) {
+        elements.push(html`<pre class="skill-preview__code skill-preview__code--${codeLang || "plain"}">${codeContent}</pre>`);
+        codeContent = "";
+        codeLang = "";
+        inCodeBlock = false;
+      } else {
+        inCodeBlock = true;
+        codeLang = line.slice(3).trim();
+      }
+      continue;
+    }
+
+    if (inCodeBlock) {
+      codeContent += line + "\n";
+      continue;
+    }
+
+    // 处理标题
+    if (line.startsWith("#### ")) {
+      elements.push(html`<h5 class="skill-preview__h5">${line.slice(5)}</h5>`);
+    } else if (line.startsWith("### ")) {
+      elements.push(html`<h4 class="skill-preview__h4">${line.slice(4)}</h4>`);
+    } else if (line.startsWith("## ")) {
+      elements.push(html`<h3 class="skill-preview__h3">${line.slice(3)}</h3>`);
+    } else if (line.startsWith("# ")) {
+      elements.push(html`<h2 class="skill-preview__h2">${line.slice(2)}</h2>`);
+    } else if (line.startsWith("---") && !frontmatterStarted) {
+      elements.push(html`<hr class="skill-preview__hr" />`);
+    } else if (line.startsWith("- ") || line.startsWith("* ")) {
+      elements.push(html`<li class="skill-preview__li">${line.slice(2)}</li>`);
+    } else if (/^\d+\.\s/.test(line)) {
+      elements.push(html`<li class="skill-preview__li skill-preview__li--ordered">${line.replace(/^\d+\.\s/, "")}</li>`);
+    } else if (line.startsWith("> ")) {
+      elements.push(html`<blockquote class="skill-preview__blockquote">${line.slice(2)}</blockquote>`);
+    } else if (line.trim()) {
+      // 处理行内代码
+      const processedLine = line.replace(/\`([^\`]+)\`/g, '<code class="skill-preview__inline-code">$1</code>');
+      elements.push(html`<p class="skill-preview__p" .innerHTML=${processedLine}></p>`);
+    } else {
+      // 空行
+      elements.push(html`<div class="skill-preview__spacer"></div>`);
+    }
+  }
+
+  return elements;
 }
 
 // ─── 删除确认弹窗 / Delete confirmation modal ────────────────────────────────

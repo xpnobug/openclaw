@@ -39,6 +39,7 @@ import type {
   SkillEditorState,
   SkillCreateState,
   SkillDeleteState,
+  SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
 } from "../types/skills-config";
@@ -116,6 +117,7 @@ export type AgentsConfigProps = {
   skillsEditorState: SkillEditorState;
   skillsCreateState: SkillCreateState;
   skillsDeleteState: SkillDeleteState;
+  skillsPreviewState: SkillPreviewState;
 
   // 全局配置面板 / Global config panel
   globalPanel: GlobalPanel | null;
@@ -136,6 +138,11 @@ export type AgentsConfigProps = {
   agentSessionsLoading: boolean;
   agentSessionsResult: AgentSessionsListResult | null;
   agentSessionsError: string | null;
+  // 新建会话状态 / Create session state
+  agentSessionCreateShow?: boolean;
+  agentSessionCreateName?: string;
+  agentSessionCreateModel?: string | null;
+  agentSessionCreating?: boolean;
 
   // 通道配置数据（全局） / Channels config data (global)
   channelsConfig: ChannelsConfigData;
@@ -167,6 +174,7 @@ export type AgentsConfigProps = {
   onPanelChange: (panel: AgentPanel) => void;
   onGlobalPanelChange: (panel: GlobalPanel | null) => void;
   onRefresh: () => void;
+  onSetDefault?: (agentId: string) => void;
 
   // 配置回调 / Config callbacks
   onConfigReload: () => void;
@@ -231,6 +239,8 @@ export type AgentsConfigProps = {
   onSkillsDeleteOpen: (skillKey: string, skillName: string, source: EditableSkillSource) => void;
   onSkillsDeleteClose: () => void;
   onSkillsDeleteConfirm: () => void;
+  onSkillsPreviewOpen: (skillKey: string, skillName: string) => void;
+  onSkillsPreviewClose: () => void;
 
   // 供应商回调 / Providers callbacks
   onProviderToggle: (key: string) => void;
@@ -253,6 +263,11 @@ export type AgentsConfigProps = {
   onAgentSessionsRefresh: () => void;
   onAgentSessionModelChange: (sessionKey: string, model: string | null) => void;
   onAgentSessionNavigate: (sessionKey: string) => void;
+  // 新建会话回调 / Create session callbacks
+  onAgentSessionCreateShow?: (show: boolean) => void;
+  onAgentSessionCreateNameChange?: (name: string) => void;
+  onAgentSessionCreateModelChange?: (model: string | null) => void;
+  onAgentSessionCreate?: () => void;
 
   // 通道回调 / Channels callbacks
   onChannelSelect: (channelId: string) => void;
@@ -313,6 +328,15 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         onSessionsRefresh: props.onAgentSessionsRefresh,
         onSessionModelChange: props.onAgentSessionModelChange,
         onSessionNavigate: props.onAgentSessionNavigate,
+        // 新建会话 / Create session
+        sessionCreateShow: props.agentSessionCreateShow,
+        sessionCreateName: props.agentSessionCreateName,
+        sessionCreateModel: props.agentSessionCreateModel,
+        sessionCreating: props.agentSessionCreating,
+        onSessionCreateShow: props.onAgentSessionCreateShow,
+        onSessionCreateNameChange: props.onAgentSessionCreateNameChange,
+        onSessionCreateModelChange: props.onAgentSessionCreateModelChange,
+        onSessionCreate: props.onAgentSessionCreate,
       });
 
     case "files":
@@ -384,6 +408,7 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         editorState: props.skillsEditorState,
         createState: props.skillsCreateState,
         deleteState: props.skillsDeleteState,
+        previewState: props.skillsPreviewState,
         onRefresh: props.onSkillsRefresh,
         onSave: props.onSkillsSave,
         onFilterChange: props.onSkillsFilterChange,
@@ -415,6 +440,8 @@ function renderActivePanel(props: AgentsConfigProps, agent: AgentsListResult["ag
         onDeleteOpen: props.onSkillsDeleteOpen,
         onDeleteClose: props.onSkillsDeleteClose,
         onDeleteConfirm: props.onSkillsDeleteConfirm,
+        onPreviewOpen: props.onSkillsPreviewOpen,
+        onPreviewClose: props.onSkillsPreviewClose,
       });
 
     case "cron":
@@ -690,6 +717,7 @@ export function renderAgentsConfig(props: AgentsConfigProps) {
         },
         onRefresh,
         onGlobalConfigClick: handleGlobalConfigClick,
+        onSetDefault: props.onSetDefault,
       })}
 
       <!-- 右侧内容区域 / Right content area -->

@@ -46,6 +46,7 @@ import {
   removeAgentToolsDenyEntry,
   loadAgentSessions,
   patchSessionModel,
+  createSession,
   loadWorkspaceFiles,
   selectWorkspaceFile,
   saveWorkspaceFile,
@@ -53,6 +54,7 @@ import {
   showAddProviderModal,
   updateAddProviderForm,
   confirmAddProvider,
+  setDefaultAgent,
   createInitialModelConfigState,
   type ModelConfigState,
 } from "./controllers/model-config";
@@ -85,6 +87,8 @@ import {
   openDeleteSkill,
   closeDeleteSkill,
   confirmDeleteSkill,
+  openSkillPreview,
+  closeSkillPreview,
   updateSkillApiKeyEdit,
   createInitialSkillsConfigState,
   type SkillsConfigState,
@@ -125,6 +129,12 @@ type InternalState = ModelConfigState & SkillsConfigState & {
   filesEditorMode: "edit" | "preview" | "split";
   filesExpandedFolders: Set<string>;
   filesMobileView: "list" | "editor";
+
+  // 新建会话状态
+  sessionCreateShow: boolean;
+  sessionCreateName: string;
+  sessionCreateModel: string | null;
+  sessionCreating: boolean;
 };
 
 // 默认 Cron 表单
@@ -216,6 +226,12 @@ export class OpenClawConfigElement extends LitElement {
       filesEditorMode: "edit",
       filesExpandedFolders: new Set(),
       filesMobileView: "list",
+
+      // 新建会话
+      sessionCreateShow: false,
+      sessionCreateName: "",
+      sessionCreateModel: null,
+      sessionCreating: false,
     } as InternalState;
   }
 
@@ -702,7 +718,7 @@ export class OpenClawConfigElement extends LitElement {
       agentIdentityError: s.agentIdentityError,
       agentIdentityById: s.agentIdentityById,
 
-      // 文件面板 - 直接使用当前状态
+      // 文件面板 - 直接使用当前状态（已转换为 UI 格式）
       agentFilesList: s.workspaceAgentId && s.workspaceFiles ? {
         agentId: s.workspaceAgentId,
         workspace: s.workspaceDir ?? "",
@@ -752,6 +768,7 @@ export class OpenClawConfigElement extends LitElement {
       skillsEditorState: s.skillsConfigEditor,
       skillsCreateState: s.skillsConfigCreate,
       skillsDeleteState: s.skillsConfigDelete,
+      skillsPreviewState: s.skillsConfigPreview,
 
       // 供应商配置
       providersConfig: s.modelConfigProviders,
@@ -769,6 +786,11 @@ export class OpenClawConfigElement extends LitElement {
       agentSessionsLoading: s.agentSessionsLoading,
       agentSessionsResult: s.agentSessionsResult,
       agentSessionsError: s.agentSessionsError,
+      // 新建会话状态
+      agentSessionCreateShow: s.sessionCreateShow,
+      agentSessionCreateName: s.sessionCreateName,
+      agentSessionCreateModel: s.sessionCreateModel,
+      agentSessionCreating: s.sessionCreating,
 
       // 通道配置
       channelsConfig: s.modelConfigChannelsConfig ?? {},
@@ -812,6 +834,7 @@ export class OpenClawConfigElement extends LitElement {
 
       onAgentSelect: (agentId) => {
         const previousAgentId = s.selectedAgentId;
+        const previousPanel = s.activePanel;
         s.selectedAgentId = agentId;
         s.globalPanel = null;
         s.activePanel = "overview";
@@ -821,9 +844,12 @@ export class OpenClawConfigElement extends LitElement {
           s.workspaceSelectedFile = null;
           s.workspaceEditorContent = "";
           s.workspaceOriginalContent = "";
-          s.workspaceAgentId = undefined as any;
+          // 设置新的 agentId 并预加载文件列表（用于概览页面显示工作区）
+          s.workspaceAgentId = agentId;
           s.workspaceFiles = undefined as any;
           s.workspaceDir = undefined as any;
+          // 预加载文件列表以获取工作区路径
+          loadWorkspaceFiles(s).then(update);
         }
 
         // 加载 Agent Identity（如果未缓存）
@@ -874,6 +900,15 @@ export class OpenClawConfigElement extends LitElement {
       },
 
       onRefresh: () => this._loadInitialData(),
+
+      onSetDefault: (agentId) => {
+        setDefaultAgent(s, agentId);
+        // 更新 agentsList 中的 defaultId
+        if (s.agentsList) {
+          s.agentsList = { ...s.agentsList, defaultId: agentId };
+        }
+        update();
+      },
 
       // 配置回调
       onConfigReload: () => { loadModelConfig(s).then(update); },
@@ -965,6 +1000,8 @@ export class OpenClawConfigElement extends LitElement {
       onSkillsDeleteOpen: (skillKey, skillName, source) => { openDeleteSkill(s, skillKey, skillName, source); update(); },
       onSkillsDeleteClose: () => { closeDeleteSkill(s); update(); },
       onSkillsDeleteConfirm: () => { confirmDeleteSkill(s).then(update); },
+      onSkillsPreviewOpen: (skillKey, skillName) => { openSkillPreview(s, skillKey, skillName).then(update); },
+      onSkillsPreviewClose: () => { closeSkillPreview(s); update(); },
 
       // 供应商回调
       onProviderToggle: (key) => { toggleProviderExpanded(s, key); update(); },
@@ -992,6 +1029,44 @@ export class OpenClawConfigElement extends LitElement {
           bubbles: true,
           composed: true,
         }));
+      },
+      // 新建会话回调
+      onAgentSessionCreateShow: (show) => {
+        s.sessionCreateShow = show;
+        if (show) {
+          s.sessionCreateName = "";
+          s.sessionCreateModel = null;
+        }
+        update();
+      },
+      onAgentSessionCreateNameChange: (name) => {
+        s.sessionCreateName = name;
+        update();
+      },
+      onAgentSessionCreateModelChange: (model) => {
+        s.sessionCreateModel = model;
+        update();
+      },
+      onAgentSessionCreate: async () => {
+        if (!s.selectedAgentId || !s.sessionCreateName.trim()) return;
+        s.sessionCreating = true;
+        update();
+        try {
+          const result = await createSession(
+            s,
+            s.selectedAgentId,
+            s.sessionCreateName,
+            s.sessionCreateModel,
+          );
+          if (result.ok) {
+            s.sessionCreateShow = false;
+            s.sessionCreateName = "";
+            s.sessionCreateModel = null;
+          }
+        } finally {
+          s.sessionCreating = false;
+          update();
+        }
       },
 
       // 通道回调
