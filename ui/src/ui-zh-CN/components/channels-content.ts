@@ -30,6 +30,7 @@ const icons = {
   zalo: html`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.5 16.5h-11v-1.5l7-7H6.5V6.5h11v1.5l-7 7h5z"/></svg>`,
   nextcloud: html`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.018 6.537c-2.5 0-4.6 1.712-5.241 4.015-.56-1.055-1.66-1.773-2.925-1.773-1.837 0-3.327 1.49-3.327 3.327s1.49 3.327 3.327 3.327c1.265 0 2.365-.718 2.925-1.773.641 2.303 2.741 4.015 5.241 4.015 2.503 0 4.604-1.716 5.244-4.022.561 1.057 1.662 1.78 2.93 1.78 1.838 0 3.328-1.49 3.328-3.327s-1.49-3.327-3.328-3.327c-1.268 0-2.369.723-2.93 1.78-.64-2.306-2.741-4.022-5.244-4.022"/></svg>`,
   tlon: html`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>`,
+  feishu: html`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1.5 14.5l-4-4 1.41-1.41L10.5 13.67l5.09-5.09L17 10l-6.5 6.5z"/></svg>`,
   settings: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
   check: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
   x: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
@@ -240,6 +241,86 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
 
   // ===== 扩展通道 =====
   {
+    id: "feishu",
+    label: "飞书/Lark",
+    icon: "feishu",
+    description: "飞书/Lark 企业消息通道，支持文档/知识库/云盘工具",
+    docsUrl: "https://docs.openclaw.ai/channels/feishu",
+    configFields: [
+      // 基本设置
+      { key: "enabled", label: "启用", type: "toggle", section: "basic" },
+      { key: "domain", label: "域名", type: "select", options: [
+        { value: "feishu", label: "飞书 (feishu.cn)" },
+        { value: "lark", label: "Lark (larksuite.com)" },
+      ], section: "basic", description: "选择飞书或 Lark 国际版" },
+      { key: "connectionMode", label: "连接模式", type: "select", options: [
+        { value: "websocket", label: "WebSocket (推荐)" },
+        { value: "webhook", label: "Webhook" },
+      ], section: "basic" },
+      // 认证配置
+      { key: "appId", label: "App ID", type: "text", placeholder: "cli_xxxxxxxx", required: true, section: "auth", description: "飞书开放平台应用 ID" },
+      { key: "appSecret", label: "App Secret", type: "password", placeholder: "xxxxxxxxxxxxxxxx", required: true, section: "auth", description: "飞书开放平台应用密钥" },
+      { key: "encryptKey", label: "Encrypt Key", type: "password", placeholder: "可选", section: "auth", description: "事件订阅加密密钥（可选）" },
+      { key: "verificationToken", label: "Verification Token", type: "password", placeholder: "可选", section: "auth", description: "事件订阅验证令牌（可选）" },
+      // Webhook 配置
+      { key: "webhookPath", label: "Webhook 路径", type: "text", placeholder: "/feishu/events", section: "webhook" },
+      { key: "webhookPort", label: "Webhook 端口", type: "number", placeholder: "3000", section: "webhook" },
+      // 访问控制
+      { key: "dmPolicy", label: "私聊策略", type: "select", options: [
+        { value: "pairing", label: "配对模式" },
+        { value: "allowlist", label: "白名单" },
+        { value: "open", label: "开放" },
+      ], section: "access", description: "私聊消息的访问控制策略" },
+      { key: "allowFrom", label: "私聊白名单", type: "array", placeholder: "ou_xxxxxxxx", description: "允许私聊的用户 Open ID，每行一个", section: "access" },
+      { key: "groupPolicy", label: "群组策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access", description: "群组消息的访问控制策略" },
+      { key: "groupAllowFrom", label: "群组白名单", type: "array", placeholder: "oc_xxxxxxxx", description: "允许的群组 Chat ID，每行一个", section: "access" },
+      { key: "requireMention", label: "群聊需要 @提及", type: "toggle", section: "access", description: "群聊中是否需要 @机器人才回复" },
+      { key: "configWrites", label: "允许配置写入", type: "toggle", section: "access", description: "是否允许通过消息修改配置" },
+      // 消息设置
+      { key: "renderMode", label: "消息渲染模式", type: "select", options: [
+        { value: "auto", label: "自动检测" },
+        { value: "raw", label: "纯文本" },
+        { value: "card", label: "卡片消息" },
+      ], section: "messaging", description: "消息的渲染方式" },
+      { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
+      { key: "chunkMode", label: "分块模式", type: "select", options: [
+        { value: "length", label: "按长度" },
+        { value: "newline", label: "按换行" },
+      ], section: "messaging" },
+      { key: "mediaMaxMb", label: "最大媒体大小 (MB)", type: "number", placeholder: "25", section: "messaging" },
+      // Markdown 设置
+      { key: "markdown.mode", label: "Markdown 模式", type: "select", options: [
+        { value: "native", label: "原生" },
+        { value: "escape", label: "转义" },
+        { value: "strip", label: "去除" },
+      ], section: "messaging", description: "Markdown 处理方式" },
+      { key: "markdown.tableMode", label: "表格模式", type: "select", options: [
+        { value: "native", label: "原生" },
+        { value: "ascii", label: "ASCII" },
+        { value: "simple", label: "简单" },
+      ], section: "messaging", description: "表格渲染方式" },
+      // 历史记录
+      { key: "historyLimit", label: "群组历史记录限制", type: "number", placeholder: "50", section: "history" },
+      { key: "dmHistoryLimit", label: "私聊历史记录限制", type: "number", placeholder: "50", section: "history" },
+      // 流式消息
+      { key: "blockStreamingCoalesce.enabled", label: "启用流式合并", type: "toggle", section: "streaming", description: "合并流式消息更新以减少 API 调用" },
+      { key: "blockStreamingCoalesce.minDelayMs", label: "最小延迟 (ms)", type: "number", placeholder: "100", section: "streaming" },
+      { key: "blockStreamingCoalesce.maxDelayMs", label: "最大延迟 (ms)", type: "number", placeholder: "1000", section: "streaming" },
+      // 心跳配置
+      { key: "heartbeat.visibility", label: "心跳可见性", type: "select", options: [
+        { value: "visible", label: "可见" },
+        { value: "hidden", label: "隐藏" },
+      ], section: "advanced" },
+      { key: "heartbeat.intervalMs", label: "心跳间隔 (ms)", type: "number", placeholder: "30000", section: "advanced" },
+      // 工具配置
+      { key: "tools.doc", label: "启用文档工具", type: "toggle", section: "tools", description: "飞书文档操作工具" },
+      { key: "tools.wiki", label: "启用知识库工具", type: "toggle", section: "tools", description: "飞书知识库操作工具（需要文档工具）" },
+      { key: "tools.drive", label: "启用云盘工具", type: "toggle", section: "tools", description: "飞书云盘操作工具" },
+      { key: "tools.perm", label: "启用权限工具", type: "toggle", section: "tools", description: "飞书权限管理工具（敏感操作）" },
+      { key: "tools.scopes", label: "启用权限诊断", type: "toggle", section: "tools", description: "应用权限范围诊断工具" },
+    ],
+  },
+  {
     id: "wechat",
     label: "WeChat",
     icon: "wechat",
@@ -426,7 +507,9 @@ const CONFIG_SECTIONS = [
   { id: "polling", label: "轮询配置" },
   { id: "access", label: "访问控制" },
   { id: "messaging", label: "消息设置" },
+  { id: "streaming", label: "流式消息" },
   { id: "history", label: "历史记录" },
+  { id: "tools", label: "工具配置" },
   { id: "advanced", label: "高级设置" },
 ];
 
