@@ -9,6 +9,21 @@ import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from 
 import { loadOrCreateDeviceIdentity, signDevicePayload } from "./device-identity.ts";
 import { generateUUID } from "./uuid.ts";
 
+/**
+ * Gateway 请求错误，包含完整的错误信息
+ */
+export class GatewayRequestError extends Error {
+  code: string;
+  details?: unknown;
+
+  constructor(code: string, message: string, details?: unknown) {
+    super(message);
+    this.name = "GatewayRequestError";
+    this.code = code;
+    this.details = details;
+  }
+}
+
 export type GatewayEventFrame = {
   type: "event";
   event: string;
@@ -280,7 +295,12 @@ export class GatewayBrowserClient {
       if (res.ok) {
         pending.resolve(res.payload);
       } else {
-        pending.reject(new Error(res.error?.message ?? "request failed"));
+        // 使用 GatewayRequestError 保留完整的错误信息（包括 details）
+        pending.reject(new GatewayRequestError(
+          res.error?.code ?? "UNKNOWN",
+          res.error?.message ?? "request failed",
+          res.error?.details,
+        ));
       }
       return;
     }

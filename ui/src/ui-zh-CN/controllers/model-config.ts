@@ -929,7 +929,7 @@ export async function applyModelConfig(state: ModelConfigState): Promise<void> {
 function extractErrorDetails(err: unknown): string {
   if (err && typeof err === "object") {
     const errObj = err as Record<string, unknown>;
-    // 检查是否有 details.issues 字段（来自 Gateway 的验证错误）
+    // 检查是否有 details 字段（来自 GatewayRequestError）
     if (errObj.details && typeof errObj.details === "object") {
       const details = errObj.details as Record<string, unknown>;
       if (Array.isArray(details.issues) && details.issues.length > 0) {
