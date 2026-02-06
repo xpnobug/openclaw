@@ -34,6 +34,8 @@ import type {
   AgentOption,
 } from "../components/permissions-content";
 import type { WorkspaceFileInfo } from "../components/workspace-content";
+import { deepMerge } from "../utils/deep-merge";
+import { toNumberOrUndefined, sanitizeCompat } from "../utils/sanitize";
 
 // 重新导出权限相关类型 / Re-export permission types
 export type {
@@ -42,31 +44,6 @@ export type {
   ExecApprovalsAllowlistEntry,
   AgentOption,
 } from "../components/permissions-content";
-
-/**
- * 深度合并两个对象
- * Deep merge two objects
- */
-function deepMerge<T extends Record<string, unknown>>(target: T, source: Record<string, unknown>): T {
-  const result = { ...target } as Record<string, unknown>;
-  for (const key of Object.keys(source)) {
-    const sourceValue = source[key];
-    const targetValue = result[key];
-    if (
-      sourceValue !== null &&
-      typeof sourceValue === "object" &&
-      !Array.isArray(sourceValue) &&
-      targetValue !== null &&
-      typeof targetValue === "object" &&
-      !Array.isArray(targetValue)
-    ) {
-      result[key] = deepMerge(targetValue as Record<string, unknown>, sourceValue as Record<string, unknown>);
-    } else {
-      result[key] = sourceValue;
-    }
-  }
-  return result as T;
-}
 
 // 重新导出工作区文件类型 / Re-export workspace file types
 export type { WorkspaceFileInfo } from "../components/workspace-content";
@@ -643,43 +620,6 @@ function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<st
     };
   }
   return result;
-}
-
-/**
- * 清理 compat 配置
- * Sanitize compat config - validate enum fields and remove empty values
- */
-function sanitizeCompat(compat: Record<string, unknown>): Record<string, unknown> | undefined {
-  const result: Record<string, unknown> = {};
-  // maxTokensField 的有效值
-  const validMaxTokensFields = ["max_completion_tokens", "max_tokens"];
-
-  for (const [key, value] of Object.entries(compat)) {
-    // 跳过空字符串和 undefined
-    if (value === "" || value === undefined || value === null) continue;
-
-    // 特殊处理 maxTokensField - 必须是有效的枚举值
-    if (key === "maxTokensField") {
-      if (typeof value === "string" && validMaxTokensFields.includes(value)) {
-        result[key] = value;
-      }
-      // 无效值直接跳过，不添加到结果中
-      continue;
-    }
-
-    result[key] = value;
-  }
-  // 如果结果为空对象，返回 undefined
-  return Object.keys(result).length > 0 ? result : undefined;
-}
-
-/**
- * 将值转换为数字，如果无效则返回 undefined
- */
-function toNumberOrUndefined(value: unknown): number | undefined {
-  if (value === undefined || value === null || value === "") return undefined;
-  const num = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(num) ? num : undefined;
 }
 
 /**

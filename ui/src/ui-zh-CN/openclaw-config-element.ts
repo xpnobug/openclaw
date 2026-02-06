@@ -12,6 +12,15 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { GatewayBrowserClient } from "../ui/gateway";
+import type {
+  AgentsListResult,
+  AgentIdentityResult,
+  CronStatus,
+  CronJob,
+  CronRunLogEntry,
+  GatewayAgentRow,
+} from "../ui/types";
+import type { WorkspaceFileInfo } from "./controllers/model-config";
 import { renderAgentsConfig, type AgentsConfigProps } from "./views/agents-config";
 import type { AgentPanel, GlobalPanel } from "./types/agents-config";
 import type { CronFormState } from "./types/cron-config";
@@ -97,7 +106,7 @@ import {
 // 内部状态类型 - 合并 ModelConfigState 和 SkillsConfigState
 type InternalState = ModelConfigState & SkillsConfigState & {
   // Agent 列表
-  agentsList: any;
+  agentsList: AgentsListResult | null;
   agentsLoading: boolean;
   agentsError: string | null;
 
@@ -109,17 +118,17 @@ type InternalState = ModelConfigState & SkillsConfigState & {
   // Agent Identity 状态
   agentIdentityLoading: boolean;
   agentIdentityError: string | null;
-  agentIdentityById: Record<string, any>;
+  agentIdentityById: Record<string, AgentIdentityResult>;
 
   // 定时任务状态
   cronLoading: boolean;
   cronBusy: boolean;
   cronError: string | null;
-  cronStatus: any;
-  cronJobs: any[];
+  cronStatus: CronStatus | null;
+  cronJobs: CronJob[];
   cronForm: CronFormState;
   cronRunsJobId: string | null;
-  cronRuns: any[];
+  cronRuns: CronRunLogEntry[];
   cronExpandedJobId: string | null;
   cronDeleteConfirmJobId: string | null;
   cronShowCreateModal: boolean;
@@ -291,7 +300,7 @@ export class OpenClawConfigElement extends LitElement {
 
     try {
       // 加载 agents 列表
-      const agentsRes = await this.client.request<any>("agents.list", {});
+      const agentsRes = await this.client.request<AgentsListResult>("agents.list", {});
       this._state.agentsList = agentsRes;
 
       // 设置默认选中的 Agent
@@ -301,7 +310,7 @@ export class OpenClawConfigElement extends LitElement {
       }
 
       // 并行加载模型配置、Agent Identity 和 Channels 状态
-      const agentIds = (agentsRes?.agents ?? []).map((a: any) => a.id);
+      const agentIds = (agentsRes?.agents ?? []).map((a: GatewayAgentRow) => a.id);
       await Promise.all([
         loadModelConfig(this._state),
         this._loadAgentIdentities(agentIds),
@@ -329,7 +338,7 @@ export class OpenClawConfigElement extends LitElement {
     this._state.agentIdentityError = null;
 
     try {
-      const res = await this.client.request<any>("agent.identity.get", { agentId });
+      const res = await this.client.request<AgentIdentityResult>("agent.identity.get", { agentId });
       if (res) {
         this._state.agentIdentityById = {
           ...this._state.agentIdentityById,
@@ -544,7 +553,7 @@ export class OpenClawConfigElement extends LitElement {
     }
   }
 
-  private async _toggleCronJob(job: any, enabled: boolean) {
+  private async _toggleCronJob(job: CronJob, enabled: boolean) {
     if (!this.client || !this.connected || this._state.cronBusy) return;
     this._state.cronBusy = true;
     this._state.cronError = null;
@@ -561,7 +570,7 @@ export class OpenClawConfigElement extends LitElement {
     }
   }
 
-  private async _runCronJob(job: any) {
+  private async _runCronJob(job: CronJob) {
     if (!this.client || !this.connected || this._state.cronBusy) return;
     this._state.cronBusy = true;
     this._state.cronError = null;
@@ -578,7 +587,7 @@ export class OpenClawConfigElement extends LitElement {
     }
   }
 
-  private async _removeCronJob(job: any) {
+  private async _removeCronJob(job: CronJob) {
     if (!this.client || !this.connected || this._state.cronBusy) return;
     this._state.cronBusy = true;
     this._state.cronError = null;
@@ -604,7 +613,7 @@ export class OpenClawConfigElement extends LitElement {
     if (!this.client || !this.connected) return;
 
     try {
-      const res = await this.client.request<{ entries?: any[] }>("cron.runs", {
+      const res = await this.client.request<{ entries?: CronRunLogEntry[] }>("cron.runs", {
         id: jobId,
         limit: 50,
       });
@@ -722,7 +731,7 @@ export class OpenClawConfigElement extends LitElement {
       agentFilesList: s.workspaceAgentId && s.workspaceFiles ? {
         agentId: s.workspaceAgentId,
         workspace: s.workspaceDir ?? "",
-        files: (s.workspaceFiles ?? []).map((f: any) => ({
+        files: (s.workspaceFiles ?? []).map((f: WorkspaceFileInfo) => ({
           name: f.name,
           path: f.path ?? f.name,
           missing: !f.exists,
@@ -804,7 +813,7 @@ export class OpenClawConfigElement extends LitElement {
       cronError: s.cronError,
       cronStatus: s.cronStatus,
       cronJobs: s.selectedAgentId
-        ? s.cronJobs.filter((job: any) => {
+        ? s.cronJobs.filter((job: CronJob) => {
             // 任务的 agentId 匹配选中的 Agent
             if (job.agentId === s.selectedAgentId) return true;
             // 任务没有指定 agentId（使用默认 Agent），且当前选中的是默认 Agent
