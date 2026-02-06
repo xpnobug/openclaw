@@ -1,14 +1,11 @@
 /**
- * 技能配置控制器
- * Skills config controller
- *
- * ⚠️ 此文件已重构，实际实现已拆分到 ./skills/ 目录
- * 保留此文件以保持向后兼容
+ * 技能配置控制器导出
+ * Skills config controller exports
  */
 
-// 从新模块重新导出所有内容
+// 类型
+export type { SkillsConfigState } from "./types";
 export type {
-  SkillsConfigState,
   SkillStatusReport,
   SkillsConfig,
   SkillSourceFilter,
@@ -21,42 +18,61 @@ export type {
   SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
-  LoadSkillsOptions,
-} from "./skills";
+} from "./types";
 
+// 状态和辅助函数
 export {
-  // 状态和辅助函数
   createInitialSkillsConfigState,
+  getErrorMessage,
+  setSkillMessage,
   hasSkillsConfigChanges,
   hasEditorChanges,
-  // 数据加载/保存
+} from "./state";
+
+// 数据加载/保存
+export type { LoadSkillsOptions } from "./loader";
+export {
   loadSkillsStatus,
   saveSkillsConfig,
+  updateSkillsConfigField,
   updateGlobalSetting,
   updateExtraDirs,
-  // 技能操作
+} from "./loader";
+
+// 技能操作
+export {
   updateSkillEnabled,
   saveSkillApiKey,
   installSkillDependency,
-  // UI 状态
+} from "./actions";
+
+// UI 状态
+export {
   updateSkillsFilter,
   updateSkillsSourceFilter,
   updateSkillsStatusFilter,
   toggleSkillsGroup,
   selectSkill,
   updateSkillApiKeyEdit,
+  updateSkillEnabledEdit,
   updateSkillEnv,
   removeSkillEnv,
   updateSkillConfig,
   setAllowlistMode,
   toggleAllowlistEntry,
-  // 编辑器操作
+} from "./ui-state";
+
+// 编辑器操作
+export {
   openSkillEditor,
   closeSkillEditor,
   updateEditorContent,
   updateEditorMode,
   saveSkillFile,
-  // 创建/删除/预览操作
+} from "./editor";
+
+// 创建/删除/预览操作
+export {
   openCreateSkill,
   closeCreateSkill,
   updateCreateSkillName,
@@ -67,4 +83,4 @@ export {
   confirmDeleteSkill,
   openSkillPreview,
   closeSkillPreview,
-} from "./skills";
+} from "./crud";
