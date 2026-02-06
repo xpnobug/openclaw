@@ -846,7 +846,9 @@ export async function saveModelConfig(state: ModelConfigState): Promise<void> {
     }
 
   } catch (err) {
-    state.lastError = `保存配置失败: ${String(err)}`;
+    // 提取详细的验证错误信息
+    const errorDetails = extractErrorDetails(err);
+    state.lastError = `保存配置失败: ${errorDetails}`;
   } finally {
     state.modelConfigSaving = false;
   }
@@ -912,10 +914,43 @@ export async function applyModelConfig(state: ModelConfigState): Promise<void> {
     }
 
   } catch (err) {
-    state.lastError = `应用配置失败: ${String(err)}`;
+    // 提取详细的验证错误信息
+    const errorDetails = extractErrorDetails(err);
+    state.lastError = `应用配置失败: ${errorDetails}`;
   } finally {
     state.modelConfigApplying = false;
   }
+}
+
+/**
+ * 从错误对象中提取详细信息
+ * Extract detailed information from error object
+ */
+function extractErrorDetails(err: unknown): string {
+  if (err && typeof err === "object") {
+    const errObj = err as Record<string, unknown>;
+    // 检查是否有 details.issues 字段（来自 Gateway 的验证错误）
+    if (errObj.details && typeof errObj.details === "object") {
+      const details = errObj.details as Record<string, unknown>;
+      if (Array.isArray(details.issues) && details.issues.length > 0) {
+        const issueMessages = details.issues.map((issue: unknown) => {
+          if (issue && typeof issue === "object") {
+            const i = issue as Record<string, unknown>;
+            const path = Array.isArray(i.path) ? i.path.join(".") : String(i.path ?? "");
+            const message = String(i.message ?? "");
+            return path ? `${path}: ${message}` : message;
+          }
+          return String(issue);
+        });
+        return issueMessages.join("; ");
+      }
+    }
+    // 检查 message 字段
+    if (typeof errObj.message === "string") {
+      return errObj.message;
+    }
+  }
+  return String(err);
 }
 
 /**
