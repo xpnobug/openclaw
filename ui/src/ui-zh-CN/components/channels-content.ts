@@ -8,6 +8,26 @@ import type {
   ChannelConfigField,
   ChannelsConfigData,
 } from "../types/channel-config";
+import {
+  DM_POLICY_OPTIONS,
+  GROUP_POLICY_OPTIONS,
+  CONFIG_SECTIONS,
+  STREAM_MODE_OPTIONS,
+  REACTION_LEVEL_OPTIONS,
+  AUTO_JOIN_OPTIONS,
+  TYPING_INDICATOR_OPTIONS,
+  REPLY_STYLE_OPTIONS,
+  SELF_CHAT_MODE_OPTIONS,
+  IMESSAGE_SERVICE_OPTIONS,
+  SLACK_MODE_OPTIONS,
+  FEISHU_DOMAIN_OPTIONS,
+  FEISHU_CONNECTION_MODE_OPTIONS,
+  FEISHU_RENDER_MODE_OPTIONS,
+  FEISHU_CHUNK_MODE_OPTIONS,
+  FEISHU_MARKDOWN_MODE_OPTIONS,
+  FEISHU_TABLE_MODE_OPTIONS,
+  FEISHU_HEARTBEAT_VISIBILITY_OPTIONS,
+} from "../types/channel-fields";
 
 // SVG 图标
 const icons = {
@@ -37,20 +57,6 @@ const icons = {
   externalLink: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>`,
 };
 
-// DM/Group 策略选项
-const DM_POLICY_OPTIONS = [
-  { value: "pairing", label: "配对模式" },
-  { value: "allowlist", label: "白名单" },
-  { value: "open", label: "开放" },
-  { value: "disabled", label: "禁用" },
-];
-
-const GROUP_POLICY_OPTIONS = [
-  { value: "open", label: "开放" },
-  { value: "allowlist", label: "白名单" },
-  { value: "disabled", label: "禁用" },
-];
-
 // 通道元数据定义 - 基于实际代码库
 export const CHANNEL_METADATA: ChannelMeta[] = [
   // ===== 内置通道 =====
@@ -66,21 +72,12 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "tokenFile", label: "Token 文件路径", type: "text", placeholder: "/path/to/token", section: "auth" },
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "群组策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
-      { key: "streamMode", label: "流式模式", type: "select", options: [
-        { value: "off", label: "关闭" },
-        { value: "partial", label: "部分" },
-        { value: "block", label: "块" },
-      ], section: "messaging" },
+      { key: "streamMode", label: "流式模式", type: "select", options: [...STREAM_MODE_OPTIONS], section: "messaging" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
       { key: "historyLimit", label: "群组历史记录限制", type: "number", placeholder: "50", section: "history" },
       { key: "dmHistoryLimit", label: "DM 历史记录限制", type: "number", placeholder: "50", section: "history" },
       { key: "linkPreview", label: "显示链接预览", type: "toggle", section: "messaging" },
-      { key: "reactionLevel", label: "表情回应级别", type: "select", options: [
-        { value: "off", label: "关闭" },
-        { value: "ack", label: "确认" },
-        { value: "minimal", label: "最小" },
-        { value: "extensive", label: "详细" },
-      ], section: "messaging" },
+      { key: "reactionLevel", label: "表情回应级别", type: "select", options: [...REACTION_LEVEL_OPTIONS], section: "messaging" },
     ],
   },
   {
@@ -109,10 +106,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
     docsUrl: "https://docs.molt.bot/channels/slack",
     configFields: [
       { key: "enabled", label: "启用", type: "toggle", section: "basic" },
-      { key: "mode", label: "连接模式", type: "select", options: [
-        { value: "socket", label: "Socket Mode" },
-        { value: "http", label: "HTTP Mode" },
-      ], section: "basic" },
+      { key: "mode", label: "连接模式", type: "select", options: [...SLACK_MODE_OPTIONS], section: "basic" },
       { key: "botToken", label: "Bot Token", type: "password", placeholder: "xoxb-...", required: true, section: "auth" },
       { key: "appToken", label: "App Token", type: "password", placeholder: "xapp-...", section: "auth" },
       { key: "userToken", label: "User Token", type: "password", placeholder: "xoxp-...", section: "auth" },
@@ -136,11 +130,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "群组策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
       { key: "sendReadReceipts", label: "发送已读回执", type: "toggle", section: "messaging" },
-      { key: "selfChatMode", label: "自聊模式", type: "select", options: [
-        { value: "off", label: "关闭" },
-        { value: "forward", label: "转发" },
-        { value: "local", label: "本地" },
-      ], section: "messaging" },
+      { key: "selfChatMode", label: "自聊模式", type: "select", options: [...SELF_CHAT_MODE_OPTIONS], section: "messaging" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
       { key: "mediaMaxMb", label: "最大媒体大小 (MB)", type: "number", placeholder: "50", section: "messaging" },
       { key: "debounceMs", label: "防抖延迟 (ms)", type: "number", placeholder: "1000", section: "advanced" },
@@ -182,11 +172,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "Space 策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
       { key: "requireMention", label: "需要 @提及", type: "toggle", section: "access" },
-      { key: "typingIndicator", label: "输入指示器", type: "select", options: [
-        { value: "none", label: "无" },
-        { value: "message", label: "消息" },
-        { value: "reaction", label: "表情" },
-      ], section: "messaging" },
+      { key: "typingIndicator", label: "输入指示器", type: "select", options: [...TYPING_INDICATOR_OPTIONS], section: "messaging" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
       { key: "historyLimit", label: "历史记录限制", type: "number", placeholder: "50", section: "history" },
     ],
@@ -202,11 +188,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "cliPath", label: "CLI 路径", type: "text", placeholder: "imsg", section: "cli" },
       { key: "dbPath", label: "数据库路径", type: "text", placeholder: "~/Library/Messages/chat.db", section: "cli" },
       { key: "remoteHost", label: "远程主机", type: "text", placeholder: "user@192.168.64.3", section: "cli" },
-      { key: "service", label: "服务类型", type: "select", options: [
-        { value: "imessage", label: "iMessage" },
-        { value: "sms", label: "SMS" },
-        { value: "auto", label: "自动" },
-      ], section: "basic" },
+      { key: "service", label: "服务类型", type: "select", options: [...IMESSAGE_SERVICE_OPTIONS], section: "basic" },
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "群组策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
       { key: "includeAttachments", label: "包含附件", type: "toggle", section: "messaging" },
@@ -229,10 +211,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "团队策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
       { key: "requireMention", label: "需要 @提及", type: "toggle", section: "access" },
-      { key: "replyStyle", label: "回复样式", type: "select", options: [
-        { value: "thread", label: "线程回复" },
-        { value: "top-level", label: "顶层回复" },
-      ], section: "messaging" },
+      { key: "replyStyle", label: "回复样式", type: "select", options: [...REPLY_STYLE_OPTIONS], section: "messaging" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
       { key: "mediaMaxMb", label: "最大媒体大小 (MB)", type: "number", placeholder: "100", section: "messaging" },
       { key: "historyLimit", label: "历史记录限制", type: "number", placeholder: "50", section: "history" },
@@ -249,14 +228,8 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
     configFields: [
       // 基本设置
       { key: "enabled", label: "启用", type: "toggle", section: "basic" },
-      { key: "domain", label: "域名", type: "select", options: [
-        { value: "feishu", label: "飞书 (feishu.cn)" },
-        { value: "lark", label: "Lark (larksuite.com)" },
-      ], section: "basic", description: "选择飞书或 Lark 国际版" },
-      { key: "connectionMode", label: "连接模式", type: "select", options: [
-        { value: "websocket", label: "WebSocket (推荐)" },
-        { value: "webhook", label: "Webhook" },
-      ], section: "basic" },
+      { key: "domain", label: "域名", type: "select", options: [...FEISHU_DOMAIN_OPTIONS], section: "basic", description: "选择飞书或 Lark 国际版" },
+      { key: "connectionMode", label: "连接模式", type: "select", options: [...FEISHU_CONNECTION_MODE_OPTIONS], section: "basic" },
       // 认证配置
       { key: "appId", label: "App ID", type: "text", placeholder: "cli_xxxxxxxx", required: true, section: "auth", description: "飞书开放平台应用 ID" },
       { key: "appSecret", label: "App Secret", type: "password", placeholder: "xxxxxxxxxxxxxxxx", required: true, section: "auth", description: "飞书开放平台应用密钥" },
@@ -266,39 +239,20 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "webhookPath", label: "Webhook 路径", type: "text", placeholder: "/feishu/events", section: "webhook" },
       { key: "webhookPort", label: "Webhook 端口", type: "number", placeholder: "3000", section: "webhook" },
       // 访问控制
-      { key: "dmPolicy", label: "私聊策略", type: "select", options: [
-        { value: "pairing", label: "配对模式" },
-        { value: "allowlist", label: "白名单" },
-        { value: "open", label: "开放" },
-      ], section: "access", description: "私聊消息的访问控制策略" },
+      { key: "dmPolicy", label: "私聊策略", type: "select", options: [...DM_POLICY_OPTIONS].filter(o => o.value !== "disabled"), section: "access", description: "私聊消息的访问控制策略" },
       { key: "allowFrom", label: "私聊白名单", type: "array", placeholder: "ou_xxxxxxxx", description: "允许私聊的用户 Open ID，每行一个", section: "access" },
       { key: "groupPolicy", label: "群组策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access", description: "群组消息的访问控制策略" },
       { key: "groupAllowFrom", label: "群组白名单", type: "array", placeholder: "oc_xxxxxxxx", description: "允许的群组 Chat ID，每行一个", section: "access" },
       { key: "requireMention", label: "群聊需要 @提及", type: "toggle", section: "access", description: "群聊中是否需要 @机器人才回复" },
       { key: "configWrites", label: "允许配置写入", type: "toggle", section: "access", description: "是否允许通过消息修改配置" },
       // 消息设置
-      { key: "renderMode", label: "消息渲染模式", type: "select", options: [
-        { value: "auto", label: "自动检测" },
-        { value: "raw", label: "纯文本" },
-        { value: "card", label: "卡片消息" },
-      ], section: "messaging", description: "消息的渲染方式" },
+      { key: "renderMode", label: "消息渲染模式", type: "select", options: [...FEISHU_RENDER_MODE_OPTIONS], section: "messaging", description: "消息的渲染方式" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
-      { key: "chunkMode", label: "分块模式", type: "select", options: [
-        { value: "length", label: "按长度" },
-        { value: "newline", label: "按换行" },
-      ], section: "messaging" },
+      { key: "chunkMode", label: "分块模式", type: "select", options: [...FEISHU_CHUNK_MODE_OPTIONS], section: "messaging" },
       { key: "mediaMaxMb", label: "最大媒体大小 (MB)", type: "number", placeholder: "25", section: "messaging" },
       // Markdown 设置
-      { key: "markdown.mode", label: "Markdown 模式", type: "select", options: [
-        { value: "native", label: "原生" },
-        { value: "escape", label: "转义" },
-        { value: "strip", label: "去除" },
-      ], section: "messaging", description: "Markdown 处理方式" },
-      { key: "markdown.tableMode", label: "表格模式", type: "select", options: [
-        { value: "native", label: "原生" },
-        { value: "ascii", label: "ASCII" },
-        { value: "simple", label: "简单" },
-      ], section: "messaging", description: "表格渲染方式" },
+      { key: "markdown.mode", label: "Markdown 模式", type: "select", options: [...FEISHU_MARKDOWN_MODE_OPTIONS], section: "messaging", description: "Markdown 处理方式" },
+      { key: "markdown.tableMode", label: "表格模式", type: "select", options: [...FEISHU_TABLE_MODE_OPTIONS], section: "messaging", description: "表格渲染方式" },
       // 历史记录
       { key: "historyLimit", label: "群组历史记录限制", type: "number", placeholder: "50", section: "history" },
       { key: "dmHistoryLimit", label: "私聊历史记录限制", type: "number", placeholder: "50", section: "history" },
@@ -307,10 +261,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "blockStreamingCoalesce.minDelayMs", label: "最小延迟 (ms)", type: "number", placeholder: "100", section: "streaming" },
       { key: "blockStreamingCoalesce.maxDelayMs", label: "最大延迟 (ms)", type: "number", placeholder: "1000", section: "streaming" },
       // 心跳配置
-      { key: "heartbeat.visibility", label: "心跳可见性", type: "select", options: [
-        { value: "visible", label: "可见" },
-        { value: "hidden", label: "隐藏" },
-      ], section: "advanced" },
+      { key: "heartbeat.visibility", label: "心跳可见性", type: "select", options: [...FEISHU_HEARTBEAT_VISIBILITY_OPTIONS], section: "advanced" },
       { key: "heartbeat.intervalMs", label: "心跳间隔 (ms)", type: "number", placeholder: "30000", section: "advanced" },
       // 工具配置
       { key: "tools.doc", label: "启用文档工具", type: "toggle", section: "tools", description: "飞书文档操作工具" },
@@ -362,11 +313,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       { key: "encryption", label: "启用加密", type: "toggle", section: "basic" },
       { key: "dmPolicy", label: "DM 策略", type: "select", options: DM_POLICY_OPTIONS, section: "access" },
       { key: "groupPolicy", label: "房间策略", type: "select", options: GROUP_POLICY_OPTIONS, section: "access" },
-      { key: "autoJoin", label: "自动加入", type: "select", options: [
-        { value: "always", label: "总是" },
-        { value: "allowlist", label: "白名单" },
-        { value: "off", label: "关闭" },
-      ], section: "access" },
+      { key: "autoJoin", label: "自动加入", type: "select", options: [...AUTO_JOIN_OPTIONS], section: "access" },
       { key: "textChunkLimit", label: "文本块限制", type: "number", placeholder: "4000", section: "messaging" },
       { key: "mediaMaxMb", label: "最大媒体大小 (MB)", type: "number", placeholder: "25", section: "messaging" },
     ],
@@ -496,23 +443,6 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
   },
 ];
 
-// 配置区块分组
-const CONFIG_SECTIONS = [
-  { id: "basic", label: "基本设置" },
-  { id: "auth", label: "认证配置" },
-  { id: "api", label: "API 配置" },
-  { id: "webhook", label: "Webhook 配置" },
-  { id: "daemon", label: "守护进程" },
-  { id: "cli", label: "CLI 配置" },
-  { id: "polling", label: "轮询配置" },
-  { id: "access", label: "访问控制" },
-  { id: "messaging", label: "消息设置" },
-  { id: "streaming", label: "流式消息" },
-  { id: "history", label: "历史记录" },
-  { id: "tools", label: "工具配置" },
-  { id: "advanced", label: "高级设置" },
-];
-
 function getChannelIcon(iconName: string) {
   return icons[iconName as keyof typeof icons] ?? icons.channel;
 }
@@ -630,7 +560,7 @@ function renderConfigField(
           >
             <option value="" ?selected=${!value}>-- 选择 --</option>
             ${field.options?.map(
-              (opt) => html`<option value=${opt.value} ?selected=${String(value) === opt.value}>${opt.label}</option>`,
+              (opt: { value: string; label: string }) => html`<option value=${opt.value} ?selected=${String(value) === opt.value}>${opt.label}</option>`,
             )}
           </select>
         </label>
@@ -750,8 +680,8 @@ function renderChannelDetail(props: ChannelsContentProps) {
       </div>
 
       <div class="channel-detail__body">
-        ${CONFIG_SECTIONS.filter((section) => fieldsBySection.has(section.id)).map(
-          (section) => html`
+        ${CONFIG_SECTIONS.filter((section: { id: string; label: string }) => fieldsBySection.has(section.id)).map(
+          (section: { id: string; label: string }) => html`
             <div class="channel-detail__section">
               <h4 class="channel-detail__section-title">${section.label}</h4>
               <div class="channel-detail__fields">
