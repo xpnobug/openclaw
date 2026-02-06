@@ -4,21 +4,34 @@
  */
 import { html, nothing } from "lit";
 import type { ProviderConfig, ModelConfig, ModelApi, AuthMode } from "../views/model-config";
+import {
+  providerIcon,
+  plusIcon,
+  trashIcon,
+  chevronDownIcon,
+  settingsIcon,
+  infoIcon,
+  xIcon,
+} from "./icons";
 
-// SVG 图标
+// 图标映射（使用导入的图标模块）
 const icons = {
-  provider: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`,
-  add: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-  trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
-  chevron: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-  settings: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`,
-  info: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>`,
-  close: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+  provider: providerIcon,
+  add: plusIcon,
+  trash: trashIcon,
+  chevron: chevronDownIcon,
+  settings: settingsIcon,
+  info: infoIcon,
+  close: xIcon,
 };
 
 // API 协议配置
 const API_PROTOCOLS: Array<{ value: ModelApi; label: string; hint: string }> = [
-  { value: "openai-completions", label: "OpenAI Completions", hint: "OpenAI 兼容 API（大多数供应商）" },
+  {
+    value: "openai-completions",
+    label: "OpenAI Completions",
+    hint: "OpenAI 兼容 API（大多数供应商）",
+  },
   { value: "openai-responses", label: "OpenAI Responses", hint: "OpenAI 新版 Responses API" },
   { value: "anthropic-messages", label: "Anthropic Messages", hint: "Anthropic Claude API" },
   { value: "google-generative-ai", label: "Google Generative AI", hint: "Google Gemini API" },
@@ -172,7 +185,12 @@ function renderModelRow(
               class="mc-input mc-input--sm"
               .value=${model.name}
               @input=${(e: Event) =>
-                props.onModelUpdate(providerKey, index, "name", (e.target as HTMLInputElement).value)}
+                props.onModelUpdate(
+                  providerKey,
+                  index,
+                  "name",
+                  (e.target as HTMLInputElement).value,
+                )}
             />
           </label>
         </div>
@@ -407,7 +425,9 @@ function renderModelAdvanced(
                   @change=${(e: Event) =>
                     props.onModelUpdate(providerKey, index, "compat", {
                       ...compat,
-                      maxTokensField: (e.target as HTMLSelectElement).value as "max_tokens" | "max_completion_tokens",
+                      maxTokensField: (e.target as HTMLSelectElement).value as
+                        | "max_tokens"
+                        | "max_completion_tokens",
                     })}
                 >
                   <option value="max_tokens" .selected=${(compat.maxTokensField ?? "max_tokens") === "max_tokens"}>${LABELS.maxTokensField}</option>
@@ -440,7 +460,11 @@ function renderHeadersEditor(
   const handleRemoveHeader = (key: string) => {
     const newHeaders = { ...(headers ?? {}) };
     delete newHeaders[key];
-    props.onProviderUpdate(providerKey, "headers", Object.keys(newHeaders).length > 0 ? newHeaders : undefined);
+    props.onProviderUpdate(
+      providerKey,
+      "headers",
+      Object.keys(newHeaders).length > 0 ? newHeaders : undefined,
+    );
   };
 
   const handleHeaderChange = (oldKey: string, newKey: string, value: string) => {
@@ -452,7 +476,11 @@ function renderHeadersEditor(
         newHeaders[k] = v;
       }
     }
-    props.onProviderUpdate(providerKey, "headers", Object.keys(newHeaders).length > 0 ? newHeaders : undefined);
+    props.onProviderUpdate(
+      providerKey,
+      "headers",
+      Object.keys(newHeaders).length > 0 ? newHeaders : undefined,
+    );
   };
 
   return html`
@@ -463,9 +491,10 @@ function renderHeadersEditor(
           ${icons.add} ${LABELS.addHeader}
         </button>
       </div>
-      ${entries.length === 0
-        ? html`<div class="mc-headers-section__hint">${LABELS.headersHint}</div>`
-        : html`
+      ${
+        entries.length === 0
+          ? html`<div class="mc-headers-section__hint">${LABELS.headersHint}</div>`
+          : html`
             <div class="mc-headers-list">
               ${entries.map(
                 ([key, value]) => html`
@@ -496,7 +525,8 @@ function renderHeadersEditor(
                 `,
               )}
             </div>
-          `}
+          `
+      }
     </div>
   `;
 }
@@ -555,8 +585,9 @@ function renderProviderCard(
         </div>
       </div>
 
-      ${expanded
-        ? html`
+      ${
+        expanded
+          ? html`
             <div class="mc-provider-card__content">
               <div class="mc-form-section">
                 <div class="mc-form-row">
@@ -589,7 +620,11 @@ function renderProviderCard(
                       .value=${provider.baseUrl}
                       placeholder="https://api.example.com/v1"
                       @input=${(e: Event) =>
-                        props.onProviderUpdate(key, "baseUrl", (e.target as HTMLInputElement).value)}
+                        props.onProviderUpdate(
+                          key,
+                          "baseUrl",
+                          (e.target as HTMLInputElement).value,
+                        )}
                     />
                   </label>
                 </div>
@@ -602,7 +637,8 @@ function renderProviderCard(
                         props.onProviderUpdate(key, "api", (e.target as HTMLSelectElement).value)}
                     >
                       ${API_PROTOCOLS.map(
-                        (p) => html`<option value=${p.value} title=${p.hint} .selected=${provider.api === p.value}>${p.label}</option>`,
+                        (p) =>
+                          html`<option value=${p.value} title=${p.hint} .selected=${provider.api === p.value}>${p.label}</option>`,
                       )}
                     </select>
                   </label>
@@ -614,13 +650,15 @@ function renderProviderCard(
                         props.onProviderUpdate(key, "auth", (e.target as HTMLSelectElement).value)}
                     >
                       ${AUTH_MODES.map(
-                        (a) => html`<option value=${a.value} title=${a.hint} .selected=${(provider.auth ?? "api-key") === a.value}>${a.label}</option>`,
+                        (a) =>
+                          html`<option value=${a.value} title=${a.hint} .selected=${(provider.auth ?? "api-key") === a.value}>${a.label}</option>`,
                       )}
                     </select>
                   </label>
                 </div>
-                ${showApiKey
-                  ? html`
+                ${
+                  showApiKey
+                    ? html`
                       <div class="mc-form-row">
                         <label class="mc-field">
                           <span class="mc-field__label">${LABELS.providerApiKey}</span>
@@ -630,12 +668,17 @@ function renderProviderCard(
                             .value=${provider.apiKey ?? ""}
                             placeholder="sk-... 或 ${`\${ENV_VAR}`}"
                             @input=${(e: Event) =>
-                              props.onProviderUpdate(key, "apiKey", (e.target as HTMLInputElement).value)}
+                              props.onProviderUpdate(
+                                key,
+                                "apiKey",
+                                (e.target as HTMLInputElement).value,
+                              )}
                           />
                         </label>
                       </div>
                     `
-                  : nothing}
+                    : nothing
+                }
                 ${renderHeadersEditor(key, provider.headers, props)}
               </div>
 
@@ -651,14 +694,13 @@ function renderProviderCard(
                   </button>
                 </div>
                 <div class="mc-models-list">
-                  ${provider.models.map((model, idx) =>
-                    renderModelRow(key, idx, model, props),
-                  )}
+                  ${provider.models.map((model, idx) => renderModelRow(key, idx, model, props))}
                 </div>
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -705,8 +747,7 @@ function renderAddProviderModal(props: ProvidersContentProps) {
               class="mc-input"
               placeholder=${LABELS.providerNamePlaceholder}
               .value=${form.name}
-              @input=${(e: Event) =>
-                onFormChange({ name: (e.target as HTMLInputElement).value })}
+              @input=${(e: Event) => onFormChange({ name: (e.target as HTMLInputElement).value })}
             />
           </div>
 
@@ -733,7 +774,8 @@ function renderAddProviderModal(props: ProvidersContentProps) {
                   onFormChange({ api: (e.target as HTMLSelectElement).value as ModelApi })}
               >
                 ${API_PROTOCOLS.map(
-                  (p) => html`<option value=${p.value} title=${p.hint} .selected=${form.api === p.value}>${p.label}</option>`,
+                  (p) =>
+                    html`<option value=${p.value} title=${p.hint} .selected=${form.api === p.value}>${p.label}</option>`,
                 )}
               </select>
             </div>
@@ -745,15 +787,17 @@ function renderAddProviderModal(props: ProvidersContentProps) {
                   onFormChange({ auth: (e.target as HTMLSelectElement).value as AuthMode })}
               >
                 ${AUTH_MODES.map(
-                  (a) => html`<option value=${a.value} title=${a.hint} .selected=${form.auth === a.value}>${a.label}</option>`,
+                  (a) =>
+                    html`<option value=${a.value} title=${a.hint} .selected=${form.auth === a.value}>${a.label}</option>`,
                 )}
               </select>
             </div>
           </div>
 
           <!-- API 密钥 -->
-          ${showApiKey
-            ? html`
+          ${
+            showApiKey
+              ? html`
                 <div class="mc-field" style="margin-bottom: 16px;">
                   <label class="mc-field__label">${LABELS.providerApiKey}</label>
                   <input
@@ -766,17 +810,20 @@ function renderAddProviderModal(props: ProvidersContentProps) {
                   />
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 错误提示 -->
-          ${props.addError
-            ? html`
+          ${
+            props.addError
+              ? html`
                 <div class="cron-error-banner">
                   ${icons.info}
                   <span>${props.addError}</span>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
 
         <div class="cron-create-modal__footer">
@@ -900,9 +947,10 @@ export function renderProvidersContent(props: ProvidersContentProps) {
       </details>
 
       <div class="config-content__body">
-        ${providerKeys.length === 0
-          ? html`<div class="mc-empty">${LABELS.noProviders}</div>`
-          : html`
+        ${
+          providerKeys.length === 0
+            ? html`<div class="mc-empty">${LABELS.noProviders}</div>`
+            : html`
               <div class="mc-providers-grid">
                 ${providerKeys.map((key) =>
                   renderProviderCard(
@@ -913,7 +961,8 @@ export function renderProvidersContent(props: ProvidersContentProps) {
                   ),
                 )}
               </div>
-            `}
+            `
+        }
       </div>
 
       <!-- 添加供应商弹窗 -->

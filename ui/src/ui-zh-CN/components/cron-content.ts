@@ -12,6 +12,18 @@ import {
   formatCronState,
   formatNextRun,
 } from "../../ui/presenter";
+import {
+  clockIcon,
+  plusIcon,
+  editIcon,
+  playIcon,
+  trashIcon,
+  chevronDownIcon,
+  checkIcon,
+  xIcon,
+  alertCircleIcon,
+  refreshIcon,
+} from "./icons";
 
 // 中文标签 / Chinese labels
 const LABELS = {
@@ -126,18 +138,18 @@ const LABELS = {
   error: "错误",
 };
 
-// 图标
+// 图标映射（使用导入的图标模块）
 const icons = {
-  clock: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`,
-  plus: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
-  edit: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
-  play: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>`,
-  trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
-  chevronDown: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
-  check: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="20 6 9 17 4 12"></polyline></svg>`,
-  x: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
-  alertCircle: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>`,
-  refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
+  clock: clockIcon,
+  plus: plusIcon,
+  edit: editIcon,
+  play: playIcon,
+  trash: trashIcon,
+  chevronDown: chevronDownIcon,
+  check: checkIcon,
+  x: xIcon,
+  alertCircle: alertCircleIcon,
+  refresh: refreshIcon,
 };
 
 /**
@@ -276,8 +288,9 @@ function renderScheduleFields(props: CronContentProps) {
     </div>
 
     <!-- 调度参数 -->
-    ${form.scheduleKind === "at"
-      ? html`
+    ${
+      form.scheduleKind === "at"
+        ? html`
           <div class="mc-field">
             <label class="mc-field__label">${LABELS.runAt}</label>
             <input
@@ -289,8 +302,8 @@ function renderScheduleFields(props: CronContentProps) {
             />
           </div>
         `
-      : form.scheduleKind === "every"
-        ? html`
+        : form.scheduleKind === "every"
+          ? html`
             <div class="cron-form-grid">
               <div class="mc-field">
                 <label class="mc-field__label">${LABELS.every}</label>
@@ -310,7 +323,8 @@ function renderScheduleFields(props: CronContentProps) {
                   .value=${form.everyUnit}
                   @change=${(e: Event) =>
                     onFormChange({
-                      everyUnit: (e.target as HTMLSelectElement).value as CronFormState["everyUnit"],
+                      everyUnit: (e.target as HTMLSelectElement)
+                        .value as CronFormState["everyUnit"],
                     })}
                 >
                   <option value="minutes">${LABELS.minutes}</option>
@@ -320,7 +334,7 @@ function renderScheduleFields(props: CronContentProps) {
               </div>
             </div>
           `
-        : html`
+          : html`
             <div class="cron-form-grid">
               <div class="mc-field">
                 <label class="mc-field__label">${LABELS.cronExpr}</label>
@@ -345,7 +359,8 @@ function renderScheduleFields(props: CronContentProps) {
                 />
               </div>
             </div>
-          `}
+          `
+    }
   `;
 }
 
@@ -378,8 +393,12 @@ function renderCreateModal(props: CronContentProps) {
 
   const modalTitle = isEditMode ? LABELS.editJob : LABELS.newJob;
   const submitLabel = isEditMode
-    ? (props.busy ? LABELS.updating : LABELS.updateJob)
-    : (props.busy ? LABELS.adding : LABELS.addJob);
+    ? props.busy
+      ? LABELS.updating
+      : LABELS.updateJob
+    : props.busy
+      ? LABELS.adding
+      : LABELS.addJob;
 
   return html`
     <div class="cron-confirm-modal" @click=${handleClose}>
@@ -404,8 +423,7 @@ function renderCreateModal(props: CronContentProps) {
                 class="mc-input"
                 placeholder=${LABELS.namePlaceholder}
                 .value=${form.name}
-                @input=${(e: Event) =>
-                  onFormChange({ name: (e.target as HTMLInputElement).value })}
+                @input=${(e: Event) => onFormChange({ name: (e.target as HTMLInputElement).value })}
               />
             </div>
             <div class="mc-field">
@@ -466,7 +484,8 @@ function renderCreateModal(props: CronContentProps) {
                 class="mc-select"
                 .value=${form.sessionTarget}
                 @change=${(e: Event) => {
-                  const newTarget = (e.target as HTMLSelectElement).value as CronFormState["sessionTarget"];
+                  const newTarget = (e.target as HTMLSelectElement)
+                    .value as CronFormState["sessionTarget"];
                   // main 会话只能使用 systemEvent 类型
                   if (newTarget === "main" && form.payloadKind === "agentTurn") {
                     onFormChange({
@@ -506,7 +525,8 @@ function renderCreateModal(props: CronContentProps) {
               .value=${form.payloadKind}
               @change=${(e: Event) =>
                 onFormChange({
-                  payloadKind: (e.target as HTMLSelectElement).value as CronFormState["payloadKind"],
+                  payloadKind: (e.target as HTMLSelectElement)
+                    .value as CronFormState["payloadKind"],
                 })}
             >
               <option value="systemEvent">${LABELS.payloadSystemEvent}</option>
@@ -530,8 +550,9 @@ function renderCreateModal(props: CronContentProps) {
           </div>
 
           <!-- Agent 执行选项 -->
-          ${form.payloadKind === "agentTurn"
-            ? html`
+          ${
+            form.payloadKind === "agentTurn"
+              ? html`
                 <div class="cron-form-grid" style="margin-bottom: 16px;">
                   <div class="mc-field" style="justify-content: center;">
                     <label class="mc-toggle-field">
@@ -541,7 +562,11 @@ function renderCreateModal(props: CronContentProps) {
                           type="checkbox"
                           ?checked=${form.deliveryMode === "announce"}
                           @change=${(e: Event) =>
-                            onFormChange({ deliveryMode: (e.target as HTMLInputElement).checked ? "announce" : "none" })}
+                            onFormChange({
+                              deliveryMode: (e.target as HTMLInputElement).checked
+                                ? "announce"
+                                : "none",
+                            })}
                         />
                         <span class="mc-toggle__track"></span>
                       </div>
@@ -589,17 +614,20 @@ function renderCreateModal(props: CronContentProps) {
                   </div>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 错误提示 -->
-          ${props.error
-            ? html`
+          ${
+            props.error
+              ? html`
                 <div class="cron-error-banner">
                   ${icons.alertCircle}
                   <span>${props.error}</span>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
 
         <div class="cron-create-modal__footer">
@@ -624,7 +652,9 @@ function renderCreateModal(props: CronContentProps) {
  */
 function renderJobBadge(job: CronJob) {
   if (job.state?.runningAtMs) {
-    return html`<span class="cron-job-card__badge cron-job-card__badge--running">运行中</span>`;
+    return html`
+      <span class="cron-job-card__badge cron-job-card__badge--running">运行中</span>
+    `;
   }
   if (job.enabled) {
     return html`<span class="cron-job-card__badge cron-job-card__badge--enabled">${LABELS.enabled}</span>`;
@@ -672,22 +702,26 @@ function renderJobDetails(job: CronJob, props: CronContentProps) {
             ${state?.nextRunAtMs ? formatMs(state.nextRunAtMs) : "—"}
           </span>
         </div>
-        ${job.agentId
-          ? html`
+        ${
+          job.agentId
+            ? html`
               <div class="cron-job-card__meta-item">
                 <span class="cron-job-card__meta-label">Agent</span>
                 <span class="cron-job-card__meta-value">${job.agentId}</span>
               </div>
             `
-          : nothing}
-        ${job.description
-          ? html`
+            : nothing
+        }
+        ${
+          job.description
+            ? html`
               <div class="cron-job-card__meta-item" style="grid-column: 1 / -1;">
                 <span class="cron-job-card__meta-label">${LABELS.description}</span>
                 <span class="cron-job-card__meta-value">${job.description}</span>
               </div>
             `
-          : nothing}
+            : nothing
+        }
       </div>
 
       <div class="cron-job-card__actions">
@@ -833,17 +867,19 @@ function renderRunHistory(props: CronContentProps) {
       <div class="cron-form-section__title">
         <span>${LABELS.runHistory}: ${jobName}</span>
       </div>
-      ${runs.length === 0
-        ? html`
+      ${
+        runs.length === 0
+          ? html`
             <div class="cron-empty" style="padding: 24px;">
               <div style="font-size: 13px; color: var(--muted);">${LABELS.noRuns}</div>
             </div>
           `
-        : html`
+          : html`
             <div class="cron-runs-list">
               ${runs.map((entry) => renderRunItem(entry))}
             </div>
-          `}
+          `
+      }
     </div>
   `;
 }
@@ -851,13 +887,15 @@ function renderRunHistory(props: CronContentProps) {
 /**
  * 渲染运行记录项
  */
-function renderRunItem(entry: { ts: number; status: string; durationMs?: number; error?: string; summary?: string }) {
+function renderRunItem(entry: {
+  ts: number;
+  status: string;
+  durationMs?: number;
+  error?: string;
+  summary?: string;
+}) {
   const statusIcon =
-    entry.status === "ok"
-      ? icons.check
-      : entry.status === "error"
-        ? icons.x
-        : icons.alertCircle;
+    entry.status === "ok" ? icons.check : entry.status === "error" ? icons.x : icons.alertCircle;
   const dotClass =
     entry.status === "ok"
       ? "cron-run-item__dot--ok"
@@ -874,12 +912,16 @@ function renderRunItem(entry: { ts: number; status: string; durationMs?: number;
       </div>
       <div style="text-align: right;">
         <div style="font-size: 13px;">${formatMs(entry.ts)}</div>
-        ${entry.durationMs != null
-          ? html`<div style="font-size: 12px; color: var(--muted);">${LABELS.duration}: ${entry.durationMs}ms</div>`
-          : nothing}
-        ${entry.error
-          ? html`<div style="font-size: 12px; color: var(--danger); margin-top: 4px;">${entry.error}</div>`
-          : nothing}
+        ${
+          entry.durationMs != null
+            ? html`<div style="font-size: 12px; color: var(--muted);">${LABELS.duration}: ${entry.durationMs}ms</div>`
+            : nothing
+        }
+        ${
+          entry.error
+            ? html`<div style="font-size: 12px; color: var(--danger); margin-top: 4px;">${entry.error}</div>`
+            : nothing
+        }
       </div>
     </div>
   `;
