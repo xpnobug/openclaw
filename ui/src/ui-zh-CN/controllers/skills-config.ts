@@ -16,6 +16,7 @@ import type {
   SkillEditorState,
   SkillCreateState,
   SkillDeleteState,
+  SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
 } from "../types/skills-config";
@@ -55,6 +56,7 @@ export type SkillsConfigState = {
   skillsConfigEditor: SkillEditorState;
   skillsConfigCreate: SkillCreateState;
   skillsConfigDelete: SkillDeleteState;
+  skillsConfigPreview: SkillPreviewState;
 };
 
 // ─── 初始状态 / Initial state ───────────────────────────────────────────────
@@ -108,6 +110,15 @@ export function createInitialSkillsConfigState(): Partial<SkillsConfigState> {
       skillName: null,
       source: null,
       deleting: false,
+      error: null,
+    },
+    // 文件预览初始状态 / File preview initial state
+    skillsConfigPreview: {
+      open: false,
+      skillKey: null,
+      skillName: null,
+      content: "",
+      loading: false,
       error: null,
     },
   };
@@ -457,12 +468,9 @@ export function updateSkillsStatusFilter(
 }
 
 export function toggleSkillsGroup(state: SkillsConfigState, group: string) {
-  const groups = new Set(state.skillsConfigExpandedGroups);
-  if (groups.has(group)) {
-    groups.delete(group);
-  } else {
-    groups.add(group);
-  }
+  // 标签页模式：只保留一个激活的分组（单选）
+  const groups = new Set<string>();
+  groups.add(group);
   state.skillsConfigExpandedGroups = groups;
 }
 
@@ -1029,4 +1037,83 @@ export async function confirmDeleteSkill(state: SkillsConfigState) {
 export function hasEditorChanges(state: SkillsConfigState): boolean {
   const { content, original } = state.skillsConfigEditor;
   return content !== original;
+}
+
+// =========================================================================
+// 文件预览操作 / File preview operations
+// =========================================================================
+
+/**
+ * 打开文件预览
+ * Open file preview
+ */
+export async function openSkillPreview(
+  state: SkillsConfigState,
+  skillKey: string,
+  skillName: string,
+) {
+  if (!state.client || !state.connected) return;
+
+  // 从技能报告中获取技能信息以确定来源
+  const skill = state.skillsConfigReport?.skills.find(s => s.skillKey === skillKey);
+  if (!skill) return;
+
+  // 确定来源类型和文件路径
+  let source: "bundled" | "managed" | "workspace";
+  let filePath: string | undefined;
+
+  if (skill.source === "openclaw-bundled") {
+    source = "bundled";
+    filePath = skill.filePath; // bundled 技能需要提供文件路径
+  } else if (skill.source === "openclaw-managed") {
+    source = "managed";
+  } else {
+    source = "workspace";
+  }
+
+  // 更新预览状态为加载中
+  state.skillsConfigPreview = {
+    open: true,
+    skillKey,
+    skillName,
+    content: "",
+    loading: true,
+    error: null,
+  };
+
+  try {
+    // 调用 RPC 读取技能文件
+    const result = (await state.client.request("skills.file.read", {
+      skillName: skillKey,
+      source,
+      filePath, // bundled 技能需要此参数
+    })) as { name: string; path: string; source: string; exists: boolean; content: string };
+
+    state.skillsConfigPreview = {
+      ...state.skillsConfigPreview,
+      content: result.content,
+      loading: false,
+    };
+  } catch (err) {
+    state.skillsConfigPreview = {
+      ...state.skillsConfigPreview,
+      loading: false,
+      error: getErrorMessage(err),
+    };
+  }
+}
+
+/**
+ * 关闭文件预览
+ * Close file preview
+ */
+export function closeSkillPreview(state: SkillsConfigState) {
+  state.skillsConfigPreview = {
+    open: false,
+    skillKey: null,
+    skillName: null,
+    content: "",
+    loading: false,
+    error: null,
+  };
 }
