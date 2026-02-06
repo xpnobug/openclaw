@@ -618,6 +618,57 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
 }
 
 /**
+ * 清理 providers 配置，确保数字字段是正确的类型
+ * Sanitize providers config to ensure numeric fields have correct types
+ */
+function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<string, ProviderConfig> {
+  const result: Record<string, ProviderConfig> = {};
+  for (const [key, provider] of Object.entries(providers)) {
+    result[key] = {
+      ...provider,
+      models: provider.models.map((model) => ({
+        ...model,
+        // 确保数字字段是数字类型
+        maxTokens: toNumberOrUndefined(model.maxTokens),
+        contextWindow: toNumberOrUndefined(model.contextWindow),
+        cost: model.cost ? {
+          input: toNumberOrUndefined(model.cost.input) ?? 0,
+          output: toNumberOrUndefined(model.cost.output) ?? 0,
+          cacheRead: toNumberOrUndefined(model.cost.cacheRead),
+          cacheWrite: toNumberOrUndefined(model.cost.cacheWrite),
+        } : undefined,
+        // 清理 compat 字段
+        compat: model.compat ? sanitizeCompat(model.compat) : undefined,
+      })),
+    };
+  }
+  return result;
+}
+
+/**
+ * 清理 compat 配置
+ */
+function sanitizeCompat(compat: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(compat)) {
+    // 跳过空字符串和 undefined
+    if (value === "" || value === undefined) continue;
+    result[key] = value;
+  }
+  // 如果结果为空对象，返回 undefined
+  return Object.keys(result).length > 0 ? result : {};
+}
+
+/**
+ * 将值转换为数字，如果无效则返回 undefined
+ */
+function toNumberOrUndefined(value: unknown): number | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+/**
  * 构建更新后的配置 raw 字符串
  */
 function buildConfigRaw(state: ModelConfigState): string | null {
@@ -633,11 +684,11 @@ function buildConfigRaw(state: ModelConfigState): string | null {
   // 深度复制完整配置
   const updatedConfig = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
 
-  // 更新 models.providers
+  // 更新 models.providers（清理数字字段类型）
   if (!updatedConfig.models) {
     updatedConfig.models = {};
   }
-  (updatedConfig.models as Record<string, unknown>).providers = state.modelConfigProviders;
+  (updatedConfig.models as Record<string, unknown>).providers = sanitizeProviders(state.modelConfigProviders);
 
   // 更新 agents.defaults
   if (!updatedConfig.agents) {
