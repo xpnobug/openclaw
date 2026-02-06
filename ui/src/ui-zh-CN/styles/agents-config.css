@@ -154,6 +154,31 @@
   color: var(--accent);
   font-size: 11px;
   font-weight: 600;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.agents-sidebar__set-default {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.agents-sidebar__item:hover .agents-sidebar__set-default {
+  opacity: 1;
+}
+
+.agents-sidebar__set-default:hover {
+  background: var(--primary-subtle);
+  color: var(--primary);
 }
 
 .agents-sidebar__list {
@@ -213,6 +238,11 @@
 }
 
 .agents-sidebar__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.agents-sidebar__item-content {
   flex: 1;
   min-width: 0;
 }
@@ -1254,4 +1284,28 @@
   padding: 32px;
   color: var(--muted);
   font-size: 14px;
+}
+
+/* ===========================================
+   Card Actions - 卡片操作按钮
+   =========================================== */
+
+.mc-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 会话管理卡片头部对齐 */
+.sessions-list ~ .mc-card__header,
+.mc-card:has(.sessions-list) .mc-card__header,
+.mc-card .mc-card__header:has(+ .mc-card__content .sessions-list) {
+  align-items: center;
+}
+
+/* 简化：直接让所有带 actions 的卡片头部居中对齐 */
+.mc-card__header:has(.mc-card__actions) {
+  align-items: center;
 }

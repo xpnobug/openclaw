@@ -72,12 +72,22 @@ export function createWorkspaceState(): WorkspaceState {
 
 // ─── 类型守卫 / Type guards ──────────────────────────────────────────────────
 
+// 扩展插件返回的文件列表响应格式
+// Extension plugin file list response format
 type FilesListResponse = {
   workspaceDir: string;
   agentId: string;
-  files: WorkspaceFileInfo[];
+  files: Array<{
+    name: string;
+    path: string;
+    exists: boolean;
+    size: number;
+    modifiedAt: number | null;
+  }>;
 };
 
+// 扩展插件返回的文件读取响应格式
+// Extension plugin file read response format
 type FileReadResponse = {
   name: string;
   path: string;
@@ -108,6 +118,8 @@ export async function loadWorkspaceFiles(
   requestUpdate();
 
   try {
+    // 使用扩展插件方法，支持 memory/ 目录扫描
+    // Use extension plugin method, supports memory/ directory scanning
     const res = (await state.client.request("workspace.files.list", {
       agentId: state.workspaceAgentId || undefined,
     })) as FilesListResponse;
@@ -140,13 +152,15 @@ export async function selectWorkspaceFile(
   requestUpdate();
 
   try {
+    // 使用扩展插件方法
+    // Use extension plugin method
     const res = (await state.client.request("workspace.file.read", {
       fileName,
       agentId: state.workspaceAgentId || undefined,
     })) as FileReadResponse;
 
-    state.workspaceEditorContent = res.content;
-    state.workspaceOriginalContent = res.content;
+    state.workspaceEditorContent = res.content ?? "";
+    state.workspaceOriginalContent = res.content ?? "";
 
     if (!res.exists) {
       // 文件不存在，显示提示 / File does not exist
@@ -188,6 +202,8 @@ export async function saveWorkspaceFile(
   requestUpdate();
 
   try {
+    // 使用扩展插件方法
+    // Use extension plugin method
     (await state.client.request("workspace.file.write", {
       fileName: state.workspaceSelectedFile,
       content: state.workspaceEditorContent,

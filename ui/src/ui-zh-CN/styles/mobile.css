@@ -893,6 +893,16 @@
     gap: 14px;
   }
 
+  .skills-settings-grid-compact {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .skills-settings-left {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+  }
+
   .skills-stats {
     justify-content: center;
     flex-wrap: wrap;

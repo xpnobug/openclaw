@@ -1380,6 +1380,59 @@ export function updateAgentIdentity(
   state.modelConfigAgentsList = list;
 }
 
+/**
+ * 设置默认 Agent
+ * Set default agent
+ *
+ * 将指定的 Agent 设为默认，其他 Agent 取消默认标记
+ * Set the specified agent as default, remove default flag from others
+ */
+export function setDefaultAgent(
+  state: ModelConfigState,
+  agentId: string,
+): void {
+  if (!state.modelConfigFullSnapshot) {
+    console.warn("[setDefaultAgent] modelConfigFullSnapshot 为空");
+    return;
+  }
+
+  // 深度复制配置
+  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
+  const agents = (config.agents ?? {}) as Record<string, unknown>;
+  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+
+  // 查找目标 agent
+  const targetIndex = list.findIndex((a) => a.id === agentId);
+  if (targetIndex === -1) {
+    console.warn("[setDefaultAgent] 未找到 agent:", agentId);
+    return;
+  }
+
+  // 遍历所有 agent，设置/取消 default 标记
+  for (let i = 0; i < list.length; i++) {
+    if (list[i].id === agentId) {
+      list[i].default = true;
+    } else {
+      delete list[i].default;
+    }
+  }
+
+  // 更新配置
+  agents.list = list;
+  config.agents = agents;
+  state.modelConfigFullSnapshot = config;
+
+  // 同步更新 modelConfigAgentsList
+  state.modelConfigAgentsList = list.map((a) => ({
+    id: (a.id as string) ?? "",
+    name: a.name as string | undefined,
+    default: a.default as boolean | undefined,
+    workspace: a.workspace as string | undefined,
+    identity: a.identity as AgentIdentityConfig | undefined,
+    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
+  }));
+}
+
 // ============================================
 // 权限管理相关函数
 // ============================================
@@ -1987,6 +2040,64 @@ export async function patchSessionModel(
   }
 }
 
+/**
+ * 创建新会话 - 通过 sessions.patch API 创建
+ * Create new session via sessions.patch API
+ *
+ * @param state 状态对象
+ * @param agentId Agent ID
+ * @param sessionName 会话名称（将作为 label）
+ * @param model 可选的模型 ID
+ */
+export async function createSession(
+  state: ModelConfigState,
+  agentId: string,
+  sessionName: string,
+  model?: string | null,
+): Promise<{ ok: boolean; key?: string; error?: string }> {
+  if (!state.client || !state.connected) {
+    return { ok: false, error: "未连接到 Gateway" };
+  }
+
+  // 生成会话 key: agent:<agentId>:<sessionName>
+  // 将 sessionName 转换为合法的 key（移除空格和特殊字符）
+  const sanitizedName = sessionName
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u4e00-\u9fa5_-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  if (!sanitizedName) {
+    return { ok: false, error: "会话名称无效" };
+  }
+
+  const sessionKey = `agent:${agentId}:${sanitizedName}`;
+
+  try {
+    // 使用 sessions.patch API 创建会话
+    const params: Record<string, unknown> = {
+      key: sessionKey,
+      label: sessionName.trim(),
+    };
+
+    if (model) {
+      params.model = model;
+    }
+
+    await state.client.request("sessions.patch", params);
+
+    // 刷新会话列表
+    await loadAgentSessions(state, agentId);
+
+    return { ok: true, key: sessionKey };
+  } catch (err) {
+    const errorMsg = `创建会话失败: ${String(err)}`;
+    state.agentSessionsError = errorMsg;
+    return { ok: false, error: errorMsg };
+  }
+}
+
 // ============================================================
 // 工作区文件操作 / Workspace file operations
 // ============================================================
@@ -2002,12 +2113,20 @@ export async function loadWorkspaceFiles(state: ModelConfigState): Promise<void>
   state.workspaceError = null;
 
   try {
+    // 使用扩展插件方法，支持 memory/ 目录扫描
+    // Use extension plugin method, supports memory/ directory scanning
     const res = (await state.client.request("workspace.files.list", {
       agentId: state.workspaceAgentId || undefined,
     })) as {
       workspaceDir: string;
       agentId: string;
-      files: WorkspaceFileInfo[];
+      files: Array<{
+        name: string;
+        path: string;
+        exists: boolean;
+        size: number;
+        modifiedAt: number | null;
+      }>;
     };
 
     state.workspaceFiles = res.files;
@@ -2035,6 +2154,8 @@ export async function selectWorkspaceFile(
   state.workspaceError = null;
 
   try {
+    // 使用扩展插件方法
+    // Use extension plugin method
     const res = (await state.client.request("workspace.file.read", {
       fileName,
       agentId: state.workspaceAgentId || undefined,
@@ -2045,8 +2166,8 @@ export async function selectWorkspaceFile(
       content: string;
     };
 
-    state.workspaceEditorContent = res.content;
-    state.workspaceOriginalContent = res.content;
+    state.workspaceEditorContent = res.content ?? "";
+    state.workspaceOriginalContent = res.content ?? "";
 
     if (!res.exists) {
       state.workspaceError = "文件不存在，编辑后保存将自动创建";
@@ -2069,6 +2190,8 @@ export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> 
   state.workspaceError = null;
 
   try {
+    // 使用扩展插件方法
+    // Use extension plugin method
     await state.client.request("workspace.file.write", {
       fileName: state.workspaceSelectedFile,
       content: state.workspaceEditorContent,
