@@ -647,16 +647,30 @@ function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<st
 
 /**
  * 清理 compat 配置
+ * Sanitize compat config - validate enum fields and remove empty values
  */
-function sanitizeCompat(compat: Record<string, unknown>): Record<string, unknown> {
+function sanitizeCompat(compat: Record<string, unknown>): Record<string, unknown> | undefined {
   const result: Record<string, unknown> = {};
+  // maxTokensField 的有效值
+  const validMaxTokensFields = ["max_completion_tokens", "max_tokens"];
+
   for (const [key, value] of Object.entries(compat)) {
     // 跳过空字符串和 undefined
-    if (value === "" || value === undefined) continue;
+    if (value === "" || value === undefined || value === null) continue;
+
+    // 特殊处理 maxTokensField - 必须是有效的枚举值
+    if (key === "maxTokensField") {
+      if (typeof value === "string" && validMaxTokensFields.includes(value)) {
+        result[key] = value;
+      }
+      // 无效值直接跳过，不添加到结果中
+      continue;
+    }
+
     result[key] = value;
   }
   // 如果结果为空对象，返回 undefined
-  return Object.keys(result).length > 0 ? result : {};
+  return Object.keys(result).length > 0 ? result : undefined;
 }
 
 /**
@@ -817,6 +831,34 @@ function buildConfigRaw(state: ModelConfigState): string | null {
         } else {
           delete existingAgent.identity;
         }
+      }
+    }
+  }
+
+  // 清理 skills.entries 中的无效条目（字符串值应该是对象）
+  // Sanitize skills.entries - entries must be objects, not strings
+  if (updatedConfig.skills && typeof updatedConfig.skills === "object") {
+    const skillsConfig = updatedConfig.skills as Record<string, unknown>;
+    if (skillsConfig.entries && typeof skillsConfig.entries === "object") {
+      const entries = skillsConfig.entries as Record<string, unknown>;
+      const sanitizedEntries: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(entries)) {
+        if (value && typeof value === "object" && !Array.isArray(value)) {
+          // 有效的对象条目，保留
+          sanitizedEntries[key] = value;
+        } else if (typeof value === "string") {
+          // 字符串值转换为对象格式 { enabled: true }
+          // 或者如果是空字符串则跳过
+          if (value.trim()) {
+            sanitizedEntries[key] = { enabled: true };
+          }
+        }
+        // 其他无效值（null, undefined, array）直接跳过
+      }
+      if (Object.keys(sanitizedEntries).length > 0) {
+        skillsConfig.entries = sanitizedEntries;
+      } else {
+        delete skillsConfig.entries;
       }
     }
   }
