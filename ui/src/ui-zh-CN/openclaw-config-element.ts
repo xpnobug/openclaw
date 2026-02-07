@@ -688,6 +688,24 @@ export class OpenClawConfigElement extends LitElement {
         s.sidebarOpenMenuId = agentId;
         update();
       },
+      onAgentDuplicate: (agentId) => {
+        // TODO: 实现复制 Agent 配置
+        console.log("Duplicate agent:", agentId);
+        s.sidebarOpenMenuId = null;
+        update();
+      },
+      onAgentExport: (agentId) => {
+        // TODO: 实现导出 Agent 配置
+        console.log("Export agent:", agentId);
+        s.sidebarOpenMenuId = null;
+        update();
+      },
+      onAgentDelete: (agentId) => {
+        // TODO: 实现删除 Agent
+        console.log("Delete agent:", agentId);
+        s.sidebarOpenMenuId = null;
+        update();
+      },
 
       // 配置回调
       onConfigReload: () => { loadModelConfig(s).then(update); },
