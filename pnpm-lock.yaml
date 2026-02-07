@@ -532,7 +532,19 @@ importers:
         specifier: workspace:*
         version: link:../..
 
+  extensions/wechat:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/whatsapp:
+    devDependencies:
+      openclaw:
+        specifier: workspace:*
+        version: link:../..
+
+  extensions/workspace-editor:
     devDependencies:
       openclaw:
         specifier: workspace:*

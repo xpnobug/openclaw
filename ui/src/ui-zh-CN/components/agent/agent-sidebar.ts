@@ -139,6 +139,7 @@ function renderAgentRow(props: {
   identity: AgentIdentityResult | null;
   status?: AgentStatus;
   isMenuOpen?: boolean;
+  openMenuId?: string | null;
   onSelect: () => void;
   onSetDefault?: (agentId: string) => void;
   onToggleMenu?: (agentId: string | null) => void;
@@ -146,7 +147,7 @@ function renderAgentRow(props: {
   onExport?: (agentId: string) => void;
   onDelete?: (agentId: string) => void;
 }) {
-  const { agent, defaultId, isSelected, identity, status, isMenuOpen, onSelect, onSetDefault, onToggleMenu, onDuplicate, onExport, onDelete } = props;
+  const { agent, defaultId, isSelected, identity, status, isMenuOpen, openMenuId, onSelect, onSetDefault, onToggleMenu, onDuplicate, onExport, onDelete } = props;
   const isDefault = defaultId && agent.id === defaultId;
   const emoji = resolveAgentEmoji(agent, identity);
   const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
@@ -155,6 +156,11 @@ function renderAgentRow(props: {
   const handleMenuToggle = (e: Event) => {
     e.stopPropagation();
     onToggleMenu?.(isMenuOpen ? null : agent.id);
+  };
+
+  const handleRowClick = () => {
+    if (openMenuId) onToggleMenu?.(null);
+    onSelect();
   };
 
   const handleAction = (action: ((id: string) => void) | undefined) => (e: Event) => {
@@ -168,7 +174,7 @@ function renderAgentRow(props: {
       <button
         type="button"
         class="agents-sidebar__item ${isSelected ? "agents-sidebar__item--active" : ""}"
-        @click=${onSelect}
+        @click=${handleRowClick}
       >
         <span class="agents-sidebar__avatar">
           ${emoji || displayName.slice(0, 1)}
@@ -301,6 +307,7 @@ function renderGroupedAgentList(
       identity: props.agentIdentityById[agent.id] ?? null,
       status: props.agentStatusById?.[agent.id],
       isMenuOpen: props.openMenuId === agent.id,
+      openMenuId: props.openMenuId,
       onSelect: () => props.onSelectAgent(agent.id),
       onSetDefault: props.onSetDefault,
       onToggleMenu: props.onToggleMenu,
@@ -408,6 +415,7 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
                   identity: props.agentIdentityById[agent.id] ?? null,
                   status: props.agentStatusById?.[agent.id],
                   isMenuOpen: props.openMenuId === agent.id,
+                  openMenuId: props.openMenuId,
                   onSelect: () => props.onSelectAgent(agent.id),
                   onSetDefault: props.onSetDefault,
                   onToggleMenu: props.onToggleMenu,
