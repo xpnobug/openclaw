@@ -315,6 +315,10 @@
   margin-bottom: 6px;
 }
 
+.agents-sidebar__item-wrapper:has(.agents-sidebar__menu) {
+  z-index: 200;
+}
+
 /* 更多操作按钮 */
 .agents-sidebar__more-btn {
   display: flex;
