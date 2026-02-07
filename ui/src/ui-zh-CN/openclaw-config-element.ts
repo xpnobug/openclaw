@@ -694,8 +694,12 @@ export class OpenClawConfigElement extends LitElement {
       onAgentDuplicate: (agentId) => {
         const newId = duplicateAgent(s, agentId);
         s.sidebarOpenMenuId = null;
-        if (newId) s.selectedAgentId = newId;
-        update();
+        if (newId) {
+          s.selectedAgentId = newId;
+          saveModelConfig(s).then(update);
+        } else {
+          update();
+        }
       },
       onAgentExport: (agentId) => {
         exportAgent(s, agentId);
@@ -706,10 +710,14 @@ export class OpenClawConfigElement extends LitElement {
         if (!confirm(`确定要删除 Agent "${agentId}" 吗？`)) return;
         const deleted = deleteAgent(s, agentId);
         s.sidebarOpenMenuId = null;
-        if (deleted && s.selectedAgentId === agentId) {
-          s.selectedAgentId = s.modelConfigAgentsList[0]?.id ?? null;
+        if (deleted) {
+          if (s.selectedAgentId === agentId) {
+            s.selectedAgentId = s.modelConfigAgentsList[0]?.id ?? null;
+          }
+          saveModelConfig(s).then(update);
+        } else {
+          update();
         }
-        update();
       },
 
       // 配置回调
