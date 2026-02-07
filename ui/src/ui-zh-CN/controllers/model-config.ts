@@ -84,11 +84,7 @@ export {
 // 会话管理
 // Session management
 // ============================================
-export {
-  loadAgentSessions,
-  patchSessionModel,
-  createSession,
-} from "./sessions";
+export { loadAgentSessions, patchSessionModel, createSession, deleteSession } from "./sessions";
 
 // ============================================
 // 工作区文件管理
