@@ -151,7 +151,7 @@ function renderAgentRow(props: {
   const isDefault = defaultId && agent.id === defaultId;
   const emoji = resolveAgentEmoji(agent, identity);
   const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
-  const hasActions = onToggleMenu && (onSetDefault || onDuplicate || onExport || onDelete);
+  const hasActions = onToggleMenu && ((onSetDefault && !isDefault) || onDuplicate || onExport || onDelete);
 
   const handleMenuToggle = (e: Event) => {
     e.stopPropagation();
