@@ -30,6 +30,8 @@ const icons = {
 // 类型定义 / Type Definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type AgentStatus = "online" | "offline" | "error" | "idle";
+
 export type AgentSidebarProps = {
   agents: AgentsListResult["agents"];
   defaultId: string | null;
@@ -38,12 +40,15 @@ export type AgentSidebarProps = {
   loading: boolean;
   error: string | null;
   agentIdentityById: Record<string, AgentIdentityResult>;
+  agentStatusById?: Record<string, AgentStatus>;
   hasChanges?: boolean;
   connected?: boolean;
+  searchQuery?: string;
   onSelectAgent: (agentId: string) => void;
   onRefresh: () => void;
   onGlobalConfigClick?: (section: string) => void;
   onSetDefault?: (agentId: string) => void;
+  onSearchChange?: (query: string) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,10 +113,11 @@ function renderAgentRow(props: {
   defaultId: string | null;
   isSelected: boolean;
   identity: AgentIdentityResult | null;
+  status?: AgentStatus;
   onSelect: () => void;
   onSetDefault?: (agentId: string) => void;
 }) {
-  const { agent, defaultId, isSelected, identity, onSelect, onSetDefault } = props;
+  const { agent, defaultId, isSelected, identity, status, onSelect, onSetDefault } = props;
   const isDefault = defaultId && agent.id === defaultId;
   const emoji = resolveAgentEmoji(agent, identity);
   const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
@@ -129,6 +135,7 @@ function renderAgentRow(props: {
     >
       <span class="agents-sidebar__avatar">
         ${emoji || displayName.slice(0, 1)}
+        ${status ? html`<span class="agents-sidebar__status-indicator agents-sidebar__status-indicator--${status}"></span>` : nothing}
       </span>
       <span class="agents-sidebar__item-content">
         <span class="agents-sidebar__item-name">${displayName}</span>
@@ -188,10 +195,45 @@ function renderGlobalConfigLinks(
 }
 
 /**
+ * 渲染搜索框
+ * Render search bar
+ */
+function renderSearchBar(props: AgentSidebarProps) {
+  if (!props.onSearchChange) return nothing;
+  const handleInput = (e: Event) => {
+    props.onSearchChange?.((e.target as HTMLInputElement).value);
+  };
+  return html`
+    <div class="agents-sidebar__search">
+      <input
+        type="text"
+        class="agents-sidebar__search-input"
+        placeholder="搜索 Agent..."
+        .value=${props.searchQuery ?? ""}
+        @input=${handleInput}
+      />
+      ${props.searchQuery ? html`
+        <button class="agents-sidebar__search-clear" @click=${() => props.onSearchChange?.("")}>×</button>
+      ` : nothing}
+    </div>
+  `;
+}
+
+/**
  * 渲染 Agent 侧边栏
  * Render agent sidebar
  */
 export function renderAgentSidebar(props: AgentSidebarProps) {
+  // 过滤 Agent 列表
+  const query = props.searchQuery?.toLowerCase().trim() ?? "";
+  const filteredAgents = query
+    ? props.agents.filter((a: AgentsListResult["agents"][number]) => {
+        const name = a.name?.toLowerCase() ?? "";
+        const id = a.id.toLowerCase();
+        return name.includes(query) || id.includes(query);
+      })
+    : props.agents;
+
   return html`
     <aside class="agents-sidebar">
       <!-- Agent 列表头部 / Agent list header -->
@@ -210,6 +252,9 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
         </button>
       </div>
 
+      <!-- 搜索框 / Search bar -->
+      ${renderSearchBar(props)}
+
       <!-- 错误提示 / Error message -->
       ${props.error
         ? html`<div class="mc-error" style="margin: 0 12px;">${props.error}</div>`
@@ -217,14 +262,15 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
 
       <!-- Agent 列表 / Agent list -->
       <div class="agents-sidebar__list">
-        ${props.agents.length === 0
-          ? html`<div class="agents-sidebar__empty">${props.loading ? LABELS.actions.loading : LABELS.empty.noAgents}</div>`
-          : props.agents.map((agent) =>
+        ${filteredAgents.length === 0
+          ? html`<div class="agents-sidebar__empty">${props.loading ? LABELS.actions.loading : query ? "无匹配结果" : LABELS.empty.noAgents}</div>`
+          : filteredAgents.map((agent: AgentsListResult["agents"][number]) =>
               renderAgentRow({
                 agent,
                 defaultId: props.defaultId,
                 isSelected: props.selectedId === agent.id,
                 identity: props.agentIdentityById[agent.id] ?? null,
+                status: props.agentStatusById?.[agent.id],
                 onSelect: () => props.onSelectAgent(agent.id),
                 onSetDefault: props.onSetDefault,
               }),

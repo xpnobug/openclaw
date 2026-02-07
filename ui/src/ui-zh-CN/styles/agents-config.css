@@ -181,6 +181,48 @@
   color: var(--primary);
 }
 
+/* 搜索框 */
+.agents-sidebar__search {
+  padding: 0 12px 12px;
+  position: relative;
+}
+
+.agents-sidebar__search-input {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  font-size: 13px;
+  color: var(--text);
+}
+
+.agents-sidebar__search-input::placeholder {
+  color: var(--muted);
+}
+
+.agents-sidebar__search-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.agents-sidebar__search-clear {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-75%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.agents-sidebar__search-clear:hover {
+  color: var(--text);
+}
+
 .agents-sidebar__list {
   flex: 1;
   overflow-y: auto;
@@ -232,6 +274,41 @@
   font-size: 18px;
   flex-shrink: 0;
 }
+
+/* 使用 .agents-sidebar__avatar 作为头像容器 */
+.agents-sidebar__avatar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+:root[data-theme="light"] .agents-sidebar__avatar {
+  background: white;
+}
+
+/* 状态指示器 */
+.agents-sidebar__status-indicator {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-accent);
+}
+
+.agents-sidebar__status-indicator--online { background: var(--ok); }
+.agents-sidebar__status-indicator--offline { background: var(--muted); }
+.agents-sidebar__status-indicator--error { background: var(--danger); }
+.agents-sidebar__status-indicator--idle { background: var(--warning); }
 
 :root[data-theme="light"] .agents-sidebar__item-avatar {
   background: white;
