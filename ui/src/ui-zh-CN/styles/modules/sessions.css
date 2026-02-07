@@ -17,7 +17,7 @@
 
 .sessions-list__header {
   display: grid;
-  grid-template-columns: 2fr 2fr 1fr;
+  grid-template-columns: 2fr 2fr 1fr auto;
   gap: 12px;
   padding: 12px 16px;
   background: var(--bg-accent);
