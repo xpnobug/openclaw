@@ -138,82 +138,93 @@ function renderAgentRow(props: {
   isSelected: boolean;
   identity: AgentIdentityResult | null;
   status?: AgentStatus;
-  isMenuOpen?: boolean;
-  openMenuId?: string | null;
   onSelect: () => void;
   onSetDefault?: (agentId: string) => void;
   onToggleMenu?: (agentId: string | null) => void;
+}) {
+  const { agent, defaultId, isSelected, identity, status, onSelect, onSetDefault, onToggleMenu } = props;
+  const isDefault = defaultId && agent.id === defaultId;
+  const emoji = resolveAgentEmoji(agent, identity);
+  const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
+  const hasActions = onToggleMenu && onSetDefault;
+
+  const handleMenuToggle = (e: Event) => {
+    e.stopPropagation();
+    onToggleMenu?.(agent.id);
+  };
+
+  return html`
+    <button
+      type="button"
+      class="agents-sidebar__item ${isSelected ? "agents-sidebar__item--active" : ""}"
+      @click=${onSelect}
+      data-agent-id=${agent.id}
+    >
+      <span class="agents-sidebar__avatar">
+        ${emoji || displayName.slice(0, 1)}
+        ${status ? html`<span class="agents-sidebar__status-indicator agents-sidebar__status-indicator--${status}"></span>` : nothing}
+      </span>
+      <span class="agents-sidebar__item-content">
+        <span class="agents-sidebar__item-name">${displayName}</span>
+        <span class="agents-sidebar__item-id">${agent.id}</span>
+      </span>
+      ${isDefault ? html`<span class="agents-sidebar__badge">${LABELS.status.default}</span>` : nothing}
+      ${hasActions ? html`
+        <button class="agents-sidebar__more-btn" @click=${handleMenuToggle} title="更多操作">
+          ${icons.more}
+        </button>
+      ` : nothing}
+    </button>
+  `;
+}
+
+/**
+ * 渲染浮动菜单（在 sidebar 根级别）
+ */
+function renderFloatingMenu(props: {
+  agentId: string;
+  isDefault: boolean;
+  onClose: () => void;
+  onSetDefault?: (agentId: string) => void;
   onDuplicate?: (agentId: string) => void;
   onExport?: (agentId: string) => void;
   onDelete?: (agentId: string) => void;
 }) {
-  const { agent, defaultId, isSelected, identity, status, isMenuOpen, openMenuId, onSelect, onSetDefault, onToggleMenu, onDuplicate, onExport, onDelete } = props;
-  const isDefault = defaultId && agent.id === defaultId;
-  const emoji = resolveAgentEmoji(agent, identity);
-  const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
-  const hasActions = onToggleMenu && ((onSetDefault && !isDefault) || onDuplicate || onExport || onDelete);
-
-  const handleMenuToggle = (e: Event) => {
-    e.stopPropagation();
-    onToggleMenu?.(isMenuOpen ? null : agent.id);
-  };
-
-  const handleRowClick = () => {
-    if (openMenuId) onToggleMenu?.(null);
-    onSelect();
-  };
+  const { agentId, isDefault, onClose, onSetDefault, onDuplicate, onExport, onDelete } = props;
 
   const handleAction = (action: ((id: string) => void) | undefined) => (e: Event) => {
     e.stopPropagation();
-    action?.(agent.id);
-    onToggleMenu?.(null);
+    action?.(agentId);
+    onClose();
+  };
+
+  const handleBackdropClick = (e: Event) => {
+    e.stopPropagation();
+    onClose();
   };
 
   return html`
-    <div class="agents-sidebar__item-wrapper">
-      <button
-        type="button"
-        class="agents-sidebar__item ${isSelected ? "agents-sidebar__item--active" : ""}"
-        @click=${handleRowClick}
-      >
-        <span class="agents-sidebar__avatar">
-          ${emoji || displayName.slice(0, 1)}
-          ${status ? html`<span class="agents-sidebar__status-indicator agents-sidebar__status-indicator--${status}"></span>` : nothing}
-        </span>
-        <span class="agents-sidebar__item-content">
-          <span class="agents-sidebar__item-name">${displayName}</span>
-          <span class="agents-sidebar__item-id">${agent.id}</span>
-        </span>
-        ${isDefault ? html`<span class="agents-sidebar__badge">${LABELS.status.default}</span>` : nothing}
-        ${hasActions ? html`
-          <button class="agents-sidebar__more-btn" @click=${handleMenuToggle} title="更多操作">
-            ${icons.more}
-          </button>
-        ` : nothing}
-      </button>
-      ${isMenuOpen ? html`
-        <div class="agents-sidebar__menu">
-          ${onSetDefault && !isDefault ? html`
-            <button class="agents-sidebar__menu-item" @click=${handleAction(onSetDefault)}>
-              ${icons.agent}<span>设为默认</span>
-            </button>
-          ` : nothing}
-          ${onDuplicate ? html`
-            <button class="agents-sidebar__menu-item" @click=${handleAction(onDuplicate)}>
-              ${icons.copy}<span>复制配置</span>
-            </button>
-          ` : nothing}
-          ${onExport ? html`
-            <button class="agents-sidebar__menu-item" @click=${handleAction(onExport)}>
-              ${icons.download}<span>导出</span>
-            </button>
-          ` : nothing}
-          ${onDelete ? html`
-            <button class="agents-sidebar__menu-item agents-sidebar__menu-item--danger" @click=${handleAction(onDelete)}>
-              ${icons.trash}<span>删除</span>
-            </button>
-          ` : nothing}
-        </div>
+    <div class="agents-sidebar__menu-backdrop" @click=${handleBackdropClick}></div>
+    <div class="agents-sidebar__menu" data-for-agent=${agentId}>
+      ${onSetDefault && !isDefault ? html`
+        <button class="agents-sidebar__menu-item" @click=${handleAction(onSetDefault)}>
+          ${icons.agent}<span>设为默认</span>
+        </button>
+      ` : nothing}
+      ${onDuplicate ? html`
+        <button class="agents-sidebar__menu-item" @click=${handleAction(onDuplicate)}>
+          ${icons.copy}<span>复制配置</span>
+        </button>
+      ` : nothing}
+      ${onExport ? html`
+        <button class="agents-sidebar__menu-item" @click=${handleAction(onExport)}>
+          ${icons.download}<span>导出</span>
+        </button>
+      ` : nothing}
+      ${onDelete ? html`
+        <button class="agents-sidebar__menu-item agents-sidebar__menu-item--danger" @click=${handleAction(onDelete)}>
+          ${icons.trash}<span>删除</span>
+        </button>
       ` : nothing}
     </div>
   `;
@@ -306,14 +317,9 @@ function renderGroupedAgentList(
       isSelected: props.selectedId === agent.id,
       identity: props.agentIdentityById[agent.id] ?? null,
       status: props.agentStatusById?.[agent.id],
-      isMenuOpen: props.openMenuId === agent.id,
-      openMenuId: props.openMenuId,
       onSelect: () => props.onSelectAgent(agent.id),
       onSetDefault: props.onSetDefault,
       onToggleMenu: props.onToggleMenu,
-      onDuplicate: props.onDuplicate,
-      onExport: props.onExport,
-      onDelete: props.onDelete,
     });
 
   return html`
@@ -375,6 +381,11 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
 
   const hasGroups = props.groups && props.groups.length > 0;
 
+  // 查找打开菜单的 Agent
+  const openMenuAgent = props.openMenuId
+    ? props.agents.find((a) => a.id === props.openMenuId)
+    : null;
+
   return html`
     <aside class="agents-sidebar">
       <!-- Agent 列表头部 / Agent list header -->
@@ -414,14 +425,9 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
                   isSelected: props.selectedId === agent.id,
                   identity: props.agentIdentityById[agent.id] ?? null,
                   status: props.agentStatusById?.[agent.id],
-                  isMenuOpen: props.openMenuId === agent.id,
-                  openMenuId: props.openMenuId,
                   onSelect: () => props.onSelectAgent(agent.id),
                   onSetDefault: props.onSetDefault,
                   onToggleMenu: props.onToggleMenu,
-                  onDuplicate: props.onDuplicate,
-                  onExport: props.onExport,
-                  onDelete: props.onDelete,
                 }),
               )}
       </div>
@@ -439,6 +445,17 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
         </div>
         ${props.hasChanges ? html`<span class="agents-sidebar__unsaved">${LABELS.status.unsaved}</span>` : nothing}
       </div>
+
+      <!-- 浮动菜单 / Floating menu -->
+      ${openMenuAgent ? renderFloatingMenu({
+        agentId: openMenuAgent.id,
+        isDefault: props.defaultId === openMenuAgent.id,
+        onClose: () => props.onToggleMenu?.(null),
+        onSetDefault: props.onSetDefault,
+        onDuplicate: props.onDuplicate,
+        onExport: props.onExport,
+        onDelete: props.onDelete,
+      }) : nothing}
     </aside>
   `;
 }

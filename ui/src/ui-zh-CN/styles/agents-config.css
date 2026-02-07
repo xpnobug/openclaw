@@ -235,6 +235,7 @@
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
+  margin-bottom: 6px;
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   background: transparent;
@@ -309,16 +310,6 @@
 .agents-sidebar__status-indicator--error { background: var(--danger); }
 .agents-sidebar__status-indicator--idle { background: var(--warning); }
 
-/* Agent 行包装器 */
-.agents-sidebar__item-wrapper {
-  position: relative;
-  margin-bottom: 6px;
-}
-
-.agents-sidebar__item-wrapper:has(.agents-sidebar__menu) {
-  z-index: 200;
-}
-
 /* 更多操作按钮 */
 .agents-sidebar__more-btn {
   display: flex;
@@ -351,13 +342,20 @@
   color: var(--text);
 }
 
+/* 操作菜单背景遮罩 */
+.agents-sidebar__menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+}
+
 /* 操作菜单 */
 .agents-sidebar__menu {
   position: absolute;
-  top: 100%;
+  bottom: 60px;
+  left: 12px;
   right: 12px;
-  z-index: 100;
-  min-width: 140px;
+  z-index: 1000;
   padding: 4px;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
