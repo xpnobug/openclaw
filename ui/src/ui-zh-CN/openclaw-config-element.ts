@@ -128,6 +128,10 @@ type InternalState = ModelConfigState & SkillsConfigState & CronConfigState & {
   activePanel: AgentPanel;
   globalPanel: GlobalPanel | null;
 
+  // Agent 侧边栏状态
+  sidebarSearchQuery: string;
+  sidebarOpenMenuId: string | null;
+
   // Agent Identity 状态
   agentIdentityLoading: boolean;
   agentIdentityError: string | null;
@@ -188,6 +192,10 @@ export class OpenClawConfigElement extends LitElement {
       selectedAgentId: null,
       activePanel: "overview",
       globalPanel: null,
+
+      // Agent 侧边栏
+      sidebarSearchQuery: "",
+      sidebarOpenMenuId: null,
 
       // Agent Identity
       agentIdentityLoading: false,
@@ -469,6 +477,10 @@ export class OpenClawConfigElement extends LitElement {
       configDirty: hasModelConfigChanges(s),
       connected: this.connected,
 
+      // Agent 侧边栏状态
+      sidebarSearchQuery: s.sidebarSearchQuery,
+      sidebarOpenMenuId: s.sidebarOpenMenuId,
+
       // Agent Identity
       agentIdentity: s.selectedAgentId ? s.agentIdentityById[s.selectedAgentId] ?? null : null,
       agentIdentityLoading: s.agentIdentityLoading,
@@ -664,6 +676,16 @@ export class OpenClawConfigElement extends LitElement {
         if (s.agentsList) {
           s.agentsList = { ...s.agentsList, defaultId: agentId };
         }
+        update();
+      },
+
+      // 侧边栏回调
+      onSidebarSearchChange: (query) => {
+        s.sidebarSearchQuery = query;
+        update();
+      },
+      onSidebarToggleMenu: (agentId) => {
+        s.sidebarOpenMenuId = agentId;
         update();
       },
 

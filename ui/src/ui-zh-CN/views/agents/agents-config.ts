@@ -144,8 +144,13 @@ export function renderAgentsConfig(props: AgentsConfigProps) {
         loading,
         error,
         agentIdentityById: props.agentIdentityById,
+        agentStatusById: props.sidebarAgentStatusById,
         hasChanges: props.configDirty,
         connected: props.connected,
+        searchQuery: props.sidebarSearchQuery,
+        openMenuId: props.sidebarOpenMenuId,
+        groups: props.sidebarGroups,
+        collapsedGroups: props.sidebarCollapsedGroups,
         onSelectAgent: (agentId) => {
           onGlobalPanelChange(null);
           onAgentSelect(agentId);
@@ -153,6 +158,12 @@ export function renderAgentsConfig(props: AgentsConfigProps) {
         onRefresh,
         onGlobalConfigClick: handleGlobalConfigClick,
         onSetDefault: props.onSetDefault,
+        onSearchChange: props.onSidebarSearchChange,
+        onToggleMenu: props.onSidebarToggleMenu,
+        onToggleGroup: props.onSidebarToggleGroup,
+        onDuplicate: props.onAgentDuplicate,
+        onExport: props.onAgentExport,
+        onDelete: props.onAgentDelete,
       })}
 
       <!-- 右侧内容区域 / Right content area -->

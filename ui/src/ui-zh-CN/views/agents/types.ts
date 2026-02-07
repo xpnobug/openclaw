@@ -37,6 +37,7 @@ import type {
   EditableSkillSource,
   SkillEditorMode,
 } from "../../types/skills-config";
+import type { AgentStatus, AgentGroup } from "../../components/agent/agent-sidebar";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Props 类型定义 / Props Type Definition
@@ -64,6 +65,13 @@ export type AgentsConfigProps = {
 
   // 连接状态 / Connection state
   connected?: boolean;
+
+  // Agent 侧边栏状态 / Agent sidebar state
+  sidebarSearchQuery?: string;
+  sidebarOpenMenuId?: string | null;
+  sidebarAgentStatusById?: Record<string, AgentStatus>;
+  sidebarGroups?: AgentGroup[];
+  sidebarCollapsedGroups?: Set<string>;
 
   // Agent Identity 数据 / Agent identity data
   agentIdentity: AgentIdentityResult | null;
@@ -168,6 +176,14 @@ export type AgentsConfigProps = {
   onGlobalPanelChange: (panel: GlobalPanel | null) => void;
   onRefresh: () => void;
   onSetDefault?: (agentId: string) => void;
+
+  // 侧边栏回调 / Sidebar callbacks
+  onSidebarSearchChange?: (query: string) => void;
+  onSidebarToggleMenu?: (agentId: string | null) => void;
+  onSidebarToggleGroup?: (groupId: string) => void;
+  onAgentDuplicate?: (agentId: string) => void;
+  onAgentExport?: (agentId: string) => void;
+  onAgentDelete?: (agentId: string) => void;
 
   // 配置回调 / Config callbacks
   onConfigReload: () => void;
