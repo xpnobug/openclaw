@@ -77,6 +77,9 @@ import {
   updateAddProviderForm,
   confirmAddProvider,
   setDefaultAgent,
+  duplicateAgent,
+  exportAgent,
+  deleteAgent,
   createInitialModelConfigState,
   type ModelConfigState,
 } from "./controllers/model-config";
@@ -689,21 +692,23 @@ export class OpenClawConfigElement extends LitElement {
         update();
       },
       onAgentDuplicate: (agentId) => {
-        // TODO: 实现复制 Agent 配置
-        console.log("Duplicate agent:", agentId);
+        const newId = duplicateAgent(s, agentId);
         s.sidebarOpenMenuId = null;
+        if (newId) s.selectedAgentId = newId;
         update();
       },
       onAgentExport: (agentId) => {
-        // TODO: 实现导出 Agent 配置
-        console.log("Export agent:", agentId);
+        exportAgent(s, agentId);
         s.sidebarOpenMenuId = null;
         update();
       },
       onAgentDelete: (agentId) => {
-        // TODO: 实现删除 Agent
-        console.log("Delete agent:", agentId);
+        if (!confirm(`确定要删除 Agent "${agentId}" 吗？`)) return;
+        const deleted = deleteAgent(s, agentId);
         s.sidebarOpenMenuId = null;
+        if (deleted && s.selectedAgentId === agentId) {
+          s.selectedAgentId = s.modelConfigAgentsList[0]?.id ?? null;
+        }
         update();
       },
 
