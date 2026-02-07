@@ -32,6 +32,8 @@ const icons = {
   download: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
   // 删除图标 / Delete icon
   trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
+  // 折叠箭头 / Chevron icon
+  chevron: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,6 +41,12 @@ const icons = {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type AgentStatus = "online" | "offline" | "error" | "idle";
+
+export type AgentGroup = {
+  id: string;
+  label: string;
+  agentIds: string[];
+};
 
 export type AgentSidebarProps = {
   agents: AgentsListResult["agents"];
@@ -53,6 +61,8 @@ export type AgentSidebarProps = {
   connected?: boolean;
   searchQuery?: string;
   openMenuId?: string | null;
+  groups?: AgentGroup[];
+  collapsedGroups?: Set<string>;
   onSelectAgent: (agentId: string) => void;
   onRefresh: () => void;
   onGlobalConfigClick?: (section: string) => void;
@@ -62,6 +72,7 @@ export type AgentSidebarProps = {
   onDuplicate?: (agentId: string) => void;
   onExport?: (agentId: string) => void;
   onDelete?: (agentId: string) => void;
+  onToggleGroup?: (groupId: string) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -268,6 +279,79 @@ function renderSearchBar(props: AgentSidebarProps) {
 }
 
 /**
+ * 渲染分组的 Agent 列表
+ * Render grouped agent list
+ */
+function renderGroupedAgentList(
+  props: AgentSidebarProps,
+  filteredAgents: AgentsListResult["agents"],
+) {
+  const { groups, collapsedGroups, onToggleGroup } = props;
+  if (!groups || groups.length === 0) return nothing;
+
+  const agentMap = new Map(filteredAgents.map((a) => [a.id, a]));
+  const groupedIds = new Set(groups.flatMap((g) => g.agentIds));
+  const ungroupedAgents = filteredAgents.filter((a) => !groupedIds.has(a.id));
+
+  const renderAgentItem = (agent: AgentsListResult["agents"][number]) =>
+    renderAgentRow({
+      agent,
+      defaultId: props.defaultId,
+      isSelected: props.selectedId === agent.id,
+      identity: props.agentIdentityById[agent.id] ?? null,
+      status: props.agentStatusById?.[agent.id],
+      isMenuOpen: props.openMenuId === agent.id,
+      onSelect: () => props.onSelectAgent(agent.id),
+      onSetDefault: props.onSetDefault,
+      onToggleMenu: props.onToggleMenu,
+      onDuplicate: props.onDuplicate,
+      onExport: props.onExport,
+      onDelete: props.onDelete,
+    });
+
+  return html`
+    ${groups.map((group) => {
+      const groupAgents = group.agentIds
+        .map((id) => agentMap.get(id))
+        .filter((a): a is AgentsListResult["agents"][number] => !!a);
+      if (groupAgents.length === 0) return nothing;
+
+      const isCollapsed = collapsedGroups?.has(group.id) ?? false;
+      return html`
+        <div class="agents-sidebar__group">
+          <button
+            class="agents-sidebar__group-header"
+            @click=${() => onToggleGroup?.(group.id)}
+          >
+            <span class="agents-sidebar__group-chevron ${isCollapsed ? "" : "agents-sidebar__group-chevron--open"}">
+              ${icons.chevron}
+            </span>
+            <span class="agents-sidebar__group-label">${group.label}</span>
+            <span class="agents-sidebar__group-count">${groupAgents.length}</span>
+          </button>
+          ${isCollapsed ? nothing : html`
+            <div class="agents-sidebar__group-items">
+              ${groupAgents.map(renderAgentItem)}
+            </div>
+          `}
+        </div>
+      `;
+    })}
+    ${ungroupedAgents.length > 0 ? html`
+      <div class="agents-sidebar__group">
+        <div class="agents-sidebar__group-header agents-sidebar__group-header--static">
+          <span class="agents-sidebar__group-label">未分组</span>
+          <span class="agents-sidebar__group-count">${ungroupedAgents.length}</span>
+        </div>
+        <div class="agents-sidebar__group-items">
+          ${ungroupedAgents.map(renderAgentItem)}
+        </div>
+      </div>
+    ` : nothing}
+  `;
+}
+
+/**
  * 渲染 Agent 侧边栏
  * Render agent sidebar
  */
@@ -281,6 +365,8 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
         return name.includes(query) || id.includes(query);
       })
     : props.agents;
+
+  const hasGroups = props.groups && props.groups.length > 0;
 
   return html`
     <aside class="agents-sidebar">
@@ -312,22 +398,24 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
       <div class="agents-sidebar__list">
         ${filteredAgents.length === 0
           ? html`<div class="agents-sidebar__empty">${props.loading ? LABELS.actions.loading : query ? "无匹配结果" : LABELS.empty.noAgents}</div>`
-          : filteredAgents.map((agent: AgentsListResult["agents"][number]) =>
-              renderAgentRow({
-                agent,
-                defaultId: props.defaultId,
-                isSelected: props.selectedId === agent.id,
-                identity: props.agentIdentityById[agent.id] ?? null,
-                status: props.agentStatusById?.[agent.id],
-                isMenuOpen: props.openMenuId === agent.id,
-                onSelect: () => props.onSelectAgent(agent.id),
-                onSetDefault: props.onSetDefault,
-                onToggleMenu: props.onToggleMenu,
-                onDuplicate: props.onDuplicate,
-                onExport: props.onExport,
-                onDelete: props.onDelete,
-              }),
-            )}
+          : hasGroups
+            ? renderGroupedAgentList(props, filteredAgents)
+            : filteredAgents.map((agent: AgentsListResult["agents"][number]) =>
+                renderAgentRow({
+                  agent,
+                  defaultId: props.defaultId,
+                  isSelected: props.selectedId === agent.id,
+                  identity: props.agentIdentityById[agent.id] ?? null,
+                  status: props.agentStatusById?.[agent.id],
+                  isMenuOpen: props.openMenuId === agent.id,
+                  onSelect: () => props.onSelectAgent(agent.id),
+                  onSetDefault: props.onSetDefault,
+                  onToggleMenu: props.onToggleMenu,
+                  onDuplicate: props.onDuplicate,
+                  onExport: props.onExport,
+                  onDelete: props.onDelete,
+                }),
+              )}
       </div>
 
       <!-- 全局配置入口 / Global config links -->
