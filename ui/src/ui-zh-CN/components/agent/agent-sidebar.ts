@@ -24,6 +24,14 @@ const icons = {
   channel: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>`,
   // Agent 设置图标 / Agent settings icon
   agent: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"></path><circle cx="8" cy="14" r="1"></circle><circle cx="16" cy="14" r="1"></circle></svg>`,
+  // 更多操作图标 / More actions icon
+  more: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>`,
+  // 复制图标 / Copy icon
+  copy: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`,
+  // 导出图标 / Export icon
+  download: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`,
+  // 删除图标 / Delete icon
+  trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -44,11 +52,16 @@ export type AgentSidebarProps = {
   hasChanges?: boolean;
   connected?: boolean;
   searchQuery?: string;
+  openMenuId?: string | null;
   onSelectAgent: (agentId: string) => void;
   onRefresh: () => void;
   onGlobalConfigClick?: (section: string) => void;
   onSetDefault?: (agentId: string) => void;
   onSearchChange?: (query: string) => void;
+  onToggleMenu?: (agentId: string | null) => void;
+  onDuplicate?: (agentId: string) => void;
+  onExport?: (agentId: string) => void;
+  onDelete?: (agentId: string) => void;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -114,43 +127,78 @@ function renderAgentRow(props: {
   isSelected: boolean;
   identity: AgentIdentityResult | null;
   status?: AgentStatus;
+  isMenuOpen?: boolean;
   onSelect: () => void;
   onSetDefault?: (agentId: string) => void;
+  onToggleMenu?: (agentId: string | null) => void;
+  onDuplicate?: (agentId: string) => void;
+  onExport?: (agentId: string) => void;
+  onDelete?: (agentId: string) => void;
 }) {
-  const { agent, defaultId, isSelected, identity, status, onSelect, onSetDefault } = props;
+  const { agent, defaultId, isSelected, identity, status, isMenuOpen, onSelect, onSetDefault, onToggleMenu, onDuplicate, onExport, onDelete } = props;
   const isDefault = defaultId && agent.id === defaultId;
   const emoji = resolveAgentEmoji(agent, identity);
   const displayName = agent.name?.trim() || identity?.name?.trim() || agent.id;
+  const hasActions = onToggleMenu && (onSetDefault || onDuplicate || onExport || onDelete);
 
-  const handleSetDefault = (e: Event) => {
+  const handleMenuToggle = (e: Event) => {
     e.stopPropagation();
-    onSetDefault?.(agent.id);
+    onToggleMenu?.(isMenuOpen ? null : agent.id);
+  };
+
+  const handleAction = (action: ((id: string) => void) | undefined) => (e: Event) => {
+    e.stopPropagation();
+    action?.(agent.id);
+    onToggleMenu?.(null);
   };
 
   return html`
-    <button
-      type="button"
-      class="agents-sidebar__item ${isSelected ? "agents-sidebar__item--active" : ""}"
-      @click=${onSelect}
-    >
-      <span class="agents-sidebar__avatar">
-        ${emoji || displayName.slice(0, 1)}
-        ${status ? html`<span class="agents-sidebar__status-indicator agents-sidebar__status-indicator--${status}"></span>` : nothing}
-      </span>
-      <span class="agents-sidebar__item-content">
-        <span class="agents-sidebar__item-name">${displayName}</span>
-        <span class="agents-sidebar__item-id">${agent.id}</span>
-      </span>
-      ${isDefault
-        ? html`<span class="agents-sidebar__badge">${LABELS.status.default}</span>`
-        : onSetDefault
-          ? html`<span
-              class="agents-sidebar__set-default"
-              @click=${handleSetDefault}
-              title=${LABELS.actions.setDefault}
-            >${LABELS.actions.setDefault}</span>`
-          : nothing}
-    </button>
+    <div class="agents-sidebar__item-wrapper">
+      <button
+        type="button"
+        class="agents-sidebar__item ${isSelected ? "agents-sidebar__item--active" : ""}"
+        @click=${onSelect}
+      >
+        <span class="agents-sidebar__avatar">
+          ${emoji || displayName.slice(0, 1)}
+          ${status ? html`<span class="agents-sidebar__status-indicator agents-sidebar__status-indicator--${status}"></span>` : nothing}
+        </span>
+        <span class="agents-sidebar__item-content">
+          <span class="agents-sidebar__item-name">${displayName}</span>
+          <span class="agents-sidebar__item-id">${agent.id}</span>
+        </span>
+        ${isDefault ? html`<span class="agents-sidebar__badge">${LABELS.status.default}</span>` : nothing}
+        ${hasActions ? html`
+          <button class="agents-sidebar__more-btn" @click=${handleMenuToggle} title="更多操作">
+            ${icons.more}
+          </button>
+        ` : nothing}
+      </button>
+      ${isMenuOpen ? html`
+        <div class="agents-sidebar__menu">
+          ${onSetDefault && !isDefault ? html`
+            <button class="agents-sidebar__menu-item" @click=${handleAction(onSetDefault)}>
+              ${icons.agent}<span>设为默认</span>
+            </button>
+          ` : nothing}
+          ${onDuplicate ? html`
+            <button class="agents-sidebar__menu-item" @click=${handleAction(onDuplicate)}>
+              ${icons.copy}<span>复制配置</span>
+            </button>
+          ` : nothing}
+          ${onExport ? html`
+            <button class="agents-sidebar__menu-item" @click=${handleAction(onExport)}>
+              ${icons.download}<span>导出</span>
+            </button>
+          ` : nothing}
+          ${onDelete ? html`
+            <button class="agents-sidebar__menu-item agents-sidebar__menu-item--danger" @click=${handleAction(onDelete)}>
+              ${icons.trash}<span>删除</span>
+            </button>
+          ` : nothing}
+        </div>
+      ` : nothing}
+    </div>
   `;
 }
 
@@ -271,8 +319,13 @@ export function renderAgentSidebar(props: AgentSidebarProps) {
                 isSelected: props.selectedId === agent.id,
                 identity: props.agentIdentityById[agent.id] ?? null,
                 status: props.agentStatusById?.[agent.id],
+                isMenuOpen: props.openMenuId === agent.id,
                 onSelect: () => props.onSelectAgent(agent.id),
                 onSetDefault: props.onSetDefault,
+                onToggleMenu: props.onToggleMenu,
+                onDuplicate: props.onDuplicate,
+                onExport: props.onExport,
+                onDelete: props.onDelete,
               }),
             )}
       </div>

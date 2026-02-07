@@ -235,7 +235,6 @@
   gap: 12px;
   width: 100%;
   padding: 12px 14px;
-  margin-bottom: 6px;
   border: 1px solid transparent;
   border-radius: var(--radius-lg);
   background: transparent;
@@ -309,6 +308,92 @@
 .agents-sidebar__status-indicator--offline { background: var(--muted); }
 .agents-sidebar__status-indicator--error { background: var(--danger); }
 .agents-sidebar__status-indicator--idle { background: var(--warning); }
+
+/* Agent 行包装器 */
+.agents-sidebar__item-wrapper {
+  position: relative;
+  margin-bottom: 6px;
+}
+
+/* 更多操作按钮 */
+.agents-sidebar__more-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.agents-sidebar__more-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.agents-sidebar__item:hover .agents-sidebar__more-btn {
+  opacity: 1;
+}
+
+.agents-sidebar__more-btn:hover {
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+
+/* 操作菜单 */
+.agents-sidebar__menu {
+  position: absolute;
+  top: 100%;
+  right: 12px;
+  z-index: 100;
+  min-width: 140px;
+  padding: 4px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.agents-sidebar__menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.agents-sidebar__menu-item svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
+.agents-sidebar__menu-item:hover {
+  background: var(--bg-hover);
+}
+
+.agents-sidebar__menu-item--danger {
+  color: var(--danger);
+}
+
+.agents-sidebar__menu-item--danger:hover {
+  background: var(--danger-subtle);
+}
 
 :root[data-theme="light"] .agents-sidebar__item-avatar {
   background: white;
