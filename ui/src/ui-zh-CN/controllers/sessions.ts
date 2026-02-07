@@ -125,3 +125,58 @@ export async function createSession(
     return { ok: false, error: errorMsg };
   }
 }
+
+/**
+ * 删除会话
+ * Delete session via sessions.delete API
+ *
+ * @param state 状态对象
+ * @param sessionKey 会话 key
+ * @param agentId 可选的 Agent ID，用于刷新列表
+ * @param skipConfirm 跳过确认对话框（默认 false）
+ */
+export async function deleteSession(
+  state: ModelConfigState,
+  sessionKey: string,
+  agentId?: string,
+  skipConfirm = false,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!state.client || !state.connected) {
+    return { ok: false, error: "未连接到 Gateway" };
+  }
+
+  if (state.agentSessionsLoading) {
+    return { ok: false, error: "正在加载中，请稍后" };
+  }
+
+  // 确认删除
+  if (!skipConfirm) {
+    const confirmed = window.confirm(
+      `确定要删除会话 "${sessionKey}" 吗？\n\n此操作将删除会话记录并归档其对话历史。`,
+    );
+    if (!confirmed) {
+      return { ok: false, error: "用户取消" };
+    }
+  }
+
+  state.agentSessionsLoading = true;
+  state.agentSessionsError = null;
+
+  try {
+    await state.client.request("sessions.delete", {
+      key: sessionKey,
+      deleteTranscript: true,
+    });
+
+    // 刷新会话列表
+    await loadAgentSessions(state, agentId);
+
+    return { ok: true };
+  } catch (err) {
+    const errorMsg = `删除会话失败: ${String(err)}`;
+    state.agentSessionsError = errorMsg;
+    return { ok: false, error: errorMsg };
+  } finally {
+    state.agentSessionsLoading = false;
+  }
+}

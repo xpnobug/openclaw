@@ -68,6 +68,7 @@ import {
   loadAgentSessions,
   patchSessionModel,
   createSession,
+  deleteSession,
   loadWorkspaceFiles,
   selectWorkspaceFile,
   saveWorkspaceFile,
@@ -785,6 +786,9 @@ export class OpenClawConfigElement extends LitElement {
           bubbles: true,
           composed: true,
         }));
+      },
+      onAgentSessionDelete: (sessionKey) => {
+        deleteSession(s, sessionKey, s.selectedAgentId ?? undefined).then(update);
       },
       // 新建会话回调
       onAgentSessionCreateShow: (show) => {

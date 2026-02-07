@@ -16,6 +16,7 @@ import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
 
 const icons = {
   refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
+  trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ const SESSION_LABELS = {
   sessionKey: "会话",
   sessionModel: "模型",
   sessionUpdated: "最后更新",
+  sessionActions: "操作",
   inheritDefault: "继承默认",
   noSessions: "暂无会话",
   loading: "加载中...",
@@ -40,6 +42,8 @@ const SESSION_LABELS = {
   cancel: "取消",
   confirm: "创建",
   creating: "创建中...",
+  delete: "删除",
+  deleteTitle: "删除会话",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -69,6 +73,7 @@ export type AgentOverviewProps = {
   onSessionsRefresh: () => void;
   onSessionModelChange: (sessionKey: string, model: string | null) => void;
   onSessionNavigate: (sessionKey: string) => void;
+  onSessionDelete?: (sessionKey: string) => void;
   // 新建会话 / Create session
   sessionCreateShow?: boolean;
   sessionCreateName?: string;
@@ -309,6 +314,7 @@ function renderSessionRow(
   defaultModel: { provider: string | null; model: string | null },
   onModelChange: (sessionKey: string, model: string | null) => void,
   onNavigate: (sessionKey: string) => void,
+  onDelete?: (sessionKey: string) => void,
 ) {
   const displayName = session.displayName ?? session.label ?? session.key;
   const currentModel = session.model
@@ -349,6 +355,15 @@ function renderSessionRow(
       </div>
       <div class="session-row__updated">
         ${session.updatedAt ? formatAgo(session.updatedAt) : "-"}
+      </div>
+      <div class="session-row__actions">
+        <button
+          class="mc-btn mc-btn--sm mc-btn--icon mc-btn--danger"
+          title=${SESSION_LABELS.deleteTitle}
+          @click=${() => onDelete?.(session.key)}
+        >
+          ${icons.trash}
+        </button>
       </div>
     </div>
   `;
@@ -471,6 +486,7 @@ function renderSessionsSection(props: AgentOverviewProps) {
     onSessionsRefresh,
     onSessionModelChange,
     onSessionNavigate,
+    onSessionDelete,
     onSessionCreateShow,
   } = props;
 
@@ -516,10 +532,11 @@ function renderSessionsSection(props: AgentOverviewProps) {
                   <div class="sessions-list__col sessions-list__col--key">${SESSION_LABELS.sessionKey}</div>
                   <div class="sessions-list__col sessions-list__col--model">${SESSION_LABELS.sessionModel}</div>
                   <div class="sessions-list__col sessions-list__col--updated">${SESSION_LABELS.sessionUpdated}</div>
+                  <div class="sessions-list__col sessions-list__col--actions">${SESSION_LABELS.sessionActions}</div>
                 </div>
                 <div class="sessions-list__body">
                   ${sessions.map((session) =>
-                    renderSessionRow(session, availableModels, defaults, onSessionModelChange, onSessionNavigate),
+                    renderSessionRow(session, availableModels, defaults, onSessionModelChange, onSessionNavigate, onSessionDelete),
                   )}
                 </div>
               `

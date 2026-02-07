@@ -256,6 +256,7 @@ export type AgentsConfigProps = {
   onAgentSessionsRefresh: () => void;
   onAgentSessionModelChange: (sessionKey: string, model: string | null) => void;
   onAgentSessionNavigate: (sessionKey: string) => void;
+  onAgentSessionDelete?: (sessionKey: string) => void;
   onAgentSessionCreateShow?: (show: boolean) => void;
   onAgentSessionCreateNameChange?: (name: string) => void;
   onAgentSessionCreateModelChange?: (model: string | null) => void;

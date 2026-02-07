@@ -52,6 +52,7 @@ export function renderActivePanel(props: AgentsConfigProps, agent: AgentsListRes
         onSessionsRefresh: props.onAgentSessionsRefresh,
         onSessionModelChange: props.onAgentSessionModelChange,
         onSessionNavigate: props.onAgentSessionNavigate,
+        onSessionDelete: props.onAgentSessionDelete,
         sessionCreateShow: props.agentSessionCreateShow,
         sessionCreateName: props.agentSessionCreateName,
         sessionCreateModel: props.agentSessionCreateModel,
