@@ -314,6 +314,7 @@ export type AgentsConfigProps = {
   onChannelSelect: (channelId: string) => void;
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
   onNavigateToChannels: () => void;
+  onAddChannel?: () => void;
   onChannelsRefresh?: () => void;
 
   // 定时任务回调 / Cron callbacks
