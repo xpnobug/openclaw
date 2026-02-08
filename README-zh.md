@@ -12,7 +12,7 @@ OpenClaw 的 Fork 版本，添加了中文可视化配置界面。
 ## 安装
 
 ```bash
-npm install -g @xpnobug/openclaw
+npm install -g @agent-our/openclaw
 ```
 
 ## 使用
