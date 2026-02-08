@@ -149,9 +149,6 @@ type InternalState = ModelConfigState &
 
     // Agent 向导状态
     showAgentWizard: boolean;
-
-    // 用户向导状态
-    showUserWizard: boolean;
   };
 
 @customElement("openclaw-config-zh")
@@ -222,9 +219,6 @@ export class OpenClawConfigElement extends LitElement {
 
       // Agent 向导
       showAgentWizard: false,
-
-      // 用户向导
-      showUserWizard: false,
     } as InternalState;
   }
 
@@ -765,7 +759,6 @@ export class OpenClawConfigElement extends LitElement {
 
       // Agent 向导
       showAgentWizard: s.showAgentWizard,
-      showUserWizard: s.showUserWizard,
       onCreateAgent: () => {
         s.showAgentWizard = true;
         update();
@@ -957,19 +950,6 @@ ls -la
       },
       onAgentWizardCancel: () => {
         s.showAgentWizard = false;
-        update();
-      },
-
-      // 用户向导回调
-      onUserWizardComplete: async (data) => {
-        console.log("[UserWizard] 完成配置:", data);
-        // TODO: 实现用户添加逻辑
-        s.showUserWizard = false;
-        s.lastError = "用户添加功能开发中...";
-        update();
-      },
-      onUserWizardCancel: () => {
-        s.showUserWizard = false;
         update();
       },
 

@@ -207,11 +207,6 @@ export type AgentsConfigProps = {
   onAgentWizardComplete?: (data: AgentWizardData) => void;
   onAgentWizardCancel?: () => void;
 
-  // 用户向导 / User wizard
-  showUserWizard?: boolean;
-  onUserWizardComplete?: (data: any) => void;
-  onUserWizardCancel?: () => void;
-
   // 配置回调 / Config callbacks
   onConfigReload: () => void;
   onConfigSave: () => void;
