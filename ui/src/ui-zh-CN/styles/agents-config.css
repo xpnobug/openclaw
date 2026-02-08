@@ -2,6 +2,9 @@
    Agent Configuration - Agent 配置页面
    =========================================== */
 
+/* 导入向导样式 / Import wizard styles */
+@import "./modules/wizard.css";
+
 /* ===========================================
    Agents Layout - Agent 布局
    =========================================== */
@@ -78,9 +81,11 @@
 }
 
 @keyframes mc-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
@@ -139,6 +144,12 @@
   border-bottom: 1px solid var(--border);
 }
 
+.agents-sidebar__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .agents-sidebar__title {
   margin: 0;
   font-size: 15px;
@@ -167,7 +178,10 @@
   font-weight: 500;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
   margin-left: auto;
 }
@@ -305,10 +319,21 @@
   border: 2px solid var(--bg-accent);
 }
 
-.agents-sidebar__status-indicator--online { background: var(--ok); }
-.agents-sidebar__status-indicator--offline { background: var(--muted); }
-.agents-sidebar__status-indicator--error { background: var(--danger); }
-.agents-sidebar__status-indicator--idle { background: var(--warning); }
+.agents-sidebar__status-indicator--online {
+  background: var(--ok);
+}
+
+.agents-sidebar__status-indicator--offline {
+  background: var(--muted);
+}
+
+.agents-sidebar__status-indicator--error {
+  background: var(--danger);
+}
+
+.agents-sidebar__status-indicator--idle {
+  background: var(--warning);
+}
 
 /* 更多操作按钮 */
 .agents-sidebar__more-btn {
@@ -324,7 +349,10 @@
   color: var(--muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s, background 0.15s, color 0.15s;
+  transition:
+    opacity 0.15s,
+    background 0.15s,
+    color 0.15s;
   flex-shrink: 0;
 }
 
@@ -351,10 +379,8 @@
 
 /* 操作菜单 */
 .agents-sidebar__menu {
-  position: absolute;
-  bottom: 60px;
-  left: 12px;
-  right: 12px;
+  position: fixed;
+  width: 140px;
   z-index: 1000;
   padding: 4px;
   background: var(--bg-elevated);
@@ -662,6 +688,7 @@
     opacity: 0;
     transform: translateY(6px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1541,4 +1568,63 @@
 /* 简化：直接让所有带 actions 的卡片头部居中对齐 */
 .mc-card__header:has(.mc-card__actions) {
   align-items: center;
+}
+
+/* Agent 向导弹窗 / Agent wizard modal */
+.agents-wizard-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.agents-wizard-modal {
+  width: 90%;
+  max-width: 640px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+/* 向导内容滚动 / Wizard content scroll */
+.agents-wizard-modal .wizard__content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* 向导底部固定 / Wizard footer fixed */
+.agents-wizard-modal .wizard__footer {
+  flex-shrink: 0;
+  background: var(--bg);
+  border-top: none;
+}
+
+/* 模板卡片紧凑布局 / Template cards compact layout */
+.agents-wizard-modal .wizard__templates {
+  gap: 8px;
+}
+
+.agents-wizard-modal .wizard__template-card {
+  padding: 14px 12px;
+  gap: 6px;
+}
+
+.agents-wizard-modal .wizard__template-icon {
+  font-size: 28px;
+}
+
+.agents-wizard-modal .wizard__template-name {
+  font-size: 13px;
 }
