@@ -235,7 +235,6 @@ export function renderGlobalPanel(props: AgentsConfigProps) {
               onChannelSelect: props.onChannelSelect,
               onChannelConfigUpdate: props.onChannelConfigUpdate,
               onNavigateToChannels: props.onNavigateToChannels,
-              onAddChannel: props.onAddChannel,
             })}
           </div>
         </div>

@@ -207,11 +207,6 @@ export type AgentsConfigProps = {
   onAgentWizardComplete?: (data: AgentWizardData) => void;
   onAgentWizardCancel?: () => void;
 
-  // 通道向导 / Channel wizard
-  showChannelWizard?: boolean;
-  onChannelWizardComplete?: (data: any) => void;
-  onChannelWizardCancel?: () => void;
-
   // 用户向导 / User wizard
   showUserWizard?: boolean;
   onUserWizardComplete?: (data: any) => void;
@@ -314,7 +309,6 @@ export type AgentsConfigProps = {
   onChannelSelect: (channelId: string) => void;
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
   onNavigateToChannels: () => void;
-  onAddChannel?: () => void;
   onChannelsRefresh?: () => void;
 
   // 定时任务回调 / Cron callbacks

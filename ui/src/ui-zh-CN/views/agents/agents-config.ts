@@ -9,6 +9,7 @@ import { renderAgentSidebar, renderAgentHeader, renderAgentTabs } from "../../co
 import { AGENT_TEMPLATES, AGENT_CATEGORIES } from "../../templates/index";
 import { LABELS } from "../../types/agents-config";
 import { AgentWizard, type AgentData } from "../../wizards/agent-wizard";
+import { UserWizard, type UserData } from "../../wizards/user-wizard";
 import { renderStepIndicator, renderWizardFooter, renderField } from "../../wizards/wizard-base";
 import { renderActivePanel, renderGlobalPanel } from "./panel-renderer";
 
@@ -449,6 +450,24 @@ export function renderAgentsConfig(props: AgentsConfigProps) {
     <div class="agents-layout">
       <!-- Agent 创建向导 / Agent creation wizard -->
       ${props.showAgentWizard ? renderAgentWizard(props) : nothing}
+
+      <!-- 用户添加向导 / User addition wizard -->
+      ${
+        props.showUserWizard
+          ? html`
+        <div class="agents-wizard-overlay" @click=${(e: Event) => {
+          if (e.target === e.currentTarget) props.onUserWizardCancel?.();
+        }}>
+          <div class="agents-wizard-modal">
+            ${new UserWizard({
+              onComplete: (data: UserData) => props.onUserWizardComplete?.(data),
+              onCancel: () => props.onUserWizardCancel?.(),
+            }).render()}
+          </div>
+        </div>
+      `
+          : nothing
+      }
 
       <!-- 左侧 Agent 侧边栏 / Left agent sidebar -->
       ${renderAgentSidebar({

@@ -150,9 +150,6 @@ type InternalState = ModelConfigState &
     // Agent 向导状态
     showAgentWizard: boolean;
 
-    // 通道向导状态
-    showChannelWizard: boolean;
-
     // 用户向导状态
     showUserWizard: boolean;
   };
@@ -225,9 +222,6 @@ export class OpenClawConfigElement extends LitElement {
 
       // Agent 向导
       showAgentWizard: false,
-
-      // 通道向导
-      showChannelWizard: false,
 
       // 用户向导
       showUserWizard: false,
@@ -771,7 +765,6 @@ export class OpenClawConfigElement extends LitElement {
 
       // Agent 向导
       showAgentWizard: s.showAgentWizard,
-      showChannelWizard: s.showChannelWizard,
       showUserWizard: s.showUserWizard,
       onCreateAgent: () => {
         s.showAgentWizard = true;
@@ -911,7 +904,7 @@ ls -la
 - **Name:** 用户
 - **What to call them:** 你
 - **Timezone:** Asia/Shanghai
-- **Notes:** 
+- **Notes:**
 `,
                 },
                 {
@@ -964,19 +957,6 @@ ls -la
       },
       onAgentWizardCancel: () => {
         s.showAgentWizard = false;
-        update();
-      },
-
-      // 通道向导回调
-      onChannelWizardComplete: async (data) => {
-        console.log("[ChannelWizard] 完成配置:", data);
-        // TODO: 实现通道配置保存逻辑
-        s.showChannelWizard = false;
-        s.lastError = "通道配置功能开发中...";
-        update();
-      },
-      onChannelWizardCancel: () => {
-        s.showChannelWizard = false;
         update();
       },
 

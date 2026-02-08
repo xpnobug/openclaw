@@ -15,7 +15,6 @@ export type ChannelsContentProps = {
   onChannelSelect: (channelId: string) => void;
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
   onNavigateToChannels: () => void;
-  onAddChannel?: () => void;
 };
 
 /**
@@ -30,22 +29,10 @@ export function renderChannelsContent(props: ChannelsContentProps) {
           <h2 class="config-content__title">通道配置</h2>
           <p class="config-content__desc">配置消息通道（Telegram、Discord、WhatsApp 等）</p>
         </div>
-        <div class="config-content__actions">
-          ${
-            props.onAddChannel
-              ? html`
-            <button class="mc-btn mc-btn--primary" @click=${props.onAddChannel}>
-              ${icons.plus}
-              <span>添加通道</span>
-            </button>
-          `
-              : ""
-          }
-          <button class="mc-btn" @click=${props.onNavigateToChannels}>
-            ${icons.externalLink}
-            <span>通道管理</span>
-          </button>
-        </div>
+        <button class="mc-btn" @click=${props.onNavigateToChannels}>
+          ${icons.externalLink}
+          <span>通道管理</span>
+        </button>
       </div>
 
       <div class="channels-layout">
