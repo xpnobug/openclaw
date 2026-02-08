@@ -1,10 +1,20 @@
 {
-  "name": "openclaw",
+  "name": "@xpnobug/openclaw",
   "version": "2026.2.6-3",
-  "description": "WhatsApp gateway CLI (Baileys web) with Pi RPC agent",
-  "keywords": [],
+  "description": "OpenClaw fork with Chinese visual configuration UI (带中文可视化配置界面的 OpenClaw)",
+  "keywords": [
+    "chinese",
+    "openclaw",
+    "ui",
+    "visual-config",
+    "zh-CN"
+  ],
   "license": "MIT",
-  "author": "",
+  "author": "xpnobug",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xpnobug/openclaw.git"
+  },
   "bin": {
     "openclaw": "openclaw.mjs"
   },
