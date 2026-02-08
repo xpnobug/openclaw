@@ -1,6 +1,6 @@
 {
-  "name": "@xpnobug/openclaw",
-  "version": "2026.2.6-3",
+  "name": "@agent-our/openclaw",
+  "version": "2026.2.6-4",
   "description": "OpenClaw fork with Chinese visual configuration UI (带中文可视化配置界面的 OpenClaw)",
   "keywords": [
     "chinese",
@@ -226,6 +226,7 @@
       "sharp"
     ]
   },
+  "readme": "README-zh.md",
   "vitest": {
     "coverage": {
       "provider": "v8",
