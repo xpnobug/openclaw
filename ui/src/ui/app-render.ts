@@ -1118,7 +1118,7 @@ export function renderApp(state: AppViewState) {
                 onAbort: () => void state.handleAbortChat(),
                 onQueueRemove: (id) => state.removeQueuedMessage(id),
                 onNewSession: () => state.handleSendChat("/new", { restoreDraft: true }),
-                showNewMessages: state.chatNewMessagesBelow,
+                showNewMessages: state.chatNewMessagesBelow && !state.chatManualRefreshInFlight,
                 onScrollToBottom: () => state.scrollToBottom(),
                 // Sidebar props for tool output viewing
                 sidebarOpen: state.sidebarOpen,
@@ -1133,7 +1133,9 @@ export function renderApp(state: AppViewState) {
               })
             : nothing
         }
-          ${state.tab === "model-config" ? html`
+          ${
+            state.tab === "model-config"
+              ? html`
             <openclaw-config-zh
               .client=${state.client}
               .connected=${state.connected}
@@ -1153,7 +1155,9 @@ export function renderApp(state: AppViewState) {
                 (state as unknown as OpenClawApp).setTab("channels");
               }}
             ></openclaw-config-zh>
-          ` : nothing}
+          `
+              : nothing
+          }
         ${
           state.tab === "config"
             ? renderConfig({
