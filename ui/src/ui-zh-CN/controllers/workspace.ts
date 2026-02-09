@@ -12,30 +12,31 @@ import type { ModelConfigState } from "./state";
  * Load workspace file list
  */
 export async function loadWorkspaceFiles(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.workspaceLoading = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法，支持 memory/ 目录扫描
-    // Use extension plugin method, supports memory/ directory scanning
-    const res = (await state.client.request("workspace.files.list", {
+    // 调用 Gateway 内置方法 / Call Gateway built-in method
+    const res = (await state.client.request("agents.files.list", {
       agentId: state.workspaceAgentId || undefined,
     })) as {
-      workspaceDir: string;
+      workspace: string;
       agentId: string;
       files: Array<{
         name: string;
         path: string;
         exists: boolean;
         size: number;
-        modifiedAt: number | null;
+        updatedAtMs: number | null;
       }>;
     };
 
     state.workspaceFiles = res.files;
-    state.workspaceDir = res.workspaceDir;
+    state.workspaceDir = res.workspace;
     state.workspaceAgentId = res.agentId;
   } catch (err) {
     state.workspaceError = "加载文件列表失败: " + String(err);
@@ -52,29 +53,34 @@ export async function selectWorkspaceFile(
   state: ModelConfigState,
   fileName: string,
 ): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.workspaceSelectedFile = fileName;
   state.workspaceLoading = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法
-    // Use extension plugin method
-    const res = (await state.client.request("workspace.file.read", {
-      fileName,
+    // 调用 Gateway 内置方法 / Call Gateway built-in method
+    const res = (await state.client.request("agents.files.get", {
+      name: fileName,
       agentId: state.workspaceAgentId || undefined,
     })) as {
-      name: string;
-      path: string;
-      exists: boolean;
-      content: string;
+      agentId: string;
+      workspace: string;
+      file: {
+        name: string;
+        path: string;
+        missing: boolean;
+        content?: string;
+      };
     };
 
-    state.workspaceEditorContent = res.content ?? "";
-    state.workspaceOriginalContent = res.content ?? "";
+    state.workspaceEditorContent = res.file.content ?? "";
+    state.workspaceOriginalContent = res.file.content ?? "";
 
-    if (!res.exists) {
+    if (res.file.missing) {
       state.workspaceError = "文件不存在，编辑后保存将自动创建";
     }
   } catch (err) {
@@ -89,16 +95,17 @@ export async function selectWorkspaceFile(
  * Save current workspace file
  */
 export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected || !state.workspaceSelectedFile) return;
+  if (!state.client || !state.connected || !state.workspaceSelectedFile) {
+    return;
+  }
 
   state.workspaceSaving = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法
-    // Use extension plugin method
-    await state.client.request("workspace.file.write", {
-      fileName: state.workspaceSelectedFile,
+    // 调用 Gateway 内置方法 / Call Gateway built-in method
+    await state.client.request("agents.files.set", {
+      name: state.workspaceSelectedFile,
       content: state.workspaceEditorContent,
       agentId: state.workspaceAgentId || undefined,
     });
@@ -119,10 +126,7 @@ export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> 
  * 创建新的工作区文件（设置空内容，等待用户编辑后保存）
  * Create new workspace file (set empty content, wait for user to edit and save)
  */
-export function createWorkspaceFile(
-  state: ModelConfigState,
-  fileName: string,
-): void {
+export function createWorkspaceFile(state: ModelConfigState, fileName: string): void {
   state.workspaceSelectedFile = fileName;
   state.workspaceEditorContent = "";
   state.workspaceOriginalContent = "";
@@ -133,10 +137,7 @@ export function createWorkspaceFile(
  * 更新编辑器内容
  * Update editor content
  */
-export function updateWorkspaceEditorContent(
-  state: ModelConfigState,
-  content: string,
-): void {
+export function updateWorkspaceEditorContent(state: ModelConfigState, content: string): void {
   state.workspaceEditorContent = content;
 }
 
