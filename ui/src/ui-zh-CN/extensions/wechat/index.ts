@@ -4,7 +4,6 @@
  */
 import type { MoltbotPluginApi } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
-
 import { wechatDock, wechatPlugin } from "./src/channel.js";
 import { setWeChatRuntime } from "./src/runtime.js";
 
@@ -13,7 +12,7 @@ import { setWeChatRuntime } from "./src/runtime.js";
  * 微信插件定义
  */
 const plugin = {
-  id: "wechat",
+  id: "zh-wechat",
   name: "WeChat",
   description: "WeChat channel plugin (via wechat-robot-admin-backend)",
   configSchema: emptyPluginConfigSchema(),
