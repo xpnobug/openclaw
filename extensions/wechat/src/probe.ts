@@ -1,3 +1,4 @@
+import type { WeChatRobotState } from "./types.js";
 /**
  * WeChat connection probe.
  * 微信连接探测模块
@@ -5,14 +6,13 @@
  * 用于检测机器人是否在线并可用
  */
 import { getRobotState, WeChatApiError } from "./api.js";
-import type { WeChatRobotState } from "./types.js";
 
 /** 探测结果 */
 export type WeChatProbeResult = {
-  ok: boolean;              // 是否成功
+  ok: boolean; // 是否成功
   robot?: WeChatRobotState; // 机器人状态
-  error?: string;           // 错误信息
-  elapsedMs: number;        // 耗时（毫秒）
+  error?: string; // 错误信息
+  elapsedMs: number; // 耗时（毫秒）
 };
 
 /**

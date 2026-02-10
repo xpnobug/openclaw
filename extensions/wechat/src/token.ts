@@ -10,9 +10,7 @@
  * 5. 环境变量 WECHAT_API_TOKEN（仅默认账户）
  */
 import { readFileSync } from "node:fs";
-
 import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
-
 import type { WeChatConfig } from "./types.js";
 
 /** Token 解析结果 */

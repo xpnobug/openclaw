@@ -1,3 +1,4 @@
+import type { MoltbotConfig } from "openclaw/plugin-sdk";
 /**
  * WeChat message sending module.
  * 微信消息发送模块
@@ -5,29 +6,26 @@
  * 支持发送文本消息、图片消息和语音消息
  */
 import * as fs from "node:fs";
-
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
-
-import { sendTextMessage, sendImageMessage, sendVoiceMessage } from "./api.js";
 import { resolveWeChatAccount } from "./accounts.js";
+import { sendTextMessage, sendImageMessage, sendVoiceMessage } from "./api.js";
 
 /** 发送选项 */
 export type WeChatSendOptions = {
-  apiToken?: string;    // API Token（可选，优先使用）
-  baseUrl?: string;     // API 服务地址（可选，优先使用）
-  robotId?: number;     // 机器人 ID（可选，优先使用）
-  accountId?: string;   // 账户 ID
-  cfg?: MoltbotConfig;  // 配置对象
-  mediaUrl?: string;    // 图片 URL（发送图片时使用）
+  apiToken?: string; // API Token（可选，优先使用）
+  baseUrl?: string; // API 服务地址（可选，优先使用）
+  robotId?: number; // 机器人 ID（可选，优先使用）
+  accountId?: string; // 账户 ID
+  cfg?: MoltbotConfig; // 配置对象
+  mediaUrl?: string; // 图片 URL（发送图片时使用）
   voiceFilePath?: string; // 语音文件路径（发送语音时使用）
-  at?: string[];        // 群聊中 @的用户 wxid 列表
+  at?: string[]; // 群聊中 @的用户 wxid 列表
 };
 
 /** 发送结果 */
 export type WeChatSendResult = {
-  ok: boolean;          // 是否成功
-  messageId?: string;   // 消息 ID
-  error?: string;       // 错误信息
+  ok: boolean; // 是否成功
+  messageId?: string; // 消息 ID
+  error?: string; // 错误信息
 };
 
 /**

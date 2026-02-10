@@ -25,11 +25,11 @@
 channels:
   wechat:
     enabled: true
-    baseUrl: "http://localhost:9000"  # wechat-robot-admin-backend 地址
-    apiToken: "your-api-token"        # API Token
-    robotId: 1                        # 机器人 ID
-    dmPolicy: "pairing"               # DM 策略: pairing | allowlist | open | disabled
-    allowFrom:                        # 允许的用户 ID 列表
+    baseUrl: "http://localhost:9000" # wechat-robot-admin-backend 地址
+    apiToken: "your-api-token" # API Token
+    robotId: 1 # 机器人 ID
+    dmPolicy: "pairing" # DM 策略: pairing | allowlist | open | disabled
+    allowFrom: # 允许的用户 ID 列表
       - "wxid_abc123"
 ```
 
@@ -45,8 +45,8 @@ channels:
     apiToken: "your-api-token"
     robotId: 1
     polling:
-      pollingIntervalMs: 3000         # 轮询间隔（毫秒），默认 3000
-      pollContactIds:                 # 要轮询的联系人 ID 列表
+      pollingIntervalMs: 3000 # 轮询间隔（毫秒），默认 3000
+      pollContactIds: # 要轮询的联系人 ID 列表
         - "wxid_friend1"
         - "12345678@chatroom"
       # 或者使用自动轮询所有联系人
@@ -76,7 +76,7 @@ channels:
         apiToken: "personal-token"
         robotId: 3
 
-    defaultAccount: "default"  # 可选，指定默认账户
+    defaultAccount: "default" # 可选，指定默认账户
 ```
 
 ### 使用 Token 文件
@@ -86,7 +86,7 @@ channels:
   wechat:
     enabled: true
     baseUrl: "http://localhost:9000"
-    tokenFile: "/path/to/wechat-token.txt"  # 从文件读取 Token
+    tokenFile: "/path/to/wechat-token.txt" # 从文件读取 Token
     robotId: 1
 ```
 
@@ -138,19 +138,19 @@ clawdbot directory list --channel wechat --type groups
 
 ## DM 策略说明
 
-| 策略 | 说明 |
-|------|------|
-| `pairing` | 默认策略，新用户需要配对审批 |
+| 策略        | 说明                            |
+| ----------- | ------------------------------- |
+| `pairing`   | 默认策略，新用户需要配对审批    |
 | `allowlist` | 仅允许 `allowFrom` 列表中的用户 |
-| `open` | 允许所有用户（不推荐） |
-| `disabled` | 禁用私聊功能 |
+| `open`      | 允许所有用户（不推荐）          |
+| `disabled`  | 禁用私聊功能                    |
 
 ## 微信 ID 格式
 
-| 类型 | 格式 | 示例 |
-|------|------|------|
-| 个人用户 | `wxid_xxx` | `wxid_abc123def456` |
-| 群聊 | `数字@chatroom` | `12345678901@chatroom` |
+| 类型     | 格式            | 示例                   |
+| -------- | --------------- | ---------------------- |
+| 个人用户 | `wxid_xxx`      | `wxid_abc123def456`    |
+| 群聊     | `数字@chatroom` | `12345678901@chatroom` |
 
 ## 完整配置示例
 
@@ -164,14 +164,10 @@ clawdbot directory list --channel wechat --type groups
       "robotId": 5,
       "dmPolicy": "allowlist",
       "requireMention": false,
-      "allowFrom": [
-        "wxid_1kbur705rdkt722"
-      ],
+      "allowFrom": ["wxid_1kbur705rdkt722"],
       "polling": {
         "pollingIntervalMs": 3000,
-        "pollContactIds": [
-          "571991817065@chatroom"
-        ]
+        "pollContactIds": ["571991817065@chatroom"]
       }
     }
   }
@@ -182,33 +178,33 @@ clawdbot directory list --channel wechat --type groups
 
 ### 基础配置
 
-| 字段 | 类型 | 必填 | 默认值 | 说明                                                       |
-|------|------|------|--------|----------------------------------------------------------|
-| `enabled` | boolean | 否 | `true` | 是否启用微信通道。设为 `false` 可临时禁用而不删除配置                          |
-| `baseUrl` | string | 是 | - | wechat-robot-admin-backend API 服务地址，例如 `https://xxx.com` |
-| `apiToken` | string | 是* | - | API 访问令牌，从后端管理界面获取                                       |
-| `tokenFile` | string | 是* | - | Token 文件路径，从文件读取 API Token                               |
-| `robotId` | number | 否 | `1` | 机器人实例 ID，在后端管理界面查看                                       |
-| `name` | string | 否 | - | 账户显示名称，用于 CLI/UI 列表展示                                    |
+| 字段        | 类型    | 必填 | 默认值 | 说明                                                            |
+| ----------- | ------- | ---- | ------ | --------------------------------------------------------------- |
+| `enabled`   | boolean | 否   | `true` | 是否启用微信通道。设为 `false` 可临时禁用而不删除配置           |
+| `baseUrl`   | string  | 是   | -      | wechat-robot-admin-backend API 服务地址，例如 `https://xxx.com` |
+| `apiToken`  | string  | 是\* | -      | API 访问令牌，从后端管理界面获取                                |
+| `tokenFile` | string  | 是\* | -      | Token 文件路径，从文件读取 API Token                            |
+| `robotId`   | number  | 否   | `1`    | 机器人实例 ID，在后端管理界面查看                               |
+| `name`      | string  | 否   | -      | 账户显示名称，用于 CLI/UI 列表展示                              |
 
-> *`apiToken` 和 `tokenFile` 二选一，或使用环境变量 `WECHAT_API_TOKEN`
+> \*`apiToken` 和 `tokenFile` 二选一，或使用环境变量 `WECHAT_API_TOKEN`
 
 ### 访问控制配置
 
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `dmPolicy` | string | 否 | `"pairing"` | 消息访问策略，控制谁可以与机器人对话 |
-| `allowFrom` | string[] | 否 | `[]` | 允许的用户微信 ID 列表（wxid_xxx 格式） |
-| `requireMention` | boolean | 否 | `true` | 群聊中是否需要 @机器人才回复。`true`: 仅回复 @机器人的消息；`false`: 回复所有消息 |
+| 字段             | 类型     | 必填 | 默认值      | 说明                                                                              |
+| ---------------- | -------- | ---- | ----------- | --------------------------------------------------------------------------------- |
+| `dmPolicy`       | string   | 否   | `"pairing"` | 消息访问策略，控制谁可以与机器人对话                                              |
+| `allowFrom`      | string[] | 否   | `[]`        | 允许的用户微信 ID 列表（wxid_xxx 格式）                                           |
+| `requireMention` | boolean  | 否   | `true`      | 群聊中是否需要 @机器人才回复。`true`: 仅回复 @机器人的消息；`false`: 回复所有消息 |
 
 #### dmPolicy 策略说明
 
-| 策略值 | 说明 | 适用场景 |
-|--------|------|----------|
-| `"pairing"` | 新用户需要配对审批后才能对话 | 默认策略，适合需要审核的场景 |
-| `"allowlist"` | 仅允许 `allowFrom` 列表中的用户对话 | 限制特定用户使用 |
-| `"open"` | 允许所有用户对话（不推荐） | 公开服务场景 |
-| `"disabled"` | 禁用消息响应功能 | 仅用于发送消息，不接收 |
+| 策略值        | 说明                                | 适用场景                     |
+| ------------- | ----------------------------------- | ---------------------------- |
+| `"pairing"`   | 新用户需要配对审批后才能对话        | 默认策略，适合需要审核的场景 |
+| `"allowlist"` | 仅允许 `allowFrom` 列表中的用户对话 | 限制特定用户使用             |
+| `"open"`      | 允许所有用户对话（不推荐）          | 公开服务场景                 |
+| `"disabled"`  | 禁用消息响应功能                    | 仅用于发送消息，不接收       |
 
 #### allowFrom 配置说明
 
@@ -218,16 +214,17 @@ clawdbot directory list --channel wechat --type groups
 
 ### 消息接收配置 (polling)
 
-| 字段 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `pollingIntervalMs` | number | 否 | `3000` | 轮询间隔（毫秒）。推荐 1000-5000，值越小响应越快但 API 调用越频繁 |
-| `pollContactIds` | string[] | 否 | `[]` | 要轮询的联系人 ID 列表。支持好友 wxid 和群聊 ID（xxx@chatroom） |
-| `pollAllContacts` | boolean | 否 | `false` | 是否自动轮询所有联系人。启用后会自动获取好友和群聊列表 |
-| `maxPollContacts` | number | 否 | `50` | 启用 `pollAllContacts` 时，最大轮询联系人数量 |
+| 字段                | 类型     | 必填 | 默认值  | 说明                                                              |
+| ------------------- | -------- | ---- | ------- | ----------------------------------------------------------------- |
+| `pollingIntervalMs` | number   | 否   | `3000`  | 轮询间隔（毫秒）。推荐 1000-5000，值越小响应越快但 API 调用越频繁 |
+| `pollContactIds`    | string[] | 否   | `[]`    | 要轮询的联系人 ID 列表。支持好友 wxid 和群聊 ID（xxx@chatroom）   |
+| `pollAllContacts`   | boolean  | 否   | `false` | 是否自动轮询所有联系人。启用后会自动获取好友和群聊列表            |
+| `maxPollContacts`   | number   | 否   | `50`    | 启用 `pollAllContacts` 时，最大轮询联系人数量                     |
 
 #### polling 配置示例
 
 **方式一：指定联系人轮询**
+
 ```json
 "polling": {
   "pollingIntervalMs": 3000,
@@ -239,6 +236,7 @@ clawdbot directory list --channel wechat --type groups
 ```
 
 **方式二：自动轮询所有联系人**
+
 ```json
 "polling": {
   "pollingIntervalMs": 5000,
@@ -250,17 +248,22 @@ clawdbot directory list --channel wechat --type groups
 ## 常见问题
 
 ### Q: 连接失败，提示 "No API token provided"
+
 确保配置了 `apiToken`、`tokenFile` 或环境变量 `WECHAT_API_TOKEN`。
 
 ### Q: 发送消息失败，提示 "Robot is offline"
+
 检查 wechat-robot-admin-backend 中的机器人是否在线登录。
 
 ### Q: 如何接收消息？
+
 配置 `polling` 参数启用消息接收。有两种方式：
+
 1. 指定 `pollContactIds` 列表，仅轮询特定联系人
 2. 设置 `pollAllContacts: true`，自动轮询所有联系人（最多 `maxPollContacts` 个）
 
 ### Q: 轮询间隔设置多少合适？
+
 默认 3000ms (3秒) 是一个平衡实时性和服务器负载的推荐值。如果需要更快响应可以降低到 1000ms，但会增加 API 调用频率。
 
 ## 相关链接

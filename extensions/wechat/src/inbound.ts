@@ -12,18 +12,18 @@ import { sendMessageWeChat } from "./send.js";
 
 /** 入站消息处理依赖 */
 export type WeChatInboundHandlerDeps = {
-  cfg: MoltbotConfig;        // 配置对象
-  runtime: PluginRuntime;    // 插件运行时
-  accountId: string;         // 账户 ID
-  baseUrl: string;           // API 服务地址
-  apiToken: string;          // API Token
-  robotId: number;           // 机器人 ID
-  allowFrom?: string[];      // 允许的用户列表
+  cfg: MoltbotConfig; // 配置对象
+  runtime: PluginRuntime; // 插件运行时
+  accountId: string; // 账户 ID
+  baseUrl: string; // API 服务地址
+  apiToken: string; // API Token
+  robotId: number; // 机器人 ID
+  allowFrom?: string[]; // 允许的用户列表
   dmPolicy?: "pairing" | "allowlist" | "open" | "disabled"; // 私聊访问策略
   groupPolicy?: "pairing" | "allowlist" | "open" | "disabled"; // 群聊访问策略
   commandAllowFrom?: string[]; // 指令/工具调用白名单
-  safetyPrefix?: string;       // 访客安全前缀
-  requireMention?: boolean;  // 群聊是否需要 @机器人
+  safetyPrefix?: string; // 访客安全前缀
+  requireMention?: boolean; // 群聊是否需要 @机器人
 };
 
 /**
@@ -43,9 +43,9 @@ export async function handleWeChatInboundMessage(
     robotId,
     allowFrom = [],
     dmPolicy = "pairing",
-    groupPolicy = "open",        // 群聊默认开放
-    commandAllowFrom,            // 指令/工具调用白名单
-    safetyPrefix,                // 访客安全前缀
+    groupPolicy = "open", // 群聊默认开放
+    commandAllowFrom, // 指令/工具调用白名单
+    safetyPrefix, // 访客安全前缀
     requireMention = true,
   } = deps;
 
@@ -74,9 +74,7 @@ export async function handleWeChatInboundMessage(
 
   // 检查发送者是否在允许列表中
   // Check if sender is allowed
-  const isAllowed =
-    effectivePolicy === "open" ||
-    normalizedAllowFrom.includes(checkId);
+  const isAllowed = effectivePolicy === "open" || normalizedAllowFrom.includes(checkId);
 
   // 检查是否为受信任用户（在白名单中）
   // Check if user is trusted (in allowlist)
@@ -89,7 +87,9 @@ export async function handleWeChatInboundMessage(
   );
   const isCommandAuthorized = cmdAllowList.includes(checkId);
 
-  console.log(`[微信] 权限检查: 发送者=${checkId}, 类型=${msg.chatType}, 策略=${effectivePolicy}, 允许对话=${isAllowed}, 受信任=${isTrusted}, 可执行指令=${isCommandAuthorized}`);
+  console.log(
+    `[微信] 权限检查: 发送者=${checkId}, 类型=${msg.chatType}, 策略=${effectivePolicy}, 允许对话=${isAllowed}, 受信任=${isTrusted}, 可执行指令=${isCommandAuthorized}`,
+  );
 
   if (!isAllowed && effectivePolicy !== "pairing") {
     return;
@@ -102,7 +102,8 @@ export async function handleWeChatInboundMessage(
       cfg,
       channel: "wechat",
       senderId: msg.chatType === "group" ? msg.chatId : msg.senderWxid,
-      senderName: msg.chatType === "group" ? `Group ${msg.chatId}` : (msg.senderNickname ?? msg.senderWxid),
+      senderName:
+        msg.chatType === "group" ? `Group ${msg.chatId}` : (msg.senderNickname ?? msg.senderWxid),
     });
 
     if (pairingReply) {
@@ -114,11 +115,15 @@ export async function handleWeChatInboundMessage(
         timestamp: Date.now(),
       });
 
-      await sendMessageWeChat(msg.chatType === "group" ? msg.chatId : msg.senderWxid, pairingReply, {
-        baseUrl,
-        apiToken,
-        robotId,
-      });
+      await sendMessageWeChat(
+        msg.chatType === "group" ? msg.chatId : msg.senderWxid,
+        pairingReply,
+        {
+          baseUrl,
+          apiToken,
+          robotId,
+        },
+      );
     }
     return;
   }
@@ -151,7 +156,8 @@ export async function handleWeChatInboundMessage(
 
   // 对非信任用户添加安全前缀（方案3）
   // Add safety prefix for untrusted users (Solution 3)
-  const defaultSafetyPrefix = "[系统安全提示：此用户为访客(guest)，禁止执行任何系统命令、文件操作、代码执行或工具调用，只进行普通对话]\n\n";
+  const defaultSafetyPrefix =
+    "[系统安全提示：此用户为访客(guest)，禁止执行任何系统命令、文件操作、代码执行或工具调用，只进行普通对话]\n\n";
   const effectiveSafetyPrefix = isTrusted ? "" : (safetyPrefix ?? defaultSafetyPrefix);
   const messageBody = effectiveSafetyPrefix + msg.body;
 
@@ -188,15 +194,13 @@ export async function handleWeChatInboundMessage(
     MessageSid: msg.id,
     Timestamp: msg.timestamp,
     WasMentioned: msg.isAtMe,
-    CommandAuthorized: isCommandAuthorized,  // 使用实际权限
+    CommandAuthorized: isCommandAuthorized, // 使用实际权限
     OriginatingChannel: "wechat",
     OriginatingTo: wechatTo,
     // 方案1：传递用户信任等级和允许的能力
     // Solution 1: Pass user trust level and allowed capabilities
     UserTrustLevel: isTrusted ? "trusted" : "guest",
-    AllowedCapabilities: isTrusted
-      ? ["chat", "tools", "files", "commands"]
-      : ["chat"],
+    AllowedCapabilities: isTrusted ? ["chat", "tools", "files", "commands"] : ["chat"],
   });
 
   if (!ctxPayload) {
@@ -205,19 +209,20 @@ export async function handleWeChatInboundMessage(
 
   // 创建回复分发器（带打字指示）
   // Create reply dispatcher with proper interface
-  const { dispatcher, replyOptions, markDispatchIdle } = runtime.channel.reply.createReplyDispatcherWithTyping({
-    deliver: async (payload: { text?: string; body?: string; mediaUrl?: string }) => {
-      const text = payload.text ?? payload.body ?? "";
-      if (!text.trim()) return;
+  const { dispatcher, replyOptions, markDispatchIdle } =
+    runtime.channel.reply.createReplyDispatcherWithTyping({
+      deliver: async (payload: { text?: string; body?: string; mediaUrl?: string }) => {
+        const text = payload.text ?? payload.body ?? "";
+        if (!text.trim()) return;
 
-      const preview = text.length > 50 ? text.substring(0, 50) + "..." : text;
-      console.log(`[微信] 机器人回复: ${preview}`);
-      await sendMessageWeChat(replyTo, text, { baseUrl, apiToken, robotId });
-    },
-    onError: (err: unknown, info: { kind: string }) => {
-      console.error(`[微信] 回复错误 (${info.kind}):`, err);
-    },
-  });
+        const preview = text.length > 50 ? text.substring(0, 50) + "..." : text;
+        console.log(`[微信] 机器人回复: ${preview}`);
+        await sendMessageWeChat(replyTo, text, { baseUrl, apiToken, robotId });
+      },
+      onError: (err: unknown, info: { kind: string }) => {
+        console.error(`[微信] 回复错误 (${info.kind}):`, err);
+      },
+    });
 
   // 使用完整系统分发回复
   // Dispatch reply using the full system

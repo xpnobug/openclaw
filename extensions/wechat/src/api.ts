@@ -33,11 +33,11 @@ export class WeChatApiError extends Error {
 
 /** API 调用参数 */
 export type WeChatApiCallOptions = {
-  baseUrl: string;      // API 服务地址
-  apiToken: string;     // API 访问令牌
-  robotId: number;      // 机器人 ID
-  timeoutMs?: number;   // 超时时间（毫秒）
-  fetch?: WeChatFetch;  // 自定义 fetch 函数
+  baseUrl: string; // API 服务地址
+  apiToken: string; // API 访问令牌
+  robotId: number; // 机器人 ID
+  timeoutMs?: number; // 超时时间（毫秒）
+  fetch?: WeChatFetch; // 自定义 fetch 函数
 };
 
 /**
@@ -292,10 +292,10 @@ export async function getChatRoomMembers(
 
 /** 聊天记录查询参数 */
 export type GetChatHistoryOptions = WeChatApiCallOptions & {
-  contactId: string;    // 联系人 ID（好友 wxid 或群聊 ID）
-  keyword?: string;     // 搜索关键词
-  pageIndex?: number;   // 页码（从 1 开始）
-  pageSize?: number;    // 每页数量
+  contactId: string; // 联系人 ID（好友 wxid 或群聊 ID）
+  keyword?: string; // 搜索关键词
+  pageIndex?: number; // 页码（从 1 开始）
+  pageSize?: number; // 每页数量
 };
 
 /**

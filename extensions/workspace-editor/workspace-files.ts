@@ -1,3 +1,4 @@
+import type { MoltbotConfig } from "openclaw/plugin-sdk";
 /**
  * Workspace file operations for the workspace-editor plugin.
  * 工作区文件操作
@@ -9,10 +10,8 @@
  * 访问仅限于已知文件名的白名单
  */
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
+import * as path from "node:path";
 
 // ───────────────────────────────────────────────────────────────────────────
 // 动态加载配置 / Dynamic config loading
@@ -43,15 +42,15 @@ async function loadFreshConfig(): Promise<MoltbotConfig> {
 // ───────────────────────────────────────────────────────────────────────────
 
 const ALLOWED_FILES = new Set([
-  "SOUL.md",       // Agent 灵魂/核心人格定义
-  "IDENTITY.md",   // Agent 身份信息
-  "TOOLS.md",      // Agent 工具说明
-  "USER.md",       // 用户信息
-  "HEARTBEAT.md",  // 心跳/定时任务配置
-  "BOOTSTRAP.md",  // 启动配置
-  "MEMORY.md",     // 记忆文件（大写）
-  "memory.md",     // 记忆文件（小写）
-  "AGENTS.md",     // 多 Agent 配置
+  "SOUL.md", // Agent 灵魂/核心人格定义
+  "IDENTITY.md", // Agent 身份信息
+  "TOOLS.md", // Agent 工具说明
+  "USER.md", // 用户信息
+  "HEARTBEAT.md", // 心跳/定时任务配置
+  "BOOTSTRAP.md", // 启动配置
+  "MEMORY.md", // 记忆文件（大写）
+  "memory.md", // 记忆文件（小写）
+  "AGENTS.md", // 多 Agent 配置
 ]);
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -94,10 +93,10 @@ function isMemoryFilePath(fileName: string): boolean {
  * 工作区文件信息
  */
 export type WorkspaceFileInfo = {
-  name: string;           // 文件名 / Filename
-  path: string;           // 完整路径 / Full path
-  exists: boolean;        // 是否存在 / Whether file exists
-  size: number;           // 文件大小（字节）/ File size in bytes
+  name: string; // 文件名 / Filename
+  path: string; // 完整路径 / Full path
+  exists: boolean; // 是否存在 / Whether file exists
+  size: number; // 文件大小（字节）/ File size in bytes
   modifiedAt: number | null; // 最后修改时间戳 / Last modified timestamp
 };
 
@@ -106,8 +105,8 @@ export type WorkspaceFileInfo = {
  * 列出工作区文件的结果
  */
 export type WorkspaceFilesListResult = {
-  workspaceDir: string;   // 工作区目录 / Workspace directory
-  agentId: string;        // Agent ID
+  workspaceDir: string; // 工作区目录 / Workspace directory
+  agentId: string; // Agent ID
   files: WorkspaceFileInfo[]; // 文件列表 / File list
 };
 
@@ -116,10 +115,10 @@ export type WorkspaceFilesListResult = {
  * 读取工作区文件的结果
  */
 export type WorkspaceFileReadResult = {
-  name: string;           // 文件名 / Filename
-  path: string;           // 完整路径 / Full path
-  exists: boolean;        // 是否存在 / Whether file exists
-  content: string;        // 文件内容 / File content
+  name: string; // 文件名 / Filename
+  path: string; // 完整路径 / Full path
+  exists: boolean; // 是否存在 / Whether file exists
+  content: string; // 文件内容 / File content
 };
 
 /**
@@ -127,9 +126,9 @@ export type WorkspaceFileReadResult = {
  * 写入工作区文件的结果
  */
 export type WorkspaceFileWriteResult = {
-  ok: boolean;            // 是否成功 / Whether successful
-  path: string;           // 完整路径 / Full path
-  bytesWritten: number;   // 写入字节数 / Bytes written
+  ok: boolean; // 是否成功 / Whether successful
+  path: string; // 完整路径 / Full path
+  bytesWritten: number; // 写入字节数 / Bytes written
 };
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -171,7 +170,7 @@ function resolveAgentWorkspaceDir(
   // 查找指定的 agent 或默认 agent
   const agent = agentId
     ? list.find((a) => a.id === agentId)
-    : list.find((a) => a.default) ?? list[0];
+    : (list.find((a) => a.default) ?? list[0]);
 
   // 如果找到 agent 并且有 workspace 配置
   // If agent found and has workspace config
@@ -264,10 +263,7 @@ export async function listWorkspaceFiles(
   // 动态加载配置以获取最新的 agent 列表
   // Dynamically load config to get latest agent list
   const freshConfig = await loadFreshConfig();
-  const { workspaceDir, resolvedAgentId } = resolveAgentWorkspaceDir(
-    freshConfig,
-    agentId,
-  );
+  const { workspaceDir, resolvedAgentId } = resolveAgentWorkspaceDir(freshConfig, agentId);
 
   const files: WorkspaceFileInfo[] = [];
 

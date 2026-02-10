@@ -1,3 +1,4 @@
+import type { MoltbotConfig } from "openclaw/plugin-sdk";
 /**
  * Skills 文件操作
  * Skills file operations
@@ -9,10 +10,8 @@
  * Only managed and workspace sources are allowed (writable directories)
  */
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
 import * as os from "node:os";
-
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
+import * as path from "node:path";
 
 // ───────────────────────────────────────────────────────────────────────────
 // 常量定义 / Constants
@@ -45,11 +44,11 @@ export type SkillSource = "managed" | "workspace" | "bundled";
  * Skill file information
  */
 export type SkillFileInfo = {
-  name: string;              // 技能名称 / Skill name
-  path: string;              // SKILL.md 完整路径 / Full path to SKILL.md
-  source: SkillSource;       // 来源 / Source
-  exists: boolean;           // 是否存在 / Whether file exists
-  size: number;              // 文件大小（字节）/ File size in bytes
+  name: string; // 技能名称 / Skill name
+  path: string; // SKILL.md 完整路径 / Full path to SKILL.md
+  source: SkillSource; // 来源 / Source
+  exists: boolean; // 是否存在 / Whether file exists
+  size: number; // 文件大小（字节）/ File size in bytes
   modifiedAt: number | null; // 最后修改时间戳 / Last modified timestamp
 };
 
@@ -58,9 +57,9 @@ export type SkillFileInfo = {
  * Result of listing skill files
  */
 export type SkillFilesListResult = {
-  managedDir: string;        // managed 技能目录 / Managed skills directory
-  workspaceDir: string;      // workspace 技能目录 / Workspace skills directory
-  skills: SkillFileInfo[];   // 技能列表 / Skill list
+  managedDir: string; // managed 技能目录 / Managed skills directory
+  workspaceDir: string; // workspace 技能目录 / Workspace skills directory
+  skills: SkillFileInfo[]; // 技能列表 / Skill list
 };
 
 /**
@@ -68,11 +67,11 @@ export type SkillFilesListResult = {
  * Result of reading a skill file
  */
 export type SkillFileReadResult = {
-  name: string;              // 技能名称 / Skill name
-  path: string;              // 完整路径 / Full path
-  source: SkillSource;       // 来源 / Source
-  exists: boolean;           // 是否存在 / Whether file exists
-  content: string;           // 文件内容 / File content
+  name: string; // 技能名称 / Skill name
+  path: string; // 完整路径 / Full path
+  source: SkillSource; // 来源 / Source
+  exists: boolean; // 是否存在 / Whether file exists
+  content: string; // 文件内容 / File content
 };
 
 /**
@@ -80,9 +79,9 @@ export type SkillFileReadResult = {
  * Result of writing a skill file
  */
 export type SkillFileWriteResult = {
-  ok: boolean;               // 是否成功 / Whether successful
-  path: string;              // 完整路径 / Full path
-  bytesWritten: number;      // 写入字节数 / Bytes written
+  ok: boolean; // 是否成功 / Whether successful
+  path: string; // 完整路径 / Full path
+  bytesWritten: number; // 写入字节数 / Bytes written
 };
 
 /**
@@ -90,10 +89,10 @@ export type SkillFileWriteResult = {
  * Result of creating a skill
  */
 export type SkillFileCreateResult = {
-  ok: boolean;               // 是否成功 / Whether successful
-  name: string;              // 技能名称 / Skill name
-  path: string;              // SKILL.md 完整路径 / Full path to SKILL.md
-  source: SkillSource;       // 来源 / Source
+  ok: boolean; // 是否成功 / Whether successful
+  name: string; // 技能名称 / Skill name
+  path: string; // SKILL.md 完整路径 / Full path to SKILL.md
+  source: SkillSource; // 来源 / Source
 };
 
 /**
@@ -101,9 +100,9 @@ export type SkillFileCreateResult = {
  * Result of deleting a skill
  */
 export type SkillFileDeleteResult = {
-  ok: boolean;               // 是否成功 / Whether successful
-  name: string;              // 技能名称 / Skill name
-  path: string;              // 已删除目录路径 / Deleted directory path
+  ok: boolean; // 是否成功 / Whether successful
+  name: string; // 技能名称 / Skill name
+  path: string; // 已删除目录路径 / Deleted directory path
 };
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -118,13 +117,9 @@ export type SkillFileDeleteResult = {
  * Consistent with core code src/utils.ts: always use ~/.openclaw
  */
 function resolveConfigDir(): string {
-  const override =
-    process.env.OPENCLAW_STATE_DIR?.trim() ||
-    process.env.CLAWDBOT_STATE_DIR?.trim();
+  const override = process.env.OPENCLAW_STATE_DIR?.trim() || process.env.CLAWDBOT_STATE_DIR?.trim();
   if (override) {
-    return override.startsWith("~")
-      ? path.join(os.homedir(), override.slice(1))
-      : override;
+    return override.startsWith("~") ? path.join(os.homedir(), override.slice(1)) : override;
   }
   // 始终使用 .openclaw（与核心代码一致）
   // Always use .openclaw (consistent with core code)
@@ -153,10 +148,7 @@ function resolveDefaultWorkspaceDir(): string {
  * @param agentId - 可选的 Agent ID / Optional agent ID
  * @returns 工作区目录 / Workspace directory
  */
-function resolveAgentWorkspaceDir(
-  config: MoltbotConfig,
-  agentId?: string,
-): string {
+function resolveAgentWorkspaceDir(config: MoltbotConfig, agentId?: string): string {
   const agents = config.agents as
     | {
         list?: Array<{ id?: string; workspace?: string; default?: boolean }>;
@@ -169,7 +161,7 @@ function resolveAgentWorkspaceDir(
   // Find the specified agent or default agent
   const agent = agentId
     ? list.find((a) => a.id === agentId)
-    : list.find((a) => a.default) ?? list[0];
+    : (list.find((a) => a.default) ?? list[0]);
 
   // 如果找到 agent 并且有 workspace 配置
   // If agent found and has workspace config
@@ -250,9 +242,7 @@ function validateSkillName(skillName: string): void {
  */
 function validateEditableSource(source: string): asserts source is "managed" | "workspace" {
   if (source !== "managed" && source !== "workspace") {
-    throw new Error(
-      `不支持的技能来源: ${source}。仅支持 "managed" 和 "workspace"`,
-    );
+    throw new Error(`不支持的技能来源: ${source}。仅支持 "managed" 和 "workspace"`);
   }
 }
 
@@ -265,9 +255,7 @@ function validateEditableSource(source: string): asserts source is "managed" | "
  */
 function validateSource(source: string): asserts source is SkillSource {
   if (source !== "managed" && source !== "workspace" && source !== "bundled") {
-    throw new Error(
-      `不支持的技能来源: ${source}。仅支持 "managed"、"workspace" 和 "bundled"`,
-    );
+    throw new Error(`不支持的技能来源: ${source}。仅支持 "managed"、"workspace" 和 "bundled"`);
   }
 }
 
@@ -283,10 +271,7 @@ function validateSource(source: string): asserts source is SkillSource {
  * @param source - 来源标识 / Source identifier
  * @returns 技能文件信息列表 / List of skill file info
  */
-async function scanSkillsInDir(
-  dir: string,
-  source: SkillSource,
-): Promise<SkillFileInfo[]> {
+async function scanSkillsInDir(dir: string, source: SkillSource): Promise<SkillFileInfo[]> {
   const skills: SkillFileInfo[] = [];
 
   try {
@@ -570,8 +555,7 @@ export async function createSkill(
   await fs.mkdir(skillDir, { recursive: true });
 
   // 使用提供的内容或默认模板 / Use provided content or default template
-  const fileContent =
-    content ?? DEFAULT_SKILL_TEMPLATE.replace(/\{\{SKILL_NAME\}\}/g, skillName);
+  const fileContent = content ?? DEFAULT_SKILL_TEMPLATE.replace(/\{\{SKILL_NAME\}\}/g, skillName);
 
   // 写入 SKILL.md / Write SKILL.md
   await fs.writeFile(filePath, fileContent, "utf-8");

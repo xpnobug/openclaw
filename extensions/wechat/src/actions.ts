@@ -10,7 +10,6 @@ import type {
   MoltbotConfig,
 } from "openclaw/plugin-sdk";
 import { jsonResult, readStringParam } from "openclaw/plugin-sdk";
-
 import { listEnabledWeChatAccounts } from "./accounts.js";
 import { sendMessageWeChat } from "./send.js";
 

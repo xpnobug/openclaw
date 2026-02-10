@@ -5,37 +5,37 @@
  * 使用 /api/v1/chat/history 端点轮询新消息
  */
 
-import { getChatHistory, getContactList, getChatRoomList, getRobotInfo } from "./api.js";
 import type { WeChatChatHistoryItem, WeChatPollingConfig } from "./types.js";
+import { getChatHistory, getContactList, getChatRoomList, getRobotInfo } from "./api.js";
 
 /** 入站消息类型 */
 export type WeChatInboundMessage = {
-  id: string;              // 消息唯一标识（contactId:msgId）
-  msgId: number;           // 消息 ID
-  from: string;            // 来源（群聊为群 ID，私聊为发送者 wxid）
-  senderWxid: string;      // 发送者微信 ID
+  id: string; // 消息唯一标识（contactId:msgId）
+  msgId: number; // 消息 ID
+  from: string; // 来源（群聊为群 ID，私聊为发送者 wxid）
+  senderWxid: string; // 发送者微信 ID
   senderNickname?: string; // 发送者昵称
-  toWxid: string;          // 接收者微信 ID
-  body: string;            // 消息内容
-  timestamp: number;       // 时间戳（毫秒）
+  toWxid: string; // 接收者微信 ID
+  body: string; // 消息内容
+  timestamp: number; // 时间戳（毫秒）
   chatType: "direct" | "group"; // 聊天类型
-  chatId: string;          // 聊天 ID（联系人 ID）
-  isAtMe: boolean;         // 是否 @了我
-  isRecalled: boolean;     // 是否已撤回
-  messageType: number;     // 消息类型
-  attachmentUrl?: string;  // 附件 URL
+  chatId: string; // 聊天 ID（联系人 ID）
+  isAtMe: boolean; // 是否 @了我
+  isRecalled: boolean; // 是否已撤回
+  messageType: number; // 消息类型
+  attachmentUrl?: string; // 附件 URL
 };
 
 /** 轮询器配置选项 */
 export type WeChatPollingOptions = {
-  baseUrl: string;                                    // API 服务地址
-  apiToken: string;                                   // API Token
-  robotId: number;                                    // 机器人 ID
-  accountId: string;                                  // 账户 ID
-  pollingConfig?: WeChatPollingConfig;                // 轮询配置
+  baseUrl: string; // API 服务地址
+  apiToken: string; // API Token
+  robotId: number; // 机器人 ID
+  accountId: string; // 账户 ID
+  pollingConfig?: WeChatPollingConfig; // 轮询配置
   onMessage: (msg: WeChatInboundMessage) => Promise<void>; // 消息回调
-  onError?: (error: Error) => void;                   // 错误回调
-  abortSignal?: AbortSignal;                          // 中止信号
+  onError?: (error: Error) => void; // 错误回调
+  abortSignal?: AbortSignal; // 中止信号
 };
 
 /** 默认轮询间隔（毫秒） */
@@ -81,10 +81,14 @@ export class WeChatMessagePoller {
         this.stop();
         return;
       }
-      this.options.abortSignal.addEventListener("abort", () => {
-        console.log(`[微信] 收到中止信号，停止轮询`);
-        this.stop();
-      }, { once: true });
+      this.options.abortSignal.addEventListener(
+        "abort",
+        () => {
+          console.log(`[微信] 收到中止信号，停止轮询`);
+          this.stop();
+        },
+        { once: true },
+      );
     }
 
     // 获取机器人信息（wxid 和昵称）
@@ -135,8 +139,7 @@ export class WeChatMessagePoller {
   private schedulePoll(): void {
     if (!this.isRunning) return;
 
-    const intervalMs =
-      this.options.pollingConfig?.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS;
+    const intervalMs = this.options.pollingConfig?.pollingIntervalMs ?? DEFAULT_POLLING_INTERVAL_MS;
 
     this.pollTimer = setTimeout(async () => {
       if (!this.isRunning) return;
@@ -272,7 +275,10 @@ export class WeChatMessagePoller {
           const inboundMessage = this.convertToInboundMessage(item, contactId);
 
           const sender = item.sender_nickname ?? item.sender_wxid;
-          const content = inboundMessage.body.length > 50 ? inboundMessage.body.substring(0, 50) + "..." : inboundMessage.body;
+          const content =
+            inboundMessage.body.length > 50
+              ? inboundMessage.body.substring(0, 50) + "..."
+              : inboundMessage.body;
           const atMe = inboundMessage.isAtMe ? " [@]" : "";
           console.log(`[微信] 收到消息 ${sender}${atMe}: ${content}`);
 
@@ -331,7 +337,9 @@ export class WeChatMessagePoller {
 
     // 调试：输出 @检测信息
     if (isChatRoom) {
-      console.log(`[微信] @检测: api.is_atme=${item.is_atme}, robotNickname=${this.robotNickname}, content前30字="${content.slice(0, 30)}", 最终isAtMe=${isAtMe}`);
+      console.log(
+        `[微信] @检测: api.is_atme=${item.is_atme}, robotNickname=${this.robotNickname}, content前30字="${content.slice(0, 30)}", 最终isAtMe=${isAtMe}`,
+      );
     }
 
     return {

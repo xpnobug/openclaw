@@ -58,8 +58,7 @@ export function collectWeChatStatusIssues(
         channel: "wechat",
         accountId,
         kind: "config",
-        message:
-          'WeChat dmPolicy is "open", allowing any user to message the bot without pairing.',
+        message: 'WeChat dmPolicy is "open", allowing any user to message the bot without pairing.',
         fix: 'Set channels.wechat.dmPolicy to "pairing" or "allowlist" to restrict access.',
       });
     }

@@ -16,7 +16,6 @@ import {
   PAIRING_APPROVED_MESSAGE,
   setAccountEnabledInConfigSection,
 } from "openclaw/plugin-sdk";
-
 import {
   listWeChatAccountIds,
   resolveDefaultWeChatAccountId,
@@ -200,9 +199,7 @@ export const wechatPlugin: ChannelPlugin<ResolvedWeChatAccount> = {
         return contacts
           .filter(
             (c) =>
-              !q ||
-              c.nickname?.toLowerCase().includes(q) ||
-              c.wechat_id?.toLowerCase().includes(q),
+              !q || c.nickname?.toLowerCase().includes(q) || c.wechat_id?.toLowerCase().includes(q),
           )
           .slice(0, limit && limit > 0 ? limit : undefined)
           .map((c) => ({ kind: "user" as const, id: c.wechat_id, name: c.nickname }));

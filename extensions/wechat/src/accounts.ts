@@ -6,7 +6,6 @@
  */
 import type { MoltbotConfig } from "openclaw/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk";
-
 import type { ResolvedWeChatAccount, WeChatAccountConfig, WeChatConfig } from "./types.js";
 import { resolveWeChatToken } from "./token.js";
 

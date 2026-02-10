@@ -27,7 +27,7 @@ import {
 import { listWorkspaceFiles, readWorkspaceFile, writeWorkspaceFile } from "./workspace-files.js";
 
 const plugin = {
-  id: "zh-workspace-editor",
+  id: "workspace-editor",
   name: "Workspace Editor",
   description: "Read/write workspace bootstrap files via Gateway RPC",
 
