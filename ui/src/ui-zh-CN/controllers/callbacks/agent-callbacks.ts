@@ -73,11 +73,11 @@ export function createAgentCallbacks(
         s.workspaceAgentId = s.selectedAgentId;
         loadWorkspaceFiles(s).then(update);
       } else if (panel === "skills" && s.selectedAgentId) {
-        extra.loadSkillsStatus().then(update);
+        void extra.loadSkillsStatus().then(update);
       } else if (panel === "cron") {
         extra.loadCron();
       } else if (panel === "tools") {
-        extra.loadPermissions().then(update);
+        void extra.loadPermissions().then(update);
       }
       update();
     },

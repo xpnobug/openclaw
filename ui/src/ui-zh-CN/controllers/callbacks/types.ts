@@ -6,6 +6,7 @@
 /** 回调工厂上下文 - state 使用 any 避免循环依赖 */
 export type CallbackContext = {
   /** 内部状态对象（InternalState） */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   s: any;
   /** 触发 LitElement requestUpdate */
   update: () => void;

@@ -8,14 +8,123 @@ import type { WorkspaceFileInfo } from "./model-config";
 import { getAvailableModels, hasModelConfigChanges } from "./model-config";
 import { hasSkillsConfigChanges } from "./skills-config";
 
+/** on* 回调键名 */
 /** AgentsConfigProps 中去掉所有 on* 回调和 showAgentWizard 后的数据部分 */
 type DataProps = Omit<
   AgentsConfigProps,
-  | keyof { [K in keyof AgentsConfigProps as K extends `on${string}` ? K : never]: 1 }
   | "showAgentWizard"
+  | "onAgentSelect"
+  | "onPanelChange"
+  | "onGlobalPanelChange"
+  | "onRefresh"
+  | "onSetDefault"
+  | "onSidebarSearchChange"
+  | "onSidebarToggleMenu"
+  | "onSidebarToggleGroup"
+  | "onAgentDuplicate"
+  | "onAgentExport"
+  | "onAgentDelete"
+  | "onCreateAgent"
+  | "onAgentWizardComplete"
+  | "onAgentWizardCancel"
+  | "onConfigReload"
+  | "onConfigSave"
+  | "onConfigApply"
+  | "onModelChange"
+  | "onModelFallbacksChange"
+  | "onToolsToggleExpanded"
+  | "onToolsUpdateGlobal"
+  | "onToolsUpdateAgent"
+  | "onToolsAddGlobalDeny"
+  | "onToolsRemoveGlobalDeny"
+  | "onToolsAddAgentDeny"
+  | "onToolsRemoveAgentDeny"
+  | "onToolsReload"
+  | "onToolsSave"
+  | "onLoadFiles"
+  | "onSelectFile"
+  | "onFileDraftChange"
+  | "onFileReset"
+  | "onFileSave"
+  | "onFilesEditorModeChange"
+  | "onFilesFolderToggle"
+  | "onFileCreate"
+  | "onFilesMobileBack"
+  | "onSkillsRefresh"
+  | "onSkillsSave"
+  | "onSkillsFilterChange"
+  | "onSkillsSourceFilterChange"
+  | "onSkillsStatusFilterChange"
+  | "onSkillsGroupToggle"
+  | "onSkillsSkillSelect"
+  | "onSkillsSkillToggle"
+  | "onSkillsApiKeyChange"
+  | "onSkillsApiKeySave"
+  | "onSkillsAllowlistModeChange"
+  | "onSkillsAllowlistToggle"
+  | "onSkillsInstall"
+  | "onSkillsGlobalSettingChange"
+  | "onSkillsEnvChange"
+  | "onSkillsEnvRemove"
+  | "onSkillsConfigChange"
+  | "onSkillsExtraDirsChange"
+  | "onSkillsEditorOpen"
+  | "onSkillsEditorClose"
+  | "onSkillsEditorContentChange"
+  | "onSkillsEditorModeChange"
+  | "onSkillsEditorSave"
+  | "onSkillsCreateOpen"
+  | "onSkillsCreateClose"
+  | "onSkillsCreateNameChange"
+  | "onSkillsCreateSourceChange"
+  | "onSkillsCreateConfirm"
+  | "onSkillsDeleteOpen"
+  | "onSkillsDeleteClose"
+  | "onSkillsDeleteConfirm"
+  | "onSkillsPreviewOpen"
+  | "onSkillsPreviewClose"
+  | "onProviderToggle"
+  | "onProviderAdd"
+  | "onProviderRemove"
+  | "onProviderRename"
+  | "onProviderUpdate"
+  | "onModelAdd"
+  | "onModelRemove"
+  | "onModelUpdate"
+  | "onProviderShowAddModal"
+  | "onProviderAddFormChange"
+  | "onProviderAddConfirm"
+  | "onGatewayUpdate"
+  | "onAgentDefaultsUpdate"
+  | "onAgentSessionsRefresh"
+  | "onAgentSessionModelChange"
+  | "onAgentSessionNavigate"
+  | "onAgentSessionDelete"
+  | "onAgentSessionCreateShow"
+  | "onAgentSessionCreateNameChange"
+  | "onAgentSessionCreateModelChange"
+  | "onAgentSessionCreate"
+  | "onChannelSelect"
+  | "onChannelConfigUpdate"
+  | "onNavigateToChannels"
+  | "onAddChannel"
+  | "onChannelsRefresh"
+  | "onCronFormChange"
+  | "onCronRefresh"
+  | "onCronAdd"
+  | "onCronUpdate"
+  | "onCronToggle"
+  | "onCronRun"
+  | "onCronRemove"
+  | "onCronLoadRuns"
+  | "onCronExpandJob"
+  | "onCronDeleteConfirm"
+  | "onCronShowCreateModal"
+  | "onCronEdit"
 >;
 
-export function buildPropsData(s: any): DataProps {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildPropsData(s: Record<string, any>): DataProps {
   return {
     loading: s.agentsLoading || s.modelConfigLoading,
     error: s.agentsError || s.lastError,
@@ -153,10 +262,10 @@ export function buildPropsData(s: any): DataProps {
     cronDefaultAgentId: s.agentsList?.defaultId ?? "",
     cronChannels: Object.keys(s.modelConfigChannelsConfig ?? {}),
     cronChannelLabels: Object.fromEntries(
-      Object.entries(s.modelConfigChannelsConfig ?? {}).map(([k, v]: [string, any]) => [
-        k,
-        v?.label ?? k,
-      ]),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      Object.entries(s.modelConfigChannelsConfig ?? {}).map(
+        ([k, v]: [string, Record<string, any>]) => [k, v?.label ?? k],
+      ),
     ),
     cronChannelMeta: s.cronChannelMeta,
     cronRunsJobId: s.cronRunsJobId,

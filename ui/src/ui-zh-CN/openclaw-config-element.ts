@@ -9,7 +9,7 @@
  * ></openclaw-config-zh>
  */
 
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { GatewayBrowserClient } from "../ui/gateway";
 import type { AgentsListResult, AgentIdentityResult, GatewayAgentRow } from "../ui/types";
@@ -49,6 +49,7 @@ import {
 import { renderAgentsConfig, type AgentsConfigProps } from "./views/agents-config";
 
 // 内部状态类型
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 type InternalState = ModelConfigState &
   SkillsConfigState &
   CronConfigState & {
@@ -74,6 +75,7 @@ type InternalState = ModelConfigState &
     sessionCreating: boolean;
     showAgentWizard: boolean;
   };
+/* eslint-enable @typescript-eslint/no-redundant-type-constituents */
 
 @customElement("openclaw-config-zh")
 export class OpenClawConfigElement extends LitElement {
@@ -86,6 +88,7 @@ export class OpenClawConfigElement extends LitElement {
   // ============================================
 
   @property({ attribute: false })
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   client: GatewayBrowserClient | null = null;
 
   @property({ type: Boolean })
@@ -160,10 +163,10 @@ export class OpenClawConfigElement extends LitElement {
     this._state.connected = this.connected;
 
     if (this.connected && this.client && !this._state.agentsList) {
-      this._loadInitialData();
+      void this._loadInitialData();
     }
     if (this.connected && this.client && !wasConnected && this._state.agentsList) {
-      this._loadInitialData();
+      void this._loadInitialData();
     }
     this.requestUpdate();
   }
@@ -252,7 +255,9 @@ export class OpenClawConfigElement extends LitElement {
 
     try {
       for (const agentId of missing) {
-        const res = await this.client.request<any>("agent.identity.get", { agentId });
+        const res = await this.client.request<AgentIdentityResult>("agent.identity.get", {
+          agentId,
+        });
         if (res) {
           this._state.agentIdentityById = { ...this._state.agentIdentityById, [agentId]: res };
         }

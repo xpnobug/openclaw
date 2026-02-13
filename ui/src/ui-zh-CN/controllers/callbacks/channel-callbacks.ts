@@ -54,7 +54,7 @@ export function createChannelCallbacks(
       update();
     },
     onChannelsRefresh: () => {
-      Promise.all([loadModelConfig(s), extra.loadChannelsStatus()]).then(update);
+      void Promise.all([loadModelConfig(s), extra.loadChannelsStatus()]).then(update);
     },
   };
 }
