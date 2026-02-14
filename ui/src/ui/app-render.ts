@@ -66,6 +66,8 @@ import { renderNodes } from "./views/nodes.ts";
 import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
+// 导入 ui-zh-CN 自包含组件
+import "../ui-zh-CN";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;
@@ -856,6 +858,32 @@ export function renderApp(state: AppViewState) {
                 assistantName: state.assistantName,
                 assistantAvatar: state.assistantAvatar,
               })
+            : nothing
+        }
+
+        ${
+          state.tab === "model-config"
+            ? html`
+                <openclaw-config-zh
+                  .client=${state.client}
+                  .connected=${state.connected}
+                  @session-navigate=${(e: CustomEvent<{ sessionKey: string }>) => {
+                    state.sessionKey = e.detail.sessionKey;
+                    state.chatMessage = "";
+                    state.resetToolStream();
+                    state.applySettings({
+                      ...state.settings,
+                      sessionKey: e.detail.sessionKey,
+                      lastActiveSessionKey: e.detail.sessionKey,
+                    });
+                    void state.loadAssistantIdentity();
+                    state.setTab("chat");
+                  }}
+                  @navigate-channels=${() => {
+                    state.setTab("channels");
+                  }}
+                ></openclaw-config-zh>
+              `
             : nothing
         }
 
