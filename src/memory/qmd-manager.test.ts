@@ -68,7 +68,13 @@ vi.mock("../logging/subsystem.js", () => ({
   },
 }));
 
-vi.mock("node:child_process", () => ({ spawn: vi.fn() }));
+vi.mock(import("node:child_process"), async (importOriginal) => {
+  const actual = await importOriginal<typeof import("node:child_process")>();
+  return {
+    ...actual,
+    spawn: vi.fn(),
+  };
+});
 
 import { spawn as mockedSpawn } from "node:child_process";
 import type { OpenClawConfig } from "../config/config.js";
@@ -1003,12 +1009,16 @@ describe("QmdMemoryManager", () => {
 });
 
 async function waitForCondition(check: () => boolean, timeoutMs: number): Promise<void> {
-  const deadline = Date.now() + timeoutMs;
-  while (Date.now() < deadline) {
+  // Tests only need to yield the event loop a few times; real-time sleeps slow the suite down.
+  const maxTicks = Math.max(10, Math.min(5000, timeoutMs * 5));
+  for (let tick = 0; tick < maxTicks; tick += 1) {
     if (check()) {
       return;
     }
     await new Promise<void>((resolve) => setImmediate(resolve));
+  }
+  if (check()) {
+    return;
   }
   throw new Error("condition was not met in time");
 }
