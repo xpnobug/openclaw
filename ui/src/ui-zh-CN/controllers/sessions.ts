@@ -5,7 +5,7 @@
  * 处理会话的加载、创建、更新操作
  * Handles session loading, creation, and update operations
  */
-import type { ModelConfigState, SessionsListResult } from "./state";
+import type { ModelConfigState } from "./state";
 
 /**
  * 加载会话列表
