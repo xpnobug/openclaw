@@ -13,8 +13,12 @@ import type { ModelConfigState, SessionsListResult } from "./state";
  * @param agentId 可选的 Agent ID，用于过滤会话
  */
 export async function loadAgentSessions(state: ModelConfigState, agentId?: string): Promise<void> {
-  if (!state.client || !state.connected) return;
-  if (state.agentSessionsLoading) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.agentSessionsLoading) {
+    return;
+  }
 
   state.agentSessionsLoading = true;
   state.agentSessionsError = null;
@@ -31,7 +35,7 @@ export async function loadAgentSessions(state: ModelConfigState, agentId?: strin
       params.agentId = agentId;
     }
 
-    const res = (await state.client.request("sessions.list", params)) as SessionsListResult | undefined;
+    const res = await state.client.request("sessions.list", params);
 
     if (res) {
       state.agentSessionsResult = res;
@@ -53,13 +57,15 @@ export async function patchSessionModel(
   model: string | null,
   agentId?: string,
 ): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   try {
     // 使用 sessions.patch API 直接修改模型
     await state.client.request("sessions.patch", {
       key: sessionKey,
-      model: model || null,  // null 表示清除模型覆盖，使用默认值
+      model: model || null, // null 表示清除模型覆盖，使用默认值
     });
     // 刷新会话列表
     await loadAgentSessions(state, agentId);
@@ -168,7 +174,9 @@ export async function deleteSession(
       deleteTranscript: true,
     });
 
-    // 刷新会话列表
+    // 先释放 loading 锁，再刷新会话列表
+    // 否则 loadAgentSessions 会因 agentSessionsLoading=true 被短路
+    state.agentSessionsLoading = false;
     await loadAgentSessions(state, agentId);
 
     return { ok: true };
