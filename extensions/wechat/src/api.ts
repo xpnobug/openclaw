@@ -120,21 +120,57 @@ export async function sendTextMessage(
 }
 
 /**
- * Send image message (URL-based for phase 1).
- * 发送图片消息（URL 方式）
+ * Send image message (multipart/form-data upload).
+ * 发送图片消息（表单上传方式）
+ *
+ * @param params.to_wxid 接收者 wxid
+ * @param params.imageData 图片二进制数据
+ * @param params.filename 文件名（需含扩展名，如 image.jpg）
  */
 export async function sendImageMessage(
   options: WeChatApiCallOptions,
-  params: { to_wxid: string; image_url: string },
+  params: { to_wxid: string; imageData: Buffer | Uint8Array; filename: string },
 ): Promise<WeChatApiResponse<WeChatSendMessageResult>> {
-  // Note: wechat-robot-admin-backend uses multipart/form-data for image upload.
-  // 注意：后端使用 multipart/form-data 上传图片，此处使用 URL 方式
-  // For phase 1, we attempt to send image URL if the backend supports it.
-  // If not supported, this will need to be updated to use multipart upload.
-  return callApi<WeChatSendMessageResult>("POST", "/api/v1/message/send/image", options, {
-    id: options.robotId,
-    ...params,
-  });
+  const { baseUrl, apiToken, robotId, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+  const url = new URL("/api/v1/message/send/image", baseUrl);
+  url.searchParams.set("id", String(robotId));
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const fetcher = options.fetch ?? fetch;
+
+  try {
+    const formData = new FormData();
+    formData.append("id", String(robotId));
+    formData.append("to_wxid", params.to_wxid);
+
+    const ext = params.filename.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mimeMap: Record<string, string> = {
+      jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png",
+      gif: "image/gif", webp: "image/webp",
+    };
+    const blob = new Blob([new Uint8Array(params.imageData)], { type: mimeMap[ext] ?? "image/jpeg" });
+    formData.append("image", blob, params.filename);
+
+    const response = await fetcher(url.toString(), {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiToken}` },
+      body: formData,
+      signal: controller.signal,
+    });
+
+    const data = (await response.json()) as WeChatApiResponse<WeChatSendMessageResult>;
+    if (data.code !== 200) {
+      throw new WeChatApiError(
+        data.message ?? "Failed to send image message",
+        data.code,
+        JSON.stringify(data),
+      );
+    }
+    return data;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 /**
@@ -165,7 +201,7 @@ export async function sendVoiceMessage(
     formData.append("to_wxid", params.to_wxid);
 
     // 创建 Blob 并添加到表单
-    const blob = new Blob([params.voiceData], { type: "audio/mpeg" });
+    const blob = new Blob([new Uint8Array(params.voiceData)], { type: "audio/mpeg" });
     formData.append("voice", blob, params.filename ?? "voice.mp3");
 
     const response = await fetcher(url.toString(), {

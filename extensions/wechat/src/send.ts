@@ -109,9 +109,28 @@ export async function sendMessageWeChat(
   // 发送图片（如果提供了 mediaUrl）
   if (options.mediaUrl) {
     try {
+      let imageData: Uint8Array;
+      let filename: string;
+
+      if (options.mediaUrl.startsWith("http://") || options.mediaUrl.startsWith("https://")) {
+        // URL: 先下载图片
+        const resp = await fetch(options.mediaUrl);
+        if (!resp.ok) throw new Error(`Failed to download image: ${resp.status}`);
+        imageData = new Uint8Array(await resp.arrayBuffer());
+        // 从 URL 提取文件名
+        const urlPath = new URL(options.mediaUrl).pathname;
+        filename = urlPath.split("/").pop() || "image.jpg";
+        if (!/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)) filename = "image.jpg";
+      } else {
+        // 本地文件路径
+        const fileData = await fs.promises.readFile(options.mediaUrl);
+        imageData = new Uint8Array(fileData);
+        filename = options.mediaUrl.split("/").pop() || "image.jpg";
+      }
+
       const response = await sendImageMessage(
         { baseUrl, apiToken, robotId },
-        { to_wxid: toWxid.trim(), image_url: options.mediaUrl },
+        { to_wxid: toWxid.trim(), imageData, filename },
       );
       // 如果同时有文本，单独发送
       if (text?.trim()) {
