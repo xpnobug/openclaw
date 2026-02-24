@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { HeartbeatRunResult } from "../infra/heartbeat-wake.js";
 import type { CronEvent, CronServiceDeps } from "./service.js";
 import { CronService } from "./service.js";
-import { createNoopLogger, installCronTestHooks } from "./service.test-harness.js";
+import { createDeferred, createNoopLogger, installCronTestHooks } from "./service.test-harness.js";
 
 const noopLogger = createNoopLogger();
 installCronTestHooks({ logger: noopLogger });
@@ -196,16 +196,6 @@ beforeEach(() => {
   ensureDir(fixturesRoot);
 });
 
-function createDeferred<T>() {
-  let resolve!: (value: T) => void;
-  let reject!: (reason?: unknown) => void;
-  const promise = new Promise<T>((res, rej) => {
-    resolve = res;
-    reject = rej;
-  });
-  return { promise, resolve, reject };
-}
-
 function createCronEventHarness() {
   const events: CronEvent[] = [];
   const waiters: Array<{
@@ -394,7 +384,7 @@ async function loadLegacyDeliveryMigration(rawJob: Record<string, unknown>) {
     log: noopLogger,
     enqueueSystemEvent: vi.fn(),
     requestHeartbeatNow: vi.fn(),
-    runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" })),
+    runIsolatedAgentJob: vi.fn(async () => ({ status: "ok" as const })),
   });
   await cron.start();
   const jobs = await cron.list({ includeDisabled: true });
@@ -489,7 +479,9 @@ describe("CronService", () => {
     const job = await addWakeModeNowMainSystemEventJob(cron, { name: "wakeMode now waits" });
 
     const runPromise = cron.run(job.id, "force");
-    for (let i = 0; i < 10; i++) {
+    // `cron.run()` now persists the running marker before executing the job.
+    // Allow more microtask turns so the post-lock execution can start.
+    for (let i = 0; i < 500; i++) {
       if (runHeartbeatOnce.mock.calls.length > 0) {
         break;
       }
@@ -506,7 +498,7 @@ describe("CronService", () => {
     expect(job.state.runningAtMs).toBeTypeOf("number");
 
     if (typeof resolveHeartbeat === "function") {
-      resolveHeartbeat({ status: "ran", durationMs: 123 });
+      (resolveHeartbeat as (res: HeartbeatRunResult) => void)({ status: "ran", durationMs: 123 });
     }
     await runPromise;
 
@@ -684,6 +676,28 @@ describe("CronService", () => {
       expect.objectContaining({ agentId: undefined }),
     );
     expect(requestHeartbeatNow).toHaveBeenCalled();
+    cron.stop();
+    await store.cleanup();
+  });
+
+  it("does not post fallback main summary for isolated delivery-target errors", async () => {
+    const runIsolatedAgentJob = vi.fn(async () => ({
+      status: "error" as const,
+      summary: "last output",
+      error: "Channel is required when multiple channels are configured: telegram, discord",
+      errorKind: "delivery-target" as const,
+    }));
+    const { store, cron, enqueueSystemEvent, requestHeartbeatNow, events } =
+      await createIsolatedAnnounceHarness(runIsolatedAgentJob);
+    await runIsolatedAnnounceJobAndWait({
+      cron,
+      events,
+      name: "isolated delivery target error test",
+      status: "error",
+    });
+
+    expect(enqueueSystemEvent).not.toHaveBeenCalled();
+    expect(requestHeartbeatNow).not.toHaveBeenCalled();
     cron.stop();
     await store.cleanup();
   });
