@@ -1,3 +1,4 @@
+import { DEFAULT_CRON_FORM } from "../../ui/app-defaults";
 /**
  * 模型配置核心状态定义
  * Model config core state definitions
@@ -8,21 +9,16 @@
 import type { GatewayBrowserClient } from "../../ui/gateway";
 import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry } from "../../ui/types";
 import type { CronFormState } from "../../ui/ui-types";
-import { DEFAULT_CRON_FORM } from "../../ui/app-defaults";
-import type {
-  ProviderConfig,
-  AgentDefaults,
-  GatewayConfig,
-} from "../views/model-config";
-import type { ChannelsConfigData } from "../types/channel-config";
-import type { ProviderFormState } from "../components/providers-content";
 import type {
   ExecApprovalsSnapshot,
   ExecApprovalsFile,
   ExecApprovalsAllowlistEntry,
   AgentOption,
-} from "../components/permissions-content";
+} from "../components/permissions/types";
+import type { ProviderFormState } from "../components/providers-content";
 import type { WorkspaceFileInfo } from "../components/workspace-content";
+import type { ChannelsConfigData } from "../types/channel-config";
+import type { ProviderConfig, AgentDefaults, GatewayConfig } from "../views/model-config";
 
 // 重新导出权限相关类型 / Re-export permission types
 export type {
@@ -30,7 +26,7 @@ export type {
   ExecApprovalsFile,
   ExecApprovalsAllowlistEntry,
   AgentOption,
-} from "../components/permissions-content";
+} from "../components/permissions/types";
 
 // 重新导出工作区文件类型 / Re-export workspace file types
 export type { WorkspaceFileInfo } from "../components/workspace-content";
@@ -139,6 +135,15 @@ export type ModelConfigState = {
   // 通道配置
   modelConfigChannelsConfig: ChannelsConfigData | null;
   modelConfigSelectedChannel: string | null;
+  modelConfigVersion: number;
+  modelConfigSnapshotCacheVersion: number | null;
+  modelConfigSnapshotCache: Record<string, unknown> | null;
+  modelConfigMainSignatureVersion: number | null;
+  modelConfigMainSignature: string | null;
+  modelConfigOriginalMainSignature: string | null;
+  modelConfigAgentsSignatureVersion: number | null;
+  modelConfigAgentsSignature: string | null;
+  modelConfigOriginalAgentsSignature: string | null;
 
   // 会话管理状态 (用于 Agent 设置页)
   agentSessionsLoading: boolean;
@@ -159,7 +164,7 @@ export type ModelConfigState = {
   toolsConfigOriginal: ToolsConfig | null;
   agentToolsConfigs: AgentWithTools[];
   agentToolsConfigsOriginal: AgentWithTools[];
-  toolsSelectedAgent: string | null;  // null = 全局, string = agent id
+  toolsSelectedAgent: string | null; // null = 全局, string = agent id
   toolsExpanded: boolean;
 
   // Agent 身份配置状态 / Agent identity config state
@@ -223,6 +228,15 @@ export function createInitialModelConfigState(): ModelConfigState {
     modelConfigHash: null,
     modelConfigChannelsConfig: null,
     modelConfigSelectedChannel: null,
+    modelConfigVersion: 0,
+    modelConfigSnapshotCacheVersion: null,
+    modelConfigSnapshotCache: null,
+    modelConfigMainSignatureVersion: null,
+    modelConfigMainSignature: null,
+    modelConfigOriginalMainSignature: null,
+    modelConfigAgentsSignatureVersion: null,
+    modelConfigAgentsSignature: null,
+    modelConfigOriginalAgentsSignature: null,
 
     // 会话管理状态
     agentSessionsLoading: false,
@@ -315,11 +329,19 @@ export function createInitialModelConfigState(): ModelConfigState {
  */
 export function getDefaultCronState(): Pick<
   ModelConfigState,
-  | "cronLoading" | "cronBusy" | "cronError"
-  | "cronStatus" | "cronJobs" | "cronForm"
-  | "cronChannels" | "cronChannelLabels" | "cronChannelMeta"
-  | "cronRunsJobId" | "cronRuns"
-  | "cronExpandedJobId" | "cronDeleteConfirmJobId"
+  | "cronLoading"
+  | "cronBusy"
+  | "cronError"
+  | "cronStatus"
+  | "cronJobs"
+  | "cronForm"
+  | "cronChannels"
+  | "cronChannelLabels"
+  | "cronChannelMeta"
+  | "cronRunsJobId"
+  | "cronRuns"
+  | "cronExpandedJobId"
+  | "cronDeleteConfirmJobId"
 > {
   return {
     cronLoading: false,
@@ -336,4 +358,14 @@ export function getDefaultCronState(): Pick<
     cronExpandedJobId: null,
     cronDeleteConfirmJobId: null,
   };
+}
+
+export function invalidateModelConfigDerivedState(state: ModelConfigState): void {
+  state.modelConfigVersion += 1;
+  state.modelConfigSnapshotCacheVersion = null;
+  state.modelConfigSnapshotCache = null;
+  state.modelConfigMainSignatureVersion = null;
+  state.modelConfigMainSignature = null;
+  state.modelConfigAgentsSignatureVersion = null;
+  state.modelConfigAgentsSignature = null;
 }

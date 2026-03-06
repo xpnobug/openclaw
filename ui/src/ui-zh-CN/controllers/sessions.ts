@@ -8,6 +8,15 @@
 import { hasModelConfigChanges } from "./config-loader";
 import type { ModelConfigState } from "./state";
 
+function normalizeModelId(model?: string | null): string | null {
+  if (typeof model !== "string") {
+    return null;
+  }
+
+  const trimmed = model.trim();
+  return trimmed || null;
+}
+
 function getSessionMutationBlockedReason(state: ModelConfigState): string | null {
   if (!state.client || !state.connected) {
     return "当前未连接到 Gateway，暂时无法切换或创建会话。";
@@ -87,10 +96,12 @@ export async function patchSessionModel(
   state.agentSessionsError = null;
 
   try {
+    const normalizedModel = normalizeModelId(model);
+
     // 使用 sessions.patch API 直接修改模型
     await state.client.request("sessions.patch", {
       key: sessionKey,
-      model: model || null, // null 表示清除模型覆盖，使用默认值
+      model: normalizedModel, // null 表示清除模型覆盖，使用默认值
     });
     // 刷新会话列表
     await loadAgentSessions(state, agentId);
@@ -136,6 +147,7 @@ export async function createSession(
   }
 
   const sessionKey = `agent:${agentId}:${sanitizedName}`;
+  const normalizedModel = normalizeModelId(model);
 
   try {
     // 使用 sessions.patch API 创建会话
@@ -144,8 +156,8 @@ export async function createSession(
       label: sessionName.trim(),
     };
 
-    if (model) {
-      params.model = model;
+    if (normalizedModel) {
+      params.model = normalizedModel;
     }
 
     await state.client.request("sessions.patch", params);

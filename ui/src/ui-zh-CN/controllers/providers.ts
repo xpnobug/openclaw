@@ -5,7 +5,7 @@
  * 处理供应商的增删改查操作
  * Handles provider CRUD operations
  */
-import type { ModelConfigState } from "./state";
+import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state";
 import type { ProviderConfig, ModelConfig } from "../views/model-config";
 import type { ProviderFormState } from "../components/providers-content";
 
@@ -54,6 +54,7 @@ export function addProvider(state: ModelConfigState): void {
       models: [],
     },
   };
+  invalidateModelConfigDerivedState(state);
 
   // 展开新添加的供应商
   state.modelConfigExpandedProviders = new Set([
@@ -119,6 +120,7 @@ export function confirmAddProvider(state: ModelConfigState): void {
       models: [],
     },
   };
+  invalidateModelConfigDerivedState(state);
 
   // 展开新添加的供应商
   state.modelConfigExpandedProviders = new Set([
@@ -138,6 +140,7 @@ export function confirmAddProvider(state: ModelConfigState): void {
 export function removeProvider(state: ModelConfigState, key: string): void {
   const { [key]: _, ...rest } = state.modelConfigProviders;
   state.modelConfigProviders = rest;
+  invalidateModelConfigDerivedState(state);
 
   // 从展开列表中移除
   const expanded = new Set(state.modelConfigExpandedProviders);
@@ -159,7 +162,7 @@ export function renameProvider(
     state.lastError = "供应商名称不能为空";
     return;
   }
-  if (oldKey === trimmedKey) return;
+  if (oldKey === trimmedKey) {return;}
   if (state.modelConfigProviders[trimmedKey]) {
     state.lastError = `供应商名称 "${trimmedKey}" 已存在`;
     return;
@@ -167,7 +170,7 @@ export function renameProvider(
 
   // 获取旧配置
   const provider = state.modelConfigProviders[oldKey];
-  if (!provider) return;
+  if (!provider) {return;}
 
   // 创建新的 providers 对象，保持顺序
   const newProviders: Record<string, ProviderConfig> = {};
@@ -179,6 +182,7 @@ export function renameProvider(
     }
   }
   state.modelConfigProviders = newProviders;
+  invalidateModelConfigDerivedState(state);
 
   // 更新展开状态
   const expanded = new Set(state.modelConfigExpandedProviders);
@@ -204,7 +208,7 @@ export function updateProviderField(
   value: unknown,
 ): void {
   const provider = state.modelConfigProviders[key];
-  if (!provider) return;
+  if (!provider) {return;}
 
   state.modelConfigProviders = {
     ...state.modelConfigProviders,
@@ -213,6 +217,7 @@ export function updateProviderField(
       [field]: value,
     },
   };
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -220,7 +225,7 @@ export function updateProviderField(
  */
 export function addModel(state: ModelConfigState, providerKey: string): void {
   const provider = state.modelConfigProviders[providerKey];
-  if (!provider) return;
+  if (!provider) {return;}
 
   const newModel: ModelConfig = {
     id: "new-model",
@@ -238,6 +243,7 @@ export function addModel(state: ModelConfigState, providerKey: string): void {
       models: [...provider.models, newModel],
     },
   };
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -249,7 +255,7 @@ export function removeModel(
   modelIndex: number,
 ): void {
   const provider = state.modelConfigProviders[providerKey];
-  if (!provider) return;
+  if (!provider) {return;}
 
   state.modelConfigProviders = {
     ...state.modelConfigProviders,
@@ -258,6 +264,7 @@ export function removeModel(
       models: provider.models.filter((_, idx) => idx !== modelIndex),
     },
   };
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -271,7 +278,7 @@ export function updateModelField(
   value: unknown,
 ): void {
   const provider = state.modelConfigProviders[providerKey];
-  if (!provider || !provider.models[modelIndex]) return;
+  if (!provider || !provider.models[modelIndex]) {return;}
 
   const updatedModels = [...provider.models];
   updatedModels[modelIndex] = {
@@ -286,6 +293,7 @@ export function updateModelField(
       models: updatedModels,
     },
   };
+  invalidateModelConfigDerivedState(state);
 }
 
 /**

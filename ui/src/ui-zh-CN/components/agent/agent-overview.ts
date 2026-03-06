@@ -136,8 +136,8 @@ function resolveWorkspace(
  * Format model label
  */
 function resolveModelLabel(model?: unknown): string {
-  if (!model) return "-";
-  if (typeof model === "string") return model.trim() || "-";
+  if (!model) {return "-";}
+  if (typeof model === "string") {return model.trim() || "-";}
   if (typeof model === "object" && model) {
     const record = model as { primary?: string; fallbacks?: string[] };
     const primary = record.primary?.trim();
@@ -178,7 +178,7 @@ function resolveAgentEmoji(
  */
 function isLikelyEmoji(value: string): boolean {
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 16) return false;
+  if (!trimmed || trimmed.length > 16) {return false;}
 
   let hasNonAscii = false;
   for (let i = 0; i < trimmed.length; i++) {
@@ -187,7 +187,7 @@ function isLikelyEmoji(value: string): boolean {
       break;
     }
   }
-  if (!hasNonAscii) return false;
+  if (!hasNonAscii) {return false;}
   if (trimmed.includes("://") || trimmed.includes("/") || trimmed.includes(".")) {
     return false;
   }
@@ -199,7 +199,7 @@ function isLikelyEmoji(value: string): boolean {
  * Resolve model primary
  */
 function resolveModelPrimary(model?: unknown): string | null {
-  if (!model) return null;
+  if (!model) {return null;}
   if (typeof model === "string") {
     const trimmed = model.trim();
     return trimmed || null;
@@ -222,7 +222,7 @@ function resolveModelPrimary(model?: unknown): string | null {
  * Resolve model fallbacks
  */
 function resolveModelFallbacks(model?: unknown): string[] | null {
-  if (!model || typeof model === "string") return null;
+  if (!model || typeof model === "string") {return null;}
   if (typeof model === "object" && model) {
     const record = model as Record<string, unknown>;
     const fallbacks = Array.isArray(record.fallbacks) ? record.fallbacks : null;
@@ -231,29 +231,48 @@ function resolveModelFallbacks(model?: unknown): string[] | null {
   return null;
 }
 
+function resolveModelSelectionState(entryModel?: unknown, defaultsModel?: unknown) {
+  const explicitPrimary = resolveModelPrimary(entryModel);
+  const inheritedPrimary = resolveModelPrimary(defaultsModel);
+  const effectivePrimary = explicitPrimary ?? inheritedPrimary ?? null;
+  const fallbackValues = resolveModelFallbacks(entryModel);
+  const fallbackText = fallbackValues ? fallbackValues.join(", ") : "";
+
+  return {
+    explicitPrimary,
+    inheritedPrimary,
+    effectivePrimary,
+    fallbackText,
+    displayLabel: resolveModelLabel(entryModel ?? defaultsModel),
+  };
+}
+
 /**
  * 构建模型下拉选项
  * Build model dropdown options
  */
-function buildModelOptions(configForm: Record<string, unknown> | null, current?: string | null) {
+function collectAvailableModelOptions(
+  configForm: Record<string, unknown> | null,
+  current?: string | null,
+): Array<{ value: string; label: string }> {
   const options: Array<{ value: string; label: string }> = [];
 
   // 从 models.providers 提取模型列表
   // Extract models from models.providers
-  const modelsNode = (configForm as Record<string, unknown> | null)?.models as Record<string, unknown> | undefined;
+  const modelsNode = (configForm)?.models as Record<string, unknown> | undefined;
   const providers = modelsNode?.providers as Record<string, unknown> | undefined;
 
   if (providers && typeof providers === "object") {
     for (const [providerKey, providerValue] of Object.entries(providers)) {
-      if (!providerValue || typeof providerValue !== "object") continue;
+      if (!providerValue || typeof providerValue !== "object") {continue;}
       const provider = providerValue as Record<string, unknown>;
       const models = provider.models as Array<Record<string, unknown>> | undefined;
-      if (!Array.isArray(models)) continue;
+      if (!Array.isArray(models)) {continue;}
 
       for (const model of models) {
         const modelId = (model.id as string)?.trim();
         const modelName = (model.name as string)?.trim();
-        if (!modelId) continue;
+        if (!modelId) {continue;}
 
         const fullId = `${providerKey}/${modelId}`;
         const label = modelName && modelName !== modelId ? `${modelName} (${fullId})` : fullId;
@@ -262,12 +281,17 @@ function buildModelOptions(configForm: Record<string, unknown> | null, current?:
     }
   }
 
-  // 如果当前值不在选项中，添加它
-  // If current value is not in options, add it
   if (current && !options.some((opt) => opt.value === current)) {
     options.unshift({ value: current, label: `${current} (当前)` });
   }
 
+  return options;
+}
+
+function renderModelOptions(
+  options: Array<{ value: string; label: string }>,
+  current?: string | null,
+) {
   if (options.length === 0) {
     return html`<option value="" disabled>无可用模型</option>`;
   }
@@ -275,6 +299,31 @@ function buildModelOptions(configForm: Record<string, unknown> | null, current?:
   return options.map(
     (opt) => html`<option value=${opt.value} ?selected=${opt.value === (current ?? "")}>${opt.label}</option>`,
   );
+}
+
+function buildModelOptions(configForm: Record<string, unknown> | null, current?: string | null) {
+  return renderModelOptions(collectAvailableModelOptions(configForm, current), current);
+}
+
+function buildSessionModelId(modelProvider?: string | null, model?: string | null): string | null {
+  if (!model) {return null;}
+  return `${modelProvider ?? ""}/${model}`.replace(/^\//, "") || null;
+}
+
+function buildSessionModelOptions(
+  availableModels: AgentOverviewProps["availableModels"],
+  current?: string | null,
+) {
+  const options = availableModels.map((entry) => ({
+    value: entry.id,
+    label: `${entry.name} (${entry.provider})`,
+  }));
+
+  if (current && !options.some((opt) => opt.value === current)) {
+    options.unshift({ value: current, label: `${current} (当前)` });
+  }
+
+  return renderModelOptions(options, current);
 }
 
 /**
@@ -296,10 +345,10 @@ function formatAgo(ts: number): string {
   const now = Date.now();
   const diff = now - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "刚刚";
-  if (mins < 60) return `${mins} 分钟前`;
+  if (mins < 1) {return "刚刚";}
+  if (mins < 60) {return `${mins} 分钟前`;}
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} 小时前`;
+  if (hours < 24) {return `${hours} 小时前`;}
   const days = Math.floor(hours / 24);
   return `${days} 天前`;
 }
@@ -346,12 +395,8 @@ function renderSessionRow(
   modelSelectTitle?: string,
 ) {
   const displayName = session.displayName ?? session.label ?? session.key;
-  const currentModel = session.model
-    ? `${session.modelProvider ?? ""}/${session.model}`.replace(/^\//, "")
-    : "";
-  const defaultModelId = defaultModel.model
-    ? `${defaultModel.provider ?? ""}/${defaultModel.model}`.replace(/^\//, "")
-    : "";
+  const currentModel = buildSessionModelId(session.modelProvider, session.model) ?? "";
+  const defaultModelId = buildSessionModelId(defaultModel.provider, defaultModel.model) ?? "";
 
   return html`
     <div class="session-row">
@@ -379,9 +424,7 @@ function renderSessionRow(
           }}
         >
           <option value="" ?selected=${!currentModel}>${SESSION_LABELS.inheritDefault}${defaultModelId ? ` (${defaultModelId})` : ""}</option>
-          ${availableModels.map(
-            (m) => html`<option value=${m.id} ?selected=${m.id === currentModel}>${m.name} (${m.provider})</option>`,
-          )}
+          ${buildSessionModelOptions(availableModels, currentModel)}
         </select>
       </div>
       <div class="session-row__updated">
@@ -417,7 +460,7 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
     onSessionCreate,
   } = props;
 
-  if (!sessionCreateShow) return nothing;
+  if (!sessionCreateShow) {return nothing;}
 
   const sessionMutationBlockedReason = getSessionMutationBlockedReason(props);
   const handleClose = () => onSessionCreateShow?.(false);
@@ -475,15 +518,12 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
             <label class="skills-create__label">${SESSION_LABELS.sessionModelLabel}</label>
             <select
               class="skills-create__input"
-              .value=${sessionCreateModel ?? ""}
               ?disabled=${sessionCreating || Boolean(sessionMutationBlockedReason)}
               title=${sessionMutationBlockedReason ?? ""}
               @change=${handleModelChange}
             >
-              <option value="">${SESSION_LABELS.inheritDefault}</option>
-              ${availableModels.map(
-                (m) => html`<option value=${m.id} ?selected=${m.id === sessionCreateModel}>${m.name} (${m.provider})</option>`,
-              )}
+              <option value="" ?selected=${!sessionCreateModel}>${SESSION_LABELS.inheritDefault}</option>
+              ${buildSessionModelOptions(availableModels, sessionCreateModel ?? null)}
             </select>
             <div class="skills-create__hint">${sessionMutationBlockedReason ?? "留空则使用当前运行中的 Agent 默认模型"}</div>
           </div>
@@ -625,12 +665,11 @@ export function renderAgentOverview(props: AgentOverviewProps) {
 
   const config = resolveAgentConfig(configForm, agent.id);
   const workspace = resolveWorkspace(config, agentFilesList, agent.id);
-  const model = resolveModelLabel(config.entry?.model ?? config.defaults?.model);
-  const modelPrimary = resolveModelPrimary(config.entry?.model);
-  const defaultPrimary = resolveModelPrimary(config.defaults?.model);
-  const effectivePrimary = modelPrimary ?? defaultPrimary ?? null;
-  const modelFallbacks = resolveModelFallbacks(config.entry?.model);
-  const fallbackText = modelFallbacks ? modelFallbacks.join(", ") : "";
+  const modelState = resolveModelSelectionState(config.entry?.model, config.defaults?.model);
+  const model = modelState.displayLabel;
+  const explicitPrimary = modelState.explicitPrimary;
+  const defaultPrimary = modelState.inheritedPrimary;
+  const fallbackText = modelState.fallbackText;
 
   const identityName =
     agentIdentity?.name?.trim() ||
@@ -701,10 +740,10 @@ export function renderAgentOverview(props: AgentOverviewProps) {
                 ?disabled=${!configForm || configLoading || configSaving || props.configApplying}
                 @change=${(e: Event) => onModelChange(agent.id, (e.target as HTMLSelectElement).value || null)}
               >
-                <option value="" ?selected=${!effectivePrimary}>
+                <option value="" ?selected=${!explicitPrimary}>
                   ${defaultPrimary ? `${LABELS.overview.inheritDefault} (${defaultPrimary})` : LABELS.overview.inheritDefault}
                 </option>
-                ${buildModelOptions(configForm, effectivePrimary)}
+                ${buildModelOptions(configForm, explicitPrimary)}
               </select>
             </label>
             <label class="mc-field">

@@ -1,4 +1,3 @@
-import type { GatewayAgentRow } from "../../../ui/types";
 import type { AgentsConfigProps } from "../../views/agents/types";
 /**
  * Agent 选择/侧边栏/向导 回调
@@ -12,6 +11,7 @@ import {
   duplicateAgent,
   exportAgent,
   deleteAgent,
+  syncAgentSnapshotState,
 } from "../model-config";
 
 type Pick_ = Pick<
@@ -177,14 +177,7 @@ export function createAgentCallbacks(
         list.push(newAgent);
         agents.list = list;
         config.agents = agents;
-        s.modelConfigFullSnapshot = config;
-
-        s.modelConfigAgentsList = list.map((a) => ({
-          id: (a.id as string) ?? "",
-          name: a.name as string | undefined,
-          default: a.default as boolean | undefined,
-          workspace: a.workspace as string | undefined,
-        })) as GatewayAgentRow[];
+        syncAgentSnapshotState(s, config);
       }
 
       s.selectedAgentId = data.id;

@@ -4,6 +4,7 @@ import type { AgentsConfigProps } from "../../views/agents/types";
  */
 import type { CallbackContext } from "./types";
 import { loadModelConfig } from "../model-config";
+import { invalidateModelConfigDerivedState } from "../state";
 
 type Pick_ = Pick<
   AgentsConfigProps,
@@ -42,6 +43,7 @@ export function createChannelCallbacks(
         target[parts[parts.length - 1]] = value;
       }
       s.modelConfigChannelsConfig = { ...current, [channelId]: channelConfig };
+      invalidateModelConfigDerivedState(s);
       update();
     },
     onNavigateToChannels: () => {

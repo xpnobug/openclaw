@@ -5,7 +5,53 @@
  * 处理 Agent 身份、模型配置等操作
  * Handles agent identity, model config operations
  */
-import type { ModelConfigState, AgentIdentityConfig, AgentIdentityEntry } from "./state";
+import { invalidateModelConfigDerivedState, type ModelConfigState, type AgentIdentityConfig, type AgentIdentityEntry } from "./state";
+
+type AgentConfigRecord = Record<string, unknown>;
+type AgentConfigList = AgentConfigRecord[];
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function getAgentsConfigParts(config: Record<string, unknown>): {
+  agents: AgentConfigRecord;
+  list: AgentConfigList;
+} {
+  const agents = (config.agents ?? {}) as AgentConfigRecord;
+  const list = Array.isArray(agents.list) ? (agents.list as AgentConfigList) : [];
+  return { agents, list };
+}
+
+function mapAgentListEntries(list: AgentConfigList): AgentIdentityEntry[] {
+  return list
+    .filter((entry) => entry && typeof entry === "object" && entry.id)
+    .map((entry) => {
+      const identity = entry.identity as Record<string, unknown> | undefined;
+      return {
+        id: (entry.id as string) ?? "",
+        name: entry.name as string | undefined,
+        default: entry.default as boolean | undefined,
+        workspace: entry.workspace as string | undefined,
+        identity: identity ? {
+          name: identity.name as string | undefined,
+          theme: identity.theme as string | undefined,
+          emoji: identity.emoji as string | undefined,
+          avatar: identity.avatar as string | undefined,
+        } : undefined,
+        model: entry.model as string | { primary?: string; fallbacks?: string[] } | undefined,
+      };
+    });
+}
+
+export function syncAgentSnapshotState(
+  state: ModelConfigState,
+  config: Record<string, unknown>,
+): void {
+  state.modelConfigFullSnapshot = config;
+  state.modelConfigAgentsList = extractAgentsList(config);
+  invalidateModelConfigDerivedState(state);
+}
 
 /**
  * 更新 Agent 默认设置
@@ -29,6 +75,7 @@ export function updateAgentDefaults(
   }
 
   state.modelConfigAgentDefaults = updated;
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -81,6 +128,7 @@ export function updateGatewayConfig(
     path,
     value,
   ) as typeof state.modelConfigGateway;
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -98,9 +146,8 @@ export function updateAgentModel(
   }
 
   // 深度复制配置
-  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const config = cloneJson(state.modelConfigFullSnapshot);
+  const { list } = getAgentsConfigParts(config);
 
   // 查找目标 agent
   const agentIndex = list.findIndex((a) => a.id === agentId);
@@ -131,18 +178,7 @@ export function updateAgentModel(
   }
 
   // 更新配置快照（触发 UI 重新渲染）
-  state.modelConfigFullSnapshot = config;
-
-  // 同步更新 modelConfigAgentsList 以便正确检测变更
-  state.modelConfigAgentsList = list.map((a) => ({
-    id: a.id as string,
-    name: a.name as string | undefined,
-    default: a.default as boolean | undefined,
-    workspace: a.workspace as string | undefined,
-    identity: a.identity as AgentIdentityConfig | undefined,
-    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
-  }));
-
+  syncAgentSnapshotState(state, config);
   console.log("[updateAgentModel] 已更新 agent", agentId, "模型为", modelId);
 }
 
@@ -155,16 +191,15 @@ export function updateAgentModelFallbacks(
   agentId: string,
   fallbacks: string[],
 ): void {
-  if (!state.modelConfigFullSnapshot) return;
+  if (!state.modelConfigFullSnapshot) {return;}
 
   // 深度复制配置
-  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const config = cloneJson(state.modelConfigFullSnapshot);
+  const { list } = getAgentsConfigParts(config);
 
   // 查找目标 agent
   const agentIndex = list.findIndex((a) => a.id === agentId);
-  if (agentIndex === -1) return;
+  if (agentIndex === -1) {return;}
 
   const agent = list[agentIndex];
 
@@ -198,7 +233,7 @@ export function updateAgentModelFallbacks(
   }
 
   // 更新配置快照
-  state.modelConfigFullSnapshot = config;
+  syncAgentSnapshotState(state, config);
 }
 
 /**
@@ -222,7 +257,7 @@ export function updateAgentIdentity(
 ): void {
   const list = [...state.modelConfigAgentsList];
   const index = list.findIndex((a) => a.id === agentId);
-  if (index === -1) return;
+  if (index === -1) {return;}
 
   const agent = { ...list[index] };
   const identity = { ...agent.identity };
@@ -242,6 +277,7 @@ export function updateAgentIdentity(
 
   list[index] = agent;
   state.modelConfigAgentsList = list;
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -261,9 +297,8 @@ export function setDefaultAgent(
   }
 
   // 深度复制配置
-  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const config = cloneJson(state.modelConfigFullSnapshot);
+  const { agents, list } = getAgentsConfigParts(config);
 
   // 查找目标 agent
   const targetIndex = list.findIndex((a) => a.id === agentId);
@@ -284,17 +319,7 @@ export function setDefaultAgent(
   // 更新配置
   agents.list = list;
   config.agents = agents;
-  state.modelConfigFullSnapshot = config;
-
-  // 同步更新 modelConfigAgentsList
-  state.modelConfigAgentsList = list.map((a) => ({
-    id: (a.id as string) ?? "",
-    name: a.name as string | undefined,
-    default: a.default as boolean | undefined,
-    workspace: a.workspace as string | undefined,
-    identity: a.identity as AgentIdentityConfig | undefined,
-    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
-  }));
+  syncAgentSnapshotState(state, config);
 }
 
 /**
@@ -302,30 +327,11 @@ export function setDefaultAgent(
  * 如果配置中没有 agents.list，则创建一个默认的 "main" agent
  */
 export function extractAgentsList(config: Record<string, unknown>): AgentIdentityEntry[] {
-  const agents = config.agents as Record<string, unknown> | undefined;
-
-  const list = agents?.list as Array<Record<string, unknown>> | undefined;
+  const { list } = getAgentsConfigParts(config);
 
   // 如果有 agents.list，从中提取
-  if (Array.isArray(list) && list.length > 0) {
-    return list
-      .filter((entry) => entry && typeof entry === "object" && entry.id)
-      .map((entry) => {
-        const identity = entry.identity as Record<string, unknown> | undefined;
-        return {
-          id: (entry.id as string) ?? "",
-          name: entry.name as string | undefined,
-          default: entry.default as boolean | undefined,
-          workspace: entry.workspace as string | undefined,
-          identity: identity ? {
-            name: identity.name as string | undefined,
-            theme: identity.theme as string | undefined,
-            emoji: identity.emoji as string | undefined,
-            avatar: identity.avatar as string | undefined,
-          } : undefined,
-          model: entry.model as string | { primary?: string; fallbacks?: string[] } | undefined,
-        };
-      });
+  if (list.length > 0) {
+    return mapAgentListEntries(list);
   }
 
   // 如果没有 agents.list，创建一个默认的 "main" agent
@@ -350,9 +356,8 @@ export function duplicateAgent(
     return null;
   }
 
-  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const config = cloneJson(state.modelConfigFullSnapshot);
+  const { agents, list } = getAgentsConfigParts(config);
 
   const sourceIndex = list.findIndex((a) => a.id === agentId);
   if (sourceIndex === -1) {
@@ -363,7 +368,7 @@ export function duplicateAgent(
   const source = list[sourceIndex];
   const newId = `${agentId}-copy-${Date.now().toString(36)}`;
   const newAgent = {
-    ...JSON.parse(JSON.stringify(source)),
+    ...cloneJson(source),
     id: newId,
     name: `${source.name || agentId} (副本)`,
   };
@@ -372,16 +377,7 @@ export function duplicateAgent(
   list.push(newAgent);
   agents.list = list;
   config.agents = agents;
-  state.modelConfigFullSnapshot = config;
-
-  state.modelConfigAgentsList = list.map((a) => ({
-    id: (a.id as string) ?? "",
-    name: a.name as string | undefined,
-    default: a.default as boolean | undefined,
-    workspace: a.workspace as string | undefined,
-    identity: a.identity as AgentIdentityConfig | undefined,
-    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
-  }));
+  syncAgentSnapshotState(state, config);
 
   console.log("[duplicateAgent] 已复制 agent", agentId, "为", newId);
   return newId;
@@ -401,8 +397,7 @@ export function exportAgent(
   }
 
   const config = state.modelConfigFullSnapshot as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const { list } = getAgentsConfigParts(config);
 
   const agent = list.find((a) => a.id === agentId);
   if (!agent) {
@@ -410,7 +405,7 @@ export function exportAgent(
     return;
   }
 
-  const exportData = JSON.parse(JSON.stringify(agent));
+  const exportData = cloneJson(agent);
   delete exportData.default;
 
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
@@ -437,9 +432,8 @@ export function deleteAgent(
     return false;
   }
 
-  const config = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
-  const agents = (config.agents ?? {}) as Record<string, unknown>;
-  const list = (agents.list ?? []) as Array<Record<string, unknown>>;
+  const config = cloneJson(state.modelConfigFullSnapshot);
+  const { agents, list } = getAgentsConfigParts(config);
 
   const index = list.findIndex((a) => a.id === agentId);
   if (index === -1) {
@@ -457,16 +451,7 @@ export function deleteAgent(
 
   agents.list = list;
   config.agents = agents;
-  state.modelConfigFullSnapshot = config;
-
-  state.modelConfigAgentsList = list.map((a) => ({
-    id: (a.id as string) ?? "",
-    name: a.name as string | undefined,
-    default: a.default as boolean | undefined,
-    workspace: a.workspace as string | undefined,
-    identity: a.identity as AgentIdentityConfig | undefined,
-    model: a.model as string | { primary?: string; fallbacks?: string[] } | undefined,
-  }));
+  syncAgentSnapshotState(state, config);
 
   console.log("[deleteAgent] 已删除 agent", agentId);
   return true;

@@ -79,6 +79,7 @@ export {
   updateAgentIdentity,
   setDefaultAgent,
   extractAgentsList,
+  syncAgentSnapshotState,
   duplicateAgent,
   exportAgent,
   deleteAgent,

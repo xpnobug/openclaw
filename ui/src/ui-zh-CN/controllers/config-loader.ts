@@ -5,7 +5,7 @@
  * 处理配置的加载、保存、应用操作
  * Handles config loading, saving, and applying operations
  */
-import type { ModelConfigState, ToolProfileId, AgentIdentityConfig } from "./state";
+import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state";
 import type {
   ProviderConfig,
   AgentDefaults,
@@ -19,6 +19,134 @@ import { extractAgentsList } from "./agents";
 import { extractToolsConfig, extractAgentToolsConfigs, hasToolsConfigChanges } from "./tools-config";
 import { loadPermissions } from "./permissions";
 
+type JsonRecord = Record<string, unknown>;
+
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function setOptionalStringArray(target: JsonRecord, key: string, value?: string[]): void {
+  if (value && value.length > 0) {
+    target[key] = value;
+  } else {
+    delete target[key];
+  }
+}
+
+function applyGlobalToolsConfig(updatedConfig: JsonRecord, state: ModelConfigState): void {
+  if (!state.toolsConfig) {return;}
+
+  const toolsConfig = ((updatedConfig.tools ??= {}) as JsonRecord);
+  if (state.toolsConfig.profile !== undefined) {
+    toolsConfig.profile = state.toolsConfig.profile;
+  } else {
+    delete toolsConfig.profile;
+  }
+  setOptionalStringArray(toolsConfig, "allow", state.toolsConfig.allow);
+  setOptionalStringArray(toolsConfig, "alsoAllow", state.toolsConfig.alsoAllow);
+  setOptionalStringArray(toolsConfig, "deny", state.toolsConfig.deny);
+}
+
+function applyAgentToolsConfigs(updatedConfig: JsonRecord, state: ModelConfigState): void {
+  if (state.agentToolsConfigs.length === 0) {return;}
+
+  const agentsConfig = ((updatedConfig.agents ??= {}) as JsonRecord);
+  const list = (agentsConfig.list ?? []) as JsonRecord[];
+
+  for (const agentTools of state.agentToolsConfigs) {
+    const existingAgent = list.find((agent) => agent.id === agentTools.id);
+    if (!existingAgent || !agentTools.tools) {continue;}
+
+    const tools = ((existingAgent.tools ??= {}) as JsonRecord);
+    if (agentTools.tools.profile !== undefined) {
+      tools.profile = agentTools.tools.profile;
+    } else {
+      delete tools.profile;
+    }
+    setOptionalStringArray(tools, "allow", agentTools.tools.allow);
+    setOptionalStringArray(tools, "alsoAllow", agentTools.tools.alsoAllow);
+    setOptionalStringArray(tools, "deny", agentTools.tools.deny);
+  }
+}
+
+function applyAgentIdentityConfigs(updatedConfig: JsonRecord, state: ModelConfigState): void {
+  if (state.modelConfigAgentsList.length === 0) {return;}
+
+  const agentsConfig = ((updatedConfig.agents ??= {}) as JsonRecord);
+  const list = (agentsConfig.list ?? []) as JsonRecord[];
+
+  for (const agentIdentity of state.modelConfigAgentsList) {
+    const existingAgent = list.find((agent) => agent.id === agentIdentity.id);
+    if (!existingAgent) {continue;}
+
+    if (agentIdentity.identity && Object.keys(agentIdentity.identity).length > 0) {
+      existingAgent.identity = agentIdentity.identity;
+    } else {
+      delete existingAgent.identity;
+    }
+  }
+}
+
+function sanitizeSkillsEntries(updatedConfig: JsonRecord): void {
+  if (!updatedConfig.skills || typeof updatedConfig.skills !== "object") {return;}
+
+  const skillsConfig = updatedConfig.skills as JsonRecord;
+  if (!skillsConfig.entries || typeof skillsConfig.entries !== "object") {return;}
+
+  const entries = skillsConfig.entries as JsonRecord;
+  const sanitizedEntries: JsonRecord = {};
+  for (const [key, value] of Object.entries(entries)) {
+    if (value && typeof value === "object" && !Array.isArray(value)) {
+      sanitizedEntries[key] = value;
+      continue;
+    }
+    if (typeof value === "string" && value.trim()) {
+      sanitizedEntries[key] = { enabled: true };
+    }
+  }
+
+  if (Object.keys(sanitizedEntries).length > 0) {
+    skillsConfig.entries = sanitizedEntries;
+  } else {
+    delete skillsConfig.entries;
+  }
+}
+
+function serializeMainConfigState(state: ModelConfigState): string {
+  return JSON.stringify({
+    providers: state.modelConfigProviders,
+    agentDefaults: state.modelConfigAgentDefaults,
+    gateway: state.modelConfigGateway,
+    channels: state.modelConfigChannelsConfig,
+  });
+}
+
+function serializeAgentsConfigState(state: ModelConfigState): string {
+  return JSON.stringify(state.modelConfigAgentsList ?? []);
+}
+
+function getCurrentMainConfigSignature(state: ModelConfigState): string {
+  if (state.modelConfigMainSignatureVersion === state.modelConfigVersion && state.modelConfigMainSignature !== null) {
+    return state.modelConfigMainSignature;
+  }
+
+  const signature = serializeMainConfigState(state);
+  state.modelConfigMainSignature = signature;
+  state.modelConfigMainSignatureVersion = state.modelConfigVersion;
+  return signature;
+}
+
+function getCurrentAgentsConfigSignature(state: ModelConfigState): string {
+  if (state.modelConfigAgentsSignatureVersion === state.modelConfigVersion && state.modelConfigAgentsSignature !== null) {
+    return state.modelConfigAgentsSignature;
+  }
+
+  const signature = serializeAgentsConfigState(state);
+  state.modelConfigAgentsSignature = signature;
+  state.modelConfigAgentsSignatureVersion = state.modelConfigVersion;
+  return signature;
+}
+
 /**
  * 从配置快照中提取模型供应商数据
  */
@@ -26,15 +154,15 @@ function extractProviders(
   config: Record<string, unknown>,
 ): Record<string, ProviderConfig> {
   const models = config.models as Record<string, unknown> | undefined;
-  if (!models) return {};
+  if (!models) {return {};}
 
   const providers = models.providers as Record<string, unknown> | undefined;
-  if (!providers) return {};
+  if (!providers) {return {};}
 
   const result: Record<string, ProviderConfig> = {};
 
   for (const [key, value] of Object.entries(providers)) {
-    if (!value || typeof value !== "object") continue;
+    if (!value || typeof value !== "object") {continue;}
 
     const provider = value as Record<string, unknown>;
     const modelsArray = provider.models as Array<Record<string, unknown>> | undefined;
@@ -66,10 +194,10 @@ function extractProviders(
  */
 function extractAgentDefaults(config: Record<string, unknown>): AgentDefaults {
   const agents = config.agents as Record<string, unknown> | undefined;
-  if (!agents) return {};
+  if (!agents) {return {};}
 
   const defaults = agents.defaults as Record<string, unknown> | undefined;
-  if (!defaults) return {};
+  if (!defaults) {return {};}
 
   return {
     maxConcurrent: defaults.maxConcurrent as number | undefined,
@@ -86,9 +214,9 @@ function extractAgentDefaults(config: Record<string, unknown>): AgentDefaults {
  */
 function extractGatewayConfig(config: Record<string, unknown>): GatewayConfig {
   const gateway = config.gateway as Record<string, unknown> | undefined;
-  if (!gateway) return {};
+  if (!gateway) {return {};}
 
-  return JSON.parse(JSON.stringify(gateway)) as GatewayConfig;
+  return cloneJson(gateway) as GatewayConfig;
 }
 
 /**
@@ -96,7 +224,7 @@ function extractGatewayConfig(config: Record<string, unknown>): GatewayConfig {
  */
 function extractChannelsConfig(config: Record<string, unknown>): ChannelsConfigData {
   const channels = config.channels as Record<string, unknown> | undefined;
-  if (!channels) return {};
+  if (!channels) {return {};}
 
   return channels as ChannelsConfigData;
 }
@@ -133,7 +261,7 @@ function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<st
  * 加载模型配置
  */
 export async function loadModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {return;}
 
   state.modelConfigLoading = true;
   state.lastError = null;
@@ -147,7 +275,7 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
     const config = res.config ?? {};
 
     // 保存完整配置快照和 hash（用于保存时）
-    state.modelConfigFullSnapshot = JSON.parse(JSON.stringify(config));
+    state.modelConfigFullSnapshot = cloneJson(config);
     state.modelConfigHash = res.hash ?? null;
 
     state.modelConfigProviders = extractProviders(config);
@@ -157,21 +285,24 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
 
     // 提取工具配置
     state.toolsConfig = extractToolsConfig(config);
-    state.toolsConfigOriginal = JSON.parse(JSON.stringify(state.toolsConfig));
+    state.toolsConfigOriginal = cloneJson(state.toolsConfig);
     state.agentToolsConfigs = extractAgentToolsConfigs(config);
-    state.agentToolsConfigsOriginal = JSON.parse(JSON.stringify(state.agentToolsConfigs));
+    state.agentToolsConfigsOriginal = cloneJson(state.agentToolsConfigs);
 
     // 提取 Agent 列表（含身份信息）
     state.modelConfigAgentsList = extractAgentsList(config);
-    state.modelConfigAgentsListOriginal = JSON.parse(JSON.stringify(state.modelConfigAgentsList));
+    state.modelConfigAgentsListOriginal = cloneJson(state.modelConfigAgentsList);
 
     // 保存原始数据用于比较
     state.modelConfigOriginal = {
-      providers: JSON.parse(JSON.stringify(state.modelConfigProviders)),
-      agentDefaults: JSON.parse(JSON.stringify(state.modelConfigAgentDefaults)),
-      gateway: JSON.parse(JSON.stringify(state.modelConfigGateway)),
-      channels: JSON.parse(JSON.stringify(state.modelConfigChannelsConfig)),
+      providers: cloneJson(state.modelConfigProviders),
+      agentDefaults: cloneJson(state.modelConfigAgentDefaults),
+      gateway: cloneJson(state.modelConfigGateway),
+      channels: cloneJson(state.modelConfigChannelsConfig),
     };
+    state.modelConfigOriginalMainSignature = serializeMainConfigState(state);
+    state.modelConfigOriginalAgentsSignature = serializeAgentsConfigState(state);
+    invalidateModelConfigDerivedState(state);
 
     // 默认展开第一个供应商
     const providerKeys = Object.keys(state.modelConfigProviders);
@@ -192,9 +323,15 @@ export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<st
   if (!state.modelConfigFullSnapshot) {
     return null;
   }
+  if (
+    state.modelConfigSnapshotCacheVersion === state.modelConfigVersion &&
+    state.modelConfigSnapshotCache
+  ) {
+    return state.modelConfigSnapshotCache;
+  }
 
   // 深度复制完整配置
-  const updatedConfig = JSON.parse(JSON.stringify(state.modelConfigFullSnapshot)) as Record<string, unknown>;
+  const updatedConfig = cloneJson(state.modelConfigFullSnapshot) as JsonRecord;
 
   // 更新 models.providers（清理数字字段类型）
   if (!updatedConfig.models) {
@@ -234,124 +371,19 @@ export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<st
   }
 
   // 更新 tools（全局工具配置）
-  if (state.toolsConfig) {
-    if (!updatedConfig.tools) {
-      updatedConfig.tools = {};
-    }
-    const toolsConfig = updatedConfig.tools as Record<string, unknown>;
-    if (state.toolsConfig.profile !== undefined) {
-      toolsConfig.profile = state.toolsConfig.profile;
-    } else {
-      delete toolsConfig.profile;
-    }
-    if (state.toolsConfig.allow && state.toolsConfig.allow.length > 0) {
-      toolsConfig.allow = state.toolsConfig.allow;
-    } else {
-      delete toolsConfig.allow;
-    }
-    if (state.toolsConfig.alsoAllow && state.toolsConfig.alsoAllow.length > 0) {
-      toolsConfig.alsoAllow = state.toolsConfig.alsoAllow;
-    } else {
-      delete toolsConfig.alsoAllow;
-    }
-    if (state.toolsConfig.deny && state.toolsConfig.deny.length > 0) {
-      toolsConfig.deny = state.toolsConfig.deny;
-    } else {
-      delete toolsConfig.deny;
-    }
-  }
+  applyGlobalToolsConfig(updatedConfig, state);
 
   // 更新 agents.list 中每个 agent 的 tools 配置
-  if (state.agentToolsConfigs.length > 0) {
-    if (!updatedConfig.agents) {
-      updatedConfig.agents = {};
-    }
-    const agentsConfig = updatedConfig.agents as Record<string, unknown>;
-    const list = (agentsConfig.list ?? []) as Array<Record<string, unknown>>;
-
-    for (const agentTools of state.agentToolsConfigs) {
-      const existingAgent = list.find((a) => a.id === agentTools.id);
-      if (existingAgent) {
-        // 更新现有 agent 的 tools
-        if (agentTools.tools) {
-          if (!existingAgent.tools) {
-            existingAgent.tools = {};
-          }
-          const tools = existingAgent.tools as Record<string, unknown>;
-          if (agentTools.tools.profile !== undefined) {
-            tools.profile = agentTools.tools.profile;
-          } else {
-            delete tools.profile;
-          }
-          if (agentTools.tools.allow && agentTools.tools.allow.length > 0) {
-            tools.allow = agentTools.tools.allow;
-          } else {
-            delete tools.allow;
-          }
-          if (agentTools.tools.alsoAllow && agentTools.tools.alsoAllow.length > 0) {
-            tools.alsoAllow = agentTools.tools.alsoAllow;
-          } else {
-            delete tools.alsoAllow;
-          }
-          if (agentTools.tools.deny && agentTools.tools.deny.length > 0) {
-            tools.deny = agentTools.tools.deny;
-          } else {
-            delete tools.deny;
-          }
-        }
-      }
-    }
-  }
+  applyAgentToolsConfigs(updatedConfig, state);
 
   // 更新 agents.list 中每个 agent 的 identity 配置
-  if (state.modelConfigAgentsList.length > 0) {
-    if (!updatedConfig.agents) {
-      updatedConfig.agents = {};
-    }
-    const agentsConfig = updatedConfig.agents as Record<string, unknown>;
-    const list = (agentsConfig.list ?? []) as Array<Record<string, unknown>>;
-
-    for (const agentIdentity of state.modelConfigAgentsList) {
-      const existingAgent = list.find((a) => a.id === agentIdentity.id);
-      if (existingAgent) {
-        // 更新现有 agent 的 identity
-        if (agentIdentity.identity && Object.keys(agentIdentity.identity).length > 0) {
-          existingAgent.identity = agentIdentity.identity;
-        } else {
-          delete existingAgent.identity;
-        }
-      }
-    }
-  }
+  applyAgentIdentityConfigs(updatedConfig, state);
 
   // 清理 skills.entries 中的无效条目（字符串值应该是对象）
-  // Sanitize skills.entries - entries must be objects, not strings
-  if (updatedConfig.skills && typeof updatedConfig.skills === "object") {
-    const skillsConfig = updatedConfig.skills as Record<string, unknown>;
-    if (skillsConfig.entries && typeof skillsConfig.entries === "object") {
-      const entries = skillsConfig.entries as Record<string, unknown>;
-      const sanitizedEntries: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(entries)) {
-        if (value && typeof value === "object" && !Array.isArray(value)) {
-          // 有效的对象条目，保留
-          sanitizedEntries[key] = value;
-        } else if (typeof value === "string") {
-          // 字符串值转换为对象格式 { enabled: true }
-          // 或者如果是空字符串则跳过
-          if (value.trim()) {
-            sanitizedEntries[key] = { enabled: true };
-          }
-        }
-        // 其他无效值（null, undefined, array）直接跳过
-      }
-      if (Object.keys(sanitizedEntries).length > 0) {
-        skillsConfig.entries = sanitizedEntries;
-      } else {
-        delete skillsConfig.entries;
-      }
-    }
-  }
+  sanitizeSkillsEntries(updatedConfig);
 
+  state.modelConfigSnapshotCache = updatedConfig;
+  state.modelConfigSnapshotCacheVersion = state.modelConfigVersion;
   return updatedConfig;
 }
 
@@ -382,29 +414,25 @@ function buildConfigRaw(state: ModelConfigState): string | null {
  */
 export function hasModelConfigChanges(state: ModelConfigState): boolean {
   // 检查权限配置是否有更改
-  if (state.permissionsDirty) return true;
+  if (state.permissionsDirty) {return true;}
 
   // 检查工具配置是否有更改
-  if (hasToolsConfigChanges(state)) return true;
+  if (hasToolsConfigChanges(state)) {return true;}
 
-  if (!state.modelConfigOriginal) return false;
+  if (!state.modelConfigOriginal) {return false;}
 
-  const currentJson = JSON.stringify({
-    providers: state.modelConfigProviders,
-    agentDefaults: state.modelConfigAgentDefaults,
-    gateway: state.modelConfigGateway,
-    channels: state.modelConfigChannelsConfig,
-  });
+  if (
+    state.modelConfigOriginalMainSignature !== null &&
+    getCurrentMainConfigSignature(state) !== state.modelConfigOriginalMainSignature
+  ) {
+    return true;
+  }
 
-  const originalJson = JSON.stringify(state.modelConfigOriginal);
-
-  if (currentJson !== originalJson) return true;
-
-  // 检查 Agent 模型配置是否有更改
-  if (state.modelConfigAgentsList && state.modelConfigAgentsListOriginal) {
-    const agentsJson = JSON.stringify(state.modelConfigAgentsList);
-    const agentsOriginalJson = JSON.stringify(state.modelConfigAgentsListOriginal);
-    if (agentsJson !== agentsOriginalJson) return true;
+  if (
+    state.modelConfigOriginalAgentsSignature !== null &&
+    getCurrentAgentsConfigSignature(state) !== state.modelConfigOriginalAgentsSignature
+  ) {
+    return true;
   }
 
   return false;
@@ -415,25 +443,22 @@ export function hasModelConfigChanges(state: ModelConfigState): boolean {
  */
 function hasMainConfigChanges(state: ModelConfigState): boolean {
   // 检查工具配置是否有更改
-  if (hasToolsConfigChanges(state)) return true;
+  if (hasToolsConfigChanges(state)) {return true;}
 
-  // 检查 Agent 身份列表是否有更改
-  if (JSON.stringify(state.modelConfigAgentsList) !== JSON.stringify(state.modelConfigAgentsListOriginal)) {
+  if (
+    state.modelConfigOriginalAgentsSignature !== null &&
+    getCurrentAgentsConfigSignature(state) !== state.modelConfigOriginalAgentsSignature
+  ) {
     return true;
   }
 
-  if (!state.modelConfigOriginal) return false;
+  if (!state.modelConfigOriginal) {return false;}
 
-  const currentJson = JSON.stringify({
-    providers: state.modelConfigProviders,
-    agentDefaults: state.modelConfigAgentDefaults,
-    gateway: state.modelConfigGateway,
-    channels: state.modelConfigChannelsConfig,
-  });
+  if (state.modelConfigOriginalMainSignature === null) {
+    return false;
+  }
 
-  const originalJson = JSON.stringify(state.modelConfigOriginal);
-
-  return currentJson !== originalJson;
+  return getCurrentMainConfigSignature(state) !== state.modelConfigOriginalMainSignature;
 }
 
 /**
@@ -471,7 +496,7 @@ function extractErrorDetails(err: unknown): string {
  * 保存模型配置（仅保存，不重启服务）
  */
 export async function saveModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {return;}
 
   state.modelConfigSaving = true;
   state.lastError = null;
@@ -526,7 +551,7 @@ export async function saveModelConfig(state: ModelConfigState): Promise<void> {
  * 保存并应用模型配置（保存 + 重启服务）
  */
 export async function applyModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {return;}
 
   // 防止重复调用
   if (state.modelConfigApplying) {
