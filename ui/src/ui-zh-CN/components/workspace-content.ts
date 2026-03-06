@@ -159,7 +159,17 @@ function getFileDescription(fileName: string): string {
       const [, year, month, day] = dateMatch;
       return `每日日志 - ${year}年${month}月${day}日的记录`;
     }
-    return "每日日志 - 日期记录文件";
+    const archiveDateMatch = fileName.match(/^memory\/archive\/(\d{4})-(\d{2})-(\d{2})\.md$/);
+    if (archiveDateMatch) {
+      const [, year, month, day] = archiveDateMatch;
+      return `归档日志 - ${year}年${month}月${day}日的记录`;
+    }
+    const weeklyDateMatch = fileName.match(/^memory\/weekly\/(\d{4})-(\d{2})-(\d{2})\.md$/);
+    if (weeklyDateMatch) {
+      const [, year, month, day] = weeklyDateMatch;
+      return `周记文件 - ${year}年${month}月${day}日所在周`;
+    }
+    return "memory 目录文件";
   }
 
   return "";
@@ -314,7 +324,7 @@ function renderFileItem(
   const desc = getFileDescription(file.name);
   // For indented items, only show the base name / 缩进项只显示基础文件名
   const displayName = indent && file.name.includes("/")
-    ? file.name.slice(file.name.lastIndexOf("/") + 1)
+    ? file.name.slice(file.name.indexOf("/") + 1)
     : file.name;
 
   return html`

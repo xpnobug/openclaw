@@ -83,8 +83,8 @@ function renderAgentWizard(props: AgentsConfigProps) {
 
   const validateBasic = () => {
     const errs: Record<string, string[]> = {};
-    if (!data.id) errs.id = ["Agent ID 是必填项"];
-    else if (!/^[a-z][a-z0-9-]*$/.test(data.id)) errs.id = ["只能包含小写字母、数字和连字符"];
+    if (!data.id) {errs.id = ["Agent ID 是必填项"];}
+    else if (!/^[a-z][a-z0-9-]*$/.test(data.id)) {errs.id = ["只能包含小写字母、数字和连字符"];}
     else if (existingIds.has(data.id)) {errs.id = ["ID 已存在"];}
     wizardState.errors = errs;
     return Object.keys(errs).length === 0;

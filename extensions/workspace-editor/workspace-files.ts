@@ -70,18 +70,64 @@ const MEMORY_DIR = "memory";
 const MEMORY_FILE_PATTERN = /^\d{4}-\d{2}-\d{2}\.md$/;
 
 /**
- * Check if a filename is a valid memory directory file
- * 检查文件名是否为有效的 memory 目录文件
+ * Check if a filename points to a file inside memory/
+ * 检查文件名是否指向 memory/ 目录内的文件
  *
  * @param fileName - Filename to check (e.g., "memory/2026-01-30.md")
- * @returns true if valid memory file path
+ * @returns true if file is inside memory/
  */
 function isMemoryFilePath(fileName: string): boolean {
   if (!fileName.startsWith(`${MEMORY_DIR}/`)) {
     return false;
   }
-  const baseName = fileName.slice(MEMORY_DIR.length + 1);
-  return MEMORY_FILE_PATTERN.test(baseName);
+  const relativePath = fileName.slice(MEMORY_DIR.length + 1);
+  if (!relativePath || relativePath.endsWith("/")) {
+    return false;
+  }
+  const segments = relativePath.split("/");
+  return segments.every((segment) => segment.length > 0 && segment !== "." && segment !== "..");
+}
+
+async function collectMemoryFiles(params: {
+  dir: string;
+  prefix: string;
+}): Promise<WorkspaceFileInfo[]> {
+  const entries = await fs.readdir(params.dir, { withFileTypes: true });
+  const files: WorkspaceFileInfo[] = [];
+
+  for (const entry of entries) {
+    const absolutePath = path.join(params.dir, entry.name);
+    const relativePath = `${params.prefix}/${entry.name}`;
+
+    if (entry.isDirectory()) {
+      files.push(
+        ...(await collectMemoryFiles({
+          dir: absolutePath,
+          prefix: relativePath,
+        })),
+      );
+      continue;
+    }
+
+    if (!entry.isFile()) {
+      continue;
+    }
+
+    try {
+      const stat = await fs.stat(absolutePath);
+      files.push({
+        name: relativePath,
+        path: absolutePath,
+        exists: true,
+        size: stat.size,
+        modifiedAt: stat.mtimeMs,
+      });
+    } catch {
+      // Skip files that can't be stat'd / 跳过无法获取状态的文件
+    }
+  }
+
+  return files;
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -222,8 +268,8 @@ function validateFileName(fileName: string): void {
     throw new Error(`Invalid filename: ${fileName}`);
   }
 
-  // Check if it's a memory directory file (memory/YYYY-MM-DD.md)
-  // 检查是否为 memory 目录文件
+  // Check if it's a file inside memory/
+  // 检查是否为 memory/ 目录中的文件
   if (isMemoryFilePath(fileName)) {
     return; // Valid memory file path / 有效的 memory 文件路径
   }
@@ -236,7 +282,7 @@ function validateFileName(fileName: string): void {
   // Must be in whitelist / 必须在白名单内
   if (!ALLOWED_FILES.has(fileName)) {
     throw new Error(
-      `File not allowed: ${fileName}. Allowed files: ${[...ALLOWED_FILES].join(", ")}, memory/YYYY-MM-DD.md`,
+      `File not allowed: ${fileName}. Allowed files: ${[...ALLOWED_FILES].join(", ")}, memory/**`,
     );
   }
 }
@@ -292,35 +338,10 @@ export async function listWorkspaceFiles(
     });
   }
 
-  // Scan memory/ directory for dated files / 扫描 memory/ 目录获取日期文件
+  // Scan memory/ directory recursively / 递归扫描 memory/ 目录内的文件
   const memoryDir = path.join(workspaceDir, MEMORY_DIR);
   try {
-    const memoryFiles = await fs.readdir(memoryDir);
-    for (const fileName of memoryFiles) {
-      // Only include files matching YYYY-MM-DD.md pattern
-      // 仅包含匹配 YYYY-MM-DD.md 模式的文件
-      if (!MEMORY_FILE_PATTERN.test(fileName)) {
-        continue;
-      }
-
-      const filePath = path.join(memoryDir, fileName);
-      const relativeName = `${MEMORY_DIR}/${fileName}`;
-
-      try {
-        const stat = await fs.stat(filePath);
-        if (stat.isFile()) {
-          files.push({
-            name: relativeName,
-            path: filePath,
-            exists: true,
-            size: stat.size,
-            modifiedAt: stat.mtimeMs,
-          });
-        }
-      } catch {
-        // Skip files that can't be stat'd / 跳过无法获取状态的文件
-      }
-    }
+    files.push(...(await collectMemoryFiles({ dir: memoryDir, prefix: MEMORY_DIR })));
   } catch {
     // memory/ directory does not exist - that's fine
     // memory/ 目录不存在 - 没关系
