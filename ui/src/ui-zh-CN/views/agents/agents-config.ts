@@ -60,12 +60,12 @@ function resetWizardState() {
  */
 function renderAgentWizard(props: AgentsConfigProps) {
   const { step, data, selectedCategory, errors } = wizardState;
-  const existingIds = (props.agentsList?.agents ?? []).map((a) => a.id);
+  const existingIds = new Set((props.agentsList?.agents ?? []).map((a) => a.id));
   const models = props.agentAvailableModels?.map((m) => m.id) ?? DEFAULT_MODELS;
 
   const updateAndRefresh = () => {
     // 触发 Lit 重新渲染
-    props.onAgentWizardComplete?.({ ...data, _refresh: true } as any);
+    props.onAgentWizardComplete?.({ ...data, _refresh: true });
   };
 
   const setStep = (s: number) => {
@@ -85,14 +85,14 @@ function renderAgentWizard(props: AgentsConfigProps) {
     const errs: Record<string, string[]> = {};
     if (!data.id) errs.id = ["Agent ID 是必填项"];
     else if (!/^[a-z][a-z0-9-]*$/.test(data.id)) errs.id = ["只能包含小写字母、数字和连字符"];
-    else if (existingIds.includes(data.id)) errs.id = ["ID 已存在"];
+    else if (existingIds.has(data.id)) {errs.id = ["ID 已存在"];}
     wizardState.errors = errs;
     return Object.keys(errs).length === 0;
   };
 
   const canProceed = () => {
-    if (step === 1) return !!data.id && !errors.id?.length;
-    if (step === 2) return !!data.model;
+    if (step === 1) {return !!data.id && !errors.id?.length;}
+    if (step === 2) {return !!data.model;}
     return true;
   };
 
@@ -101,7 +101,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
       updateAndRefresh();
       return;
     }
-    if (step < WIZARD_STEPS.length - 1) setStep(step + 1);
+    if (step < WIZARD_STEPS.length - 1) {setStep(step + 1);}
   };
 
   const handleComplete = () => {
@@ -277,13 +277,13 @@ function renderAgentWizard(props: AgentsConfigProps) {
 
   return html`
     <div class="agents-wizard-overlay" @click=${(e: Event) => {
-      if (e.target === e.currentTarget && !wizardState.saving) handleCancel();
+      if (e.target === e.currentTarget && !wizardState.saving) {handleCancel();}
     }}>
       <div class="agents-wizard-modal">
         <div class="wizard">
           <div class="wizard__header"><h2 class="wizard__title">创建 Agent</h2></div>
           ${renderStepIndicator(WIZARD_STEPS, step, (i) => {
-            if (i < step && !wizardState.saving) setStep(i);
+            if (i < step && !wizardState.saving) {setStep(i);}
           })}
           <div class="wizard__content">
             ${

@@ -18,7 +18,7 @@ function formatWorkspaceError(action: string, err: unknown, workspaceDir?: strin
  * Load workspace file list
  */
 export async function loadWorkspaceFiles(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {return;}
 
   state.workspaceLoading = true;
   state.workspaceError = null;
@@ -58,7 +58,7 @@ export async function selectWorkspaceFile(
   state: ModelConfigState,
   fileName: string,
 ): Promise<void> {
-  if (!state.client || !state.connected) return;
+  if (!state.client || !state.connected) {return;}
 
   state.workspaceSelectedFile = fileName;
   state.workspaceLoading = true;
@@ -95,7 +95,7 @@ export async function selectWorkspaceFile(
  * Save current workspace file
  */
 export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected || !state.workspaceSelectedFile) return;
+  if (!state.client || !state.connected || !state.workspaceSelectedFile) {return;}
 
   state.workspaceSaving = true;
   state.workspaceError = null;
