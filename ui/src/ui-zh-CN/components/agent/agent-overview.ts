@@ -60,7 +60,9 @@ export type AgentOverviewProps = {
   agentIdentityError: string | null;
   configLoading: boolean;
   configSaving: boolean;
+  configApplying: boolean;
   configDirty: boolean;
+  connected: boolean;
   onConfigReload: () => void;
   onConfigSave: () => void;
   onModelChange: (agentId: string, modelId: string | null) => void;
@@ -270,7 +272,9 @@ function buildModelOptions(configForm: Record<string, unknown> | null, current?:
     return html`<option value="" disabled>无可用模型</option>`;
   }
 
-  return options.map((opt) => html`<option value=${opt.value}>${opt.label}</option>`);
+  return options.map(
+    (opt) => html`<option value=${opt.value} ?selected=${opt.value === (current ?? "")}>${opt.label}</option>`,
+  );
 }
 
 /**
@@ -300,6 +304,29 @@ function formatAgo(ts: number): string {
   return `${days} 天前`;
 }
 
+function getSessionMutationBlockedReason(props: Pick<
+  AgentOverviewProps,
+  "connected" | "configSaving" | "configApplying" | "configDirty"
+>): string | null {
+  if (!props.connected) {
+    return "当前未连接到 Gateway，暂时无法切换或创建会话。";
+  }
+
+  if (props.configApplying) {
+    return "配置正在应用，Gateway 正在重启，请等待重新连接后再试。";
+  }
+
+  if (props.configSaving) {
+    return "配置正在保存，请等待保存完成后再试。";
+  }
+
+  if (props.configDirty) {
+    return "检测到未保存或未应用的模型配置，请先保存并应用配置，再切换或创建会话。";
+  }
+
+  return null;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // 会话渲染函数 / Session Render Functions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -315,6 +342,8 @@ function renderSessionRow(
   onModelChange: (sessionKey: string, model: string | null) => void,
   onNavigate: (sessionKey: string) => void,
   onDelete?: (sessionKey: string) => void,
+  modelSelectDisabled = false,
+  modelSelectTitle?: string,
 ) {
   const displayName = session.displayName ?? session.label ?? session.key;
   const currentModel = session.model
@@ -342,6 +371,8 @@ function renderSessionRow(
       <div class="session-row__model">
         <select
           class="mc-select mc-select--sm"
+          ?disabled=${modelSelectDisabled}
+          title=${modelSelectTitle ?? ""}
           @change=${(e: Event) => {
             const value = (e.target as HTMLSelectElement).value;
             onModelChange(session.key, value || null);
@@ -388,6 +419,7 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
 
   if (!sessionCreateShow) return nothing;
 
+  const sessionMutationBlockedReason = getSessionMutationBlockedReason(props);
   const handleClose = () => onSessionCreateShow?.(false);
   const handleNameChange = (e: Event) => {
     onSessionCreateNameChange?.((e.target as HTMLInputElement).value);
@@ -398,7 +430,8 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
   };
   const handleCreate = () => onSessionCreate?.();
 
-  const canCreate = (sessionCreateName?.trim().length ?? 0) > 0 && !sessionCreating;
+  const canCreate =
+    (sessionCreateName?.trim().length ?? 0) > 0 && !sessionCreating && !sessionMutationBlockedReason;
 
   return html`
     <div class="skills-modal-overlay" @click=${handleClose}>
@@ -443,7 +476,8 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
             <select
               class="skills-create__input"
               .value=${sessionCreateModel ?? ""}
-              ?disabled=${sessionCreating}
+              ?disabled=${sessionCreating || Boolean(sessionMutationBlockedReason)}
+              title=${sessionMutationBlockedReason ?? ""}
               @change=${handleModelChange}
             >
               <option value="">${SESSION_LABELS.inheritDefault}</option>
@@ -451,7 +485,7 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
                 (m) => html`<option value=${m.id} ?selected=${m.id === sessionCreateModel}>${m.name} (${m.provider})</option>`,
               )}
             </select>
-            <div class="skills-create__hint">留空则使用 Agent 默认模型</div>
+            <div class="skills-create__hint">${sessionMutationBlockedReason ?? "留空则使用当前运行中的 Agent 默认模型"}</div>
           </div>
         </div>
 
@@ -490,6 +524,8 @@ function renderSessionsSection(props: AgentOverviewProps) {
     onSessionCreateShow,
   } = props;
 
+  const sessionMutationBlockedReason = getSessionMutationBlockedReason(props);
+  const sessionMutationsDisabled = Boolean(sessionMutationBlockedReason);
   const sessions = sessionsResult?.sessions ?? [];
   const sessionsDefaults = sessionsResult?.defaults ?? { modelProvider: null, model: null };
   const defaults = { provider: sessionsDefaults.modelProvider, model: sessionsDefaults.model };
@@ -499,13 +535,16 @@ function renderSessionsSection(props: AgentOverviewProps) {
   return html`
     <div class="mc-card" style="margin-top: 16px;">
       <div class="mc-card__header">
-        <h4 class="mc-card__title">${SESSION_LABELS.title}</h4>
+        <div>
+          <h4 class="mc-card__title">${SESSION_LABELS.title}</h4>
+          <p class="mc-card__desc">${SESSION_LABELS.desc}</p>
+        </div>
         <div class="mc-card__actions">
           <button
             class="mc-btn mc-btn--sm mc-btn--primary"
-            ?disabled=${sessionsLoading}
+            ?disabled=${sessionsLoading || sessionMutationsDisabled}
             @click=${handleCreateClick}
-            title=${SESSION_LABELS.create}
+            title=${sessionMutationBlockedReason ?? SESSION_LABELS.create}
           >
             + ${SESSION_LABELS.create}
           </button>
@@ -521,6 +560,9 @@ function renderSessionsSection(props: AgentOverviewProps) {
         </div>
       </div>
       <div class="mc-card__content">
+        ${sessionMutationBlockedReason
+          ? html`<div class="mc-error" style="margin-bottom: 12px;">${sessionMutationBlockedReason}</div>`
+          : nothing}
         ${sessionsError
           ? html`<div class="mc-error">${sessionsError}</div>`
           : nothing}
@@ -536,7 +578,16 @@ function renderSessionsSection(props: AgentOverviewProps) {
                 </div>
                 <div class="sessions-list__body">
                   ${sessions.map((session) =>
-                    renderSessionRow(session, availableModels, defaults, onSessionModelChange, onSessionNavigate, onSessionDelete),
+                    renderSessionRow(
+                      session,
+                      availableModels,
+                      defaults,
+                      onSessionModelChange,
+                      onSessionNavigate,
+                      onSessionDelete,
+                      sessionMutationsDisabled,
+                      sessionMutationBlockedReason ?? undefined,
+                    ),
                   )}
                 </div>
               `
@@ -641,16 +692,16 @@ export function renderAgentOverview(props: AgentOverviewProps) {
           <h4 class="mc-card__title">${LABELS.overview.modelSelection}</h4>
         </div>
         <div class="mc-card__content">
+          <p class="mc-card__desc">这里修改的是 Agent 默认模型，保存并应用后才会影响后续会话；当前会话模型请在下方会话管理中切换。</p>
           <div class="mc-form-row mc-form-row--2col">
             <label class="mc-field">
               <span class="mc-field__label">${LABELS.overview.primaryModel}</span>
               <select
                 class="mc-select"
-                .value=${effectivePrimary ?? ""}
-                ?disabled=${!configForm || configLoading || configSaving}
+                ?disabled=${!configForm || configLoading || configSaving || props.configApplying}
                 @change=${(e: Event) => onModelChange(agent.id, (e.target as HTMLSelectElement).value || null)}
               >
-                <option value="">
+                <option value="" ?selected=${!effectivePrimary}>
                   ${defaultPrimary ? `${LABELS.overview.inheritDefault} (${defaultPrimary})` : LABELS.overview.inheritDefault}
                 </option>
                 ${buildModelOptions(configForm, effectivePrimary)}
@@ -663,7 +714,7 @@ export function renderAgentOverview(props: AgentOverviewProps) {
                 class="mc-input"
                 .value=${fallbackText}
                 placeholder="provider/model, provider/model"
-                ?disabled=${!configForm || configLoading || configSaving}
+                ?disabled=${!configForm || configLoading || configSaving || props.configApplying}
                 @input=${(e: Event) => onModelFallbacksChange(agent.id, parseFallbackList((e.target as HTMLInputElement).value))}
               />
             </label>

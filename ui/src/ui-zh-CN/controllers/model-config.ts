@@ -44,6 +44,7 @@ export {
   saveModelConfig,
   applyModelConfig,
   hasModelConfigChanges,
+  buildEffectiveConfigSnapshot,
 } from "./config-loader";
 
 // ============================================

@@ -5,7 +5,7 @@ import type { CronJob } from "../../ui/types";
  */
 import type { AgentsConfigProps } from "../views/agents/types";
 import type { WorkspaceFileInfo } from "./model-config";
-import { getAvailableModels, hasModelConfigChanges } from "./model-config";
+import { buildEffectiveConfigSnapshot, getAvailableModels, hasModelConfigChanges } from "./model-config";
 import { hasSkillsConfigChanges } from "./skills-config";
 
 /** on* 回调键名 */
@@ -135,7 +135,7 @@ export function buildPropsData(s: Record<string, any>): DataProps {
     globalPanel: s.globalPanel,
 
     // 配置状态
-    configForm: s.modelConfigFullSnapshot,
+    configForm: buildEffectiveConfigSnapshot(s),
     configLoading: s.modelConfigLoading,
     configSaving: s.modelConfigSaving,
     configApplying: s.modelConfigApplying,

@@ -190,15 +190,10 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
 }
 
 /**
- * 构建更新后的配置 raw 字符串
+ * 基于当前编辑态构建最新配置快照
  */
-function buildConfigRaw(state: ModelConfigState): string | null {
+export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<string, unknown> | null {
   if (!state.modelConfigFullSnapshot) {
-    state.lastError = "配置快照缺失，请重新加载后再试";
-    return null;
-  }
-  if (!state.modelConfigHash) {
-    state.lastError = "配置 hash 缺失，请重新加载后再试";
     return null;
   }
 
@@ -368,6 +363,28 @@ function buildConfigRaw(state: ModelConfigState): string | null {
         delete skillsConfig.entries;
       }
     }
+  }
+
+  return updatedConfig;
+}
+
+/**
+ * 构建更新后的配置 raw 字符串
+ */
+function buildConfigRaw(state: ModelConfigState): string | null {
+  if (!state.modelConfigFullSnapshot) {
+    state.lastError = "配置快照缺失，请重新加载后再试";
+    return null;
+  }
+  if (!state.modelConfigHash) {
+    state.lastError = "配置 hash 缺失，请重新加载后再试";
+    return null;
+  }
+
+  const updatedConfig = buildEffectiveConfigSnapshot(state);
+  if (!updatedConfig) {
+    state.lastError = "配置快照缺失，请重新加载后再试";
+    return null;
   }
 
   return JSON.stringify(updatedConfig, null, 2).trimEnd() + "\n";

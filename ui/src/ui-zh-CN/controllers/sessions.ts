@@ -5,7 +5,28 @@
  * 处理会话的加载、创建、更新操作
  * Handles session loading, creation, and update operations
  */
+import { hasModelConfigChanges } from "./config-loader";
 import type { ModelConfigState } from "./state";
+
+function getSessionMutationBlockedReason(state: ModelConfigState): string | null {
+  if (!state.client || !state.connected) {
+    return "当前未连接到 Gateway，暂时无法切换或创建会话。";
+  }
+
+  if (state.modelConfigApplying) {
+    return "配置正在应用，Gateway 正在重启，请等待重新连接后再试。";
+  }
+
+  if (state.modelConfigSaving) {
+    return "配置正在保存，请等待保存完成后再试。";
+  }
+
+  if (hasModelConfigChanges(state)) {
+    return "检测到未保存或未应用的模型配置，请先保存并应用配置，再切换或创建会话。";
+  }
+
+  return null;
+}
 
 /**
  * 加载会话列表
@@ -57,9 +78,13 @@ export async function patchSessionModel(
   model: string | null,
   agentId?: string,
 ): Promise<void> {
-  if (!state.client || !state.connected) {
+  const blockedReason = getSessionMutationBlockedReason(state);
+  if (blockedReason) {
+    state.agentSessionsError = blockedReason;
     return;
   }
+
+  state.agentSessionsError = null;
 
   try {
     // 使用 sessions.patch API 直接修改模型
@@ -89,9 +114,13 @@ export async function createSession(
   sessionName: string,
   model?: string | null,
 ): Promise<{ ok: boolean; key?: string; error?: string }> {
-  if (!state.client || !state.connected) {
-    return { ok: false, error: "未连接到 Gateway" };
+  const blockedReason = getSessionMutationBlockedReason(state);
+  if (blockedReason) {
+    state.agentSessionsError = blockedReason;
+    return { ok: false, error: blockedReason };
   }
+
+  state.agentSessionsError = null;
 
   // 生成会话 key: agent:<agentId>:<sessionName>
   // 将 sessionName 转换为合法的 key（移除空格和特殊字符）
