@@ -7,6 +7,12 @@
  */
 import type { ModelConfigState } from "./state";
 
+function formatWorkspaceError(action: string, err: unknown, workspaceDir?: string): string {
+  const details = String(err);
+  const location = workspaceDir ? ` 当前工作区目录: ${workspaceDir}。` : "";
+  return `${action}: ${details}。${location}请检查 Agent 工作区配置，优先使用绝对路径或以 ~ 开头的路径。`;
+}
+
 /**
  * 加载工作区文件列表
  * Load workspace file list
@@ -38,7 +44,7 @@ export async function loadWorkspaceFiles(state: ModelConfigState): Promise<void>
     state.workspaceDir = res.workspaceDir;
     state.workspaceAgentId = res.agentId;
   } catch (err) {
-    state.workspaceError = "加载文件列表失败: " + String(err);
+    state.workspaceError = formatWorkspaceError("加载文件列表失败", err, state.workspaceDir);
   } finally {
     state.workspaceLoading = false;
   }
@@ -78,7 +84,7 @@ export async function selectWorkspaceFile(
       state.workspaceError = "文件不存在，编辑后保存将自动创建";
     }
   } catch (err) {
-    state.workspaceError = "读取文件失败: " + String(err);
+    state.workspaceError = formatWorkspaceError("读取文件失败", err, state.workspaceDir);
   } finally {
     state.workspaceLoading = false;
   }
@@ -109,7 +115,7 @@ export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> 
     // 刷新文件列表 / Refresh file list
     await loadWorkspaceFiles(state);
   } catch (err) {
-    state.workspaceError = "保存文件失败: " + String(err);
+    state.workspaceError = formatWorkspaceError("保存文件失败", err, state.workspaceDir);
   } finally {
     state.workspaceSaving = false;
   }

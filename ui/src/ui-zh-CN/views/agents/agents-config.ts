@@ -199,10 +199,10 @@ function renderAgentWizard(props: AgentsConfigProps) {
         })}
         ${renderField({
           label: "工作区目录",
-          hint: "Agent 文件存放路径，留空则使用默认路径 agents/{id}",
+          hint: "留空则使用 OpenClaw 默认工作区规则；建议填写绝对路径或以 ~ 开头的路径，避免使用相对路径",
           content: html`<input type="text" class="wizard__input" .value=${data.workspace ?? ""} 
             @input=${(e: Event) => setData("workspace", (e.target as HTMLInputElement).value)} 
-            placeholder="agents/${data.id || "my-agent"}" />`,
+            placeholder="~/agent-workspaces/${data.id || "my-agent"}" />`,
         })}
       </div>
     `;

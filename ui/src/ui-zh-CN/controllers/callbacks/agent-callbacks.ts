@@ -159,10 +159,12 @@ export function createAgentCallbacks(
         return;
       }
 
+      const trimmedWorkspace = data.workspace?.trim();
+
       const newAgent = {
         id: data.id,
         name: data.displayName || data.id,
-        workspace: data.workspace || `agents/${data.id}`,
+        ...(trimmedWorkspace ? { workspace: trimmedWorkspace } : {}),
       };
 
       if (s.modelConfigFullSnapshot) {
