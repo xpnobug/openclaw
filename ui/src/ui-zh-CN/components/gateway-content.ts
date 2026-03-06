@@ -2,7 +2,7 @@
  * Gateway 设置配置内容组件
  * 右侧面板 - 网关模式、网络、Control UI、认证与 Tailscale
  */
-import { html, nothing } from "lit";
+import { html } from "lit";
 import type { GatewayConfig } from "../views/model-config";
 
 const icons = {
@@ -39,8 +39,14 @@ const LABELS = {
   authPasswordHint: "Password 模式下，客户端将使用该密码连接 Gateway。",
   controlUiTitle: "Control UI 设置",
   controlUiDesc: "配置浏览器访问 Control UI 时的来源校验与安全策略。",
+  controlUiEnabled: "启用 Control UI",
+  controlUiEnabledHint: "关闭后 Gateway 将不再提供内置的 Web 管理页面。",
+  controlUiBasePath: "Control UI 基础路径",
+  controlUiBasePathHint: "可选。用于子路径部署，例如 /openclaw。留空表示挂载在根路径。",
   allowedOrigins: "允许的来源",
   allowedOriginsHint: "每行一个来源，例如 http://localhost:19000。支持 *，但仅建议本地调试使用。",
+  allowHostHeaderFallback: "允许 Host 头来源回退（危险）",
+  allowHostHeaderFallbackHint: "仅在明确依赖 Host 头做来源校验的部署场景中启用，优先使用 allowedOrigins。",
   allowInsecureAuth: "允许不安全认证",
   allowInsecureAuthHint: "允许在不安全上下文中尝试认证，但不会自动关闭设备身份校验。",
   disableDeviceAuth: "禁用设备身份校验（危险）",
@@ -266,6 +272,27 @@ export function renderGatewayContent(props: GatewayContentProps) {
           title: LABELS.controlUiTitle,
           desc: LABELS.controlUiDesc,
           content: html`
+            <div class="mc-form-row mc-form-row--2col">
+              ${renderToggleField({
+                label: LABELS.controlUiEnabled,
+                checked: gateway.controlUi?.enabled !== false,
+                hint: LABELS.controlUiEnabledHint,
+                onChange: (checked) => props.onGatewayUpdate(["controlUi", "enabled"], checked),
+              })}
+              <label class="mc-field">
+                <span class="mc-field__label">${LABELS.controlUiBasePath}</span>
+                <input
+                  type="text"
+                  class="mc-input"
+                  .value=${gateway.controlUi?.basePath ?? ""}
+                  placeholder="/openclaw"
+                  @input=${(e: Event) =>
+                    updateString(props, ["controlUi", "basePath"], (e.target as HTMLInputElement).value)}
+                />
+                <span class="mc-field__desc">${LABELS.controlUiBasePathHint}</span>
+              </label>
+            </div>
+
             <label class="mc-field">
               <span class="mc-field__label">${LABELS.allowedOrigins}</span>
               <textarea
@@ -283,6 +310,16 @@ export function renderGatewayContent(props: GatewayContentProps) {
             </label>
 
             <div style="display: grid; gap: 12px; margin-top: 16px;">
+              ${renderToggleField({
+                label: LABELS.allowHostHeaderFallback,
+                checked: gateway.controlUi?.dangerouslyAllowHostHeaderOriginFallback === true,
+                hint: LABELS.allowHostHeaderFallbackHint,
+                onChange: (checked) =>
+                  props.onGatewayUpdate(
+                    ["controlUi", "dangerouslyAllowHostHeaderOriginFallback"],
+                    checked,
+                  ),
+              })}
               ${renderToggleField({
                 label: LABELS.allowInsecureAuth,
                 checked: gateway.controlUi?.allowInsecureAuth === true,
