@@ -98,13 +98,36 @@ export type AgentDefaults = {
   };
 };
 
+export type GatewayControlUiConfig = {
+  enabled?: boolean;
+  basePath?: string;
+  root?: string;
+  allowedOrigins?: string[];
+  dangerouslyAllowHostHeaderOriginFallback?: boolean;
+  allowInsecureAuth?: boolean;
+  dangerouslyDisableDeviceAuth?: boolean;
+};
+
+export type GatewayAuthConfig = {
+  mode?: "none" | "token" | "password" | "trusted-proxy" | string;
+  token?: string;
+  password?: string;
+  allowTailscale?: boolean;
+};
+
+export type GatewayTailscaleConfig = {
+  mode?: "off" | "serve" | "funnel" | string;
+  resetOnExit?: boolean;
+};
+
 export type GatewayConfig = {
   port?: number;
-  bind?: string;
-  auth?: {
-    mode?: string;
-    token?: string;
-  };
+  mode?: "local" | "remote" | string;
+  bind?: "auto" | "lan" | "loopback" | "tailnet" | "custom" | string;
+  customBindHost?: string;
+  controlUi?: GatewayControlUiConfig;
+  auth?: GatewayAuthConfig;
+  tailscale?: GatewayTailscaleConfig;
 };
 
 // 工作区文件信息 / Workspace file info

@@ -88,11 +88,7 @@ function extractGatewayConfig(config: Record<string, unknown>): GatewayConfig {
   const gateway = config.gateway as Record<string, unknown> | undefined;
   if (!gateway) return {};
 
-  return {
-    port: gateway.port as number | undefined,
-    bind: gateway.bind as string | undefined,
-    auth: gateway.auth as GatewayConfig["auth"],
-  };
+  return JSON.parse(JSON.stringify(gateway)) as GatewayConfig;
 }
 
 /**
@@ -212,20 +208,11 @@ export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<st
   }
   (updatedConfig.agents as Record<string, unknown>).defaults = state.modelConfigAgentDefaults;
 
-  // 更新 gateway（合并而不是替换）
-  if (!updatedConfig.gateway) {
-    updatedConfig.gateway = {};
-  }
-  const gatewayConfig = updatedConfig.gateway as Record<string, unknown>;
-  if (state.modelConfigGateway.port !== undefined) {
-    gatewayConfig.port = state.modelConfigGateway.port;
-  }
-  if (state.modelConfigGateway.bind !== undefined) {
-    gatewayConfig.bind = state.modelConfigGateway.bind;
-  }
-  if (state.modelConfigGateway.auth !== undefined) {
-    gatewayConfig.auth = state.modelConfigGateway.auth;
-  }
+  // 更新 gateway（深度合并，保留未在 UI 中展开的字段）
+  updatedConfig.gateway = deepMerge(
+    ((updatedConfig.gateway as Record<string, unknown> | undefined) ?? {}),
+    (state.modelConfigGateway as Record<string, unknown>) ?? {},
+  );
 
   // 更新 channels（深度合并而不是浅合并）
   if (state.modelConfigChannelsConfig) {

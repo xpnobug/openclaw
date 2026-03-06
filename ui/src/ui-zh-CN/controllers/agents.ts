@@ -34,25 +34,53 @@ export function updateAgentDefaults(
 /**
  * 更新 Gateway 配置
  */
+function updateNestedConfigValue(
+  target: Record<string, unknown>,
+  path: string[],
+  value: unknown,
+): Record<string, unknown> {
+  if (path.length === 0) {
+    return target;
+  }
+
+  const [key, ...rest] = path;
+  const next = { ...target };
+
+  if (rest.length === 0) {
+    if (value === undefined) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+    return next;
+  }
+
+  const currentChild = next[key];
+  const child =
+    currentChild && typeof currentChild === "object" && !Array.isArray(currentChild)
+      ? (currentChild as Record<string, unknown>)
+      : {};
+
+  const updatedChild = updateNestedConfigValue(child, rest, value);
+  if (Object.keys(updatedChild).length === 0) {
+    delete next[key];
+  } else {
+    next[key] = updatedChild;
+  }
+
+  return next;
+}
+
 export function updateGatewayConfig(
   state: ModelConfigState,
   path: string[],
   value: unknown,
 ): void {
-  const updated = { ...state.modelConfigGateway };
-
-  if (path.length === 1) {
-    (updated as Record<string, unknown>)[path[0]] = value;
-  } else if (path.length === 2) {
-    const [key, subKey] = path;
-    const current = (updated as Record<string, Record<string, unknown>>)[key] ?? {};
-    (updated as Record<string, unknown>)[key] = {
-      ...current,
-      [subKey]: value,
-    };
-  }
-
-  state.modelConfigGateway = updated;
+  state.modelConfigGateway = updateNestedConfigValue(
+    { ...(state.modelConfigGateway as Record<string, unknown>) },
+    path,
+    value,
+  ) as typeof state.modelConfigGateway;
 }
 
 /**
