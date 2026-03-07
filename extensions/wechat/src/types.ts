@@ -29,6 +29,8 @@ export type WeChatAccountConfig = {
   safetyPrefix?: string;
   /** 最大媒体文件大小（MB） */
   mediaMaxMb?: number;
+  /** 长文本发送阈值（字符数），超过后走 /message/send/longtext，默认 2000 */
+  longTextThreshold?: number;
   /** 群聊中是否需要 @机器人才回复，默认 true */
   requireMention?: boolean;
   /** 消息接收轮询配置 */

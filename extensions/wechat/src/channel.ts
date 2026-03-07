@@ -343,7 +343,7 @@ export const wechatPlugin: ChannelPlugin<ResolvedWeChatAccount> = {
       return chunks;
     },
     chunkerMode: "text",
-    textChunkLimit: 2048,
+    textChunkLimit: 10000,
     sendText: async ({ to, text, accountId, cfg }) => {
       // 检测文本中是否包含 MEDIA: 前缀的音频文件
       const mediaMatch = text.match(/^MEDIA:([^\s]+\.(mp3|wav|m4a|ogg|aac))\s*/i);
@@ -385,15 +385,9 @@ export const wechatPlugin: ChannelPlugin<ResolvedWeChatAccount> = {
       };
     },
     sendMedia: async ({ to, text, mediaUrl, accountId, cfg }) => {
-      // 检测是否为本地语音文件（MEDIA: 前缀 + 音频扩展名）
-      const isLocalMedia = mediaUrl?.startsWith("MEDIA:");
-      const localPath = isLocalMedia ? mediaUrl.slice(6) : null; // 去掉 "MEDIA:" 前缀
-      const isAudio = localPath && /\.(mp3|wav|m4a|ogg|aac)$/i.test(localPath);
-
       const result = await sendMessageWeChat(to, text ?? "", {
         accountId: accountId ?? undefined,
-        mediaUrl: isAudio ? undefined : mediaUrl, // 音频不使用 mediaUrl
-        voiceFilePath: isAudio ? localPath : undefined, // 音频使用 voiceFilePath
+        mediaUrl,
         cfg: cfg as MoltbotConfig,
       });
       return {

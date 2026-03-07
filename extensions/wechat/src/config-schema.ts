@@ -30,6 +30,7 @@ const wechatAccountSchema = z.object({
   commandAllowFrom: z.array(z.string()).optional(), // 指令/工具调用白名单
   safetyPrefix: z.string().optional(), // 访客安全前缀
   mediaMaxMb: z.number().optional(), // 最大媒体文件大小（MB）
+  longTextThreshold: z.number().int().positive().optional(), // 长文本发送阈值（字符数）
   polling: pollingConfigSchema.optional(), // 轮询配置
 });
 

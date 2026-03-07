@@ -5,8 +5,24 @@
  * 使用 /api/v1/chat/history 端点轮询新消息
  */
 
-import type { WeChatChatHistoryItem, WeChatPollingConfig } from "./types.js";
 import { getChatHistory, getContactList, getChatRoomList, getRobotInfo } from "./api.js";
+import { parseWeChatQuotedMessage, type WeChatQuotedMessage } from "./quote-parser.js";
+import type {
+  WeChatAppMessageType,
+  WeChatChatHistoryItem,
+  WeChatMessageType,
+  WeChatPollingConfig,
+} from "./types.js";
+
+/** 引用消息上下文 */
+export type WeChatInboundQuotedMessage = {
+  messageId?: string;
+  sender?: string;
+  senderWxid?: string;
+  chatId?: string;
+  body: string;
+  messageType?: number;
+};
 
 /** 入站消息类型 */
 export type WeChatInboundMessage = {
@@ -22,8 +38,10 @@ export type WeChatInboundMessage = {
   chatId: string; // 聊天 ID（联系人 ID）
   isAtMe: boolean; // 是否 @了我
   isRecalled: boolean; // 是否已撤回
-  messageType: number; // 消息类型
+  messageType: WeChatMessageType; // 消息类型
+  appMessageType?: WeChatAppMessageType; // 应用消息子类型
   attachmentUrl?: string; // 附件 URL
+  quotedMessage?: WeChatInboundQuotedMessage; // 被引用消息上下文
 };
 
 /** 轮询器配置选项 */
@@ -38,10 +56,95 @@ export type WeChatPollingOptions = {
   abortSignal?: AbortSignal; // 中止信号
 };
 
+type WeChatMessageCursor = {
+  timestamp: number;
+  msgId: number;
+};
+
 /** 默认轮询间隔（毫秒） */
 const DEFAULT_POLLING_INTERVAL_MS = 3000;
 /** 默认最大轮询联系人数 */
 const DEFAULT_MAX_POLL_CONTACTS = 50;
+/** 后端单页聊天记录条数（当前后端固定 20） */
+const CHAT_HISTORY_PAGE_SIZE = 20;
+/** 单次轮询每个联系人最多补拉页数，避免极端情况下无限翻页 */
+const MAX_HISTORY_PAGES_PER_POLL = 10;
+/** 启动时默认回看窗口，避免重启瞬间漏掉最近消息 */
+const INITIAL_LOOKBACK_SECONDS = 120;
+/** 轮询重叠窗口，覆盖秒级时间戳和后端写入延迟 */
+const CURSOR_OVERLAP_SECONDS = 2;
+/** seen 集合最大保留数 */
+const MAX_SEEN_MESSAGE_IDS = 20000;
+/** seen 集合裁剪后保留数 */
+const TRIMMED_SEEN_MESSAGE_IDS = 10000;
+
+function buildMessageKey(contactId: string, msgId: number): string {
+  return `${contactId}:${msgId}`;
+}
+
+function compareCursor(a: WeChatMessageCursor, b: WeChatMessageCursor): number {
+  if (a.timestamp !== b.timestamp) {
+    return a.timestamp - b.timestamp;
+  }
+  return a.msgId - b.msgId;
+}
+
+function compareItemToCursor(item: WeChatChatHistoryItem, cursor: WeChatMessageCursor): number {
+  return compareCursor({ timestamp: item.created_at, msgId: item.msg_id }, cursor);
+}
+
+function compareItemsAscending(a: WeChatChatHistoryItem, b: WeChatChatHistoryItem): number {
+  const timestampDelta = a.created_at - b.created_at;
+  if (timestampDelta !== 0) {
+    return timestampDelta;
+  }
+  return a.msg_id - b.msg_id;
+}
+
+function maxCursor(
+  current: WeChatMessageCursor,
+  item: Pick<WeChatChatHistoryItem, "created_at" | "msg_id">,
+): WeChatMessageCursor {
+  const candidate = { timestamp: item.created_at, msgId: item.msg_id };
+  return compareCursor(candidate, current) > 0 ? candidate : current;
+}
+
+function buildScanCursor(cursor: WeChatMessageCursor): WeChatMessageCursor {
+  return {
+    timestamp: Math.max(0, cursor.timestamp - CURSOR_OVERLAP_SECONDS),
+    msgId: 0,
+  };
+}
+
+function isQuotedReplyMessage(item: WeChatChatHistoryItem): boolean {
+  return item.type === 49 && item.app_msg_type === 57;
+}
+
+function isSupportedInboundMessage(item: WeChatChatHistoryItem): boolean {
+  return item.type === 1 || isQuotedReplyMessage(item);
+}
+
+function fallbackMessageBody(item: WeChatChatHistoryItem): string {
+  // 微信后端的 display_full_content 在群聊 @ 场景下经常是“某某在群聊中@了你”这类系统提示，
+  // 不能覆盖真实用户正文，否则 Agent 只会看到提示语而看不到实际消息内容。
+  return item.content?.trim() || item.display_full_content?.trim() || "";
+}
+
+function buildQuotedInboundContext(
+  quotedMessage: WeChatQuotedMessage | null,
+): WeChatInboundQuotedMessage | undefined {
+  if (!quotedMessage?.quotedBody?.trim()) {
+    return undefined;
+  }
+  return {
+    messageId: quotedMessage.quotedMessageId,
+    sender: quotedMessage.quotedSender,
+    senderWxid: quotedMessage.quotedSenderWxid,
+    chatId: quotedMessage.quotedChatId,
+    body: quotedMessage.quotedBody.trim(),
+    messageType: quotedMessage.quotedMessageType,
+  };
+}
 
 /**
  * WeChat message poller class.
@@ -53,8 +156,8 @@ export class WeChatMessagePoller {
   private readonly seenMessageIds = new Set<string>();
   private pollTimer: ReturnType<typeof setTimeout> | null = null;
   private isRunning = false;
-  /** 每个联系人的最后轮询时间戳 */
-  private lastPollTimestamps = new Map<string, number>();
+  /** 每个联系人的最后已确认游标 */
+  private readonly lastPollCursors = new Map<string, WeChatMessageCursor>();
   /** 机器人微信 ID */
   private robotWxid: string | null = null;
   /** 机器人昵称 */
@@ -74,8 +177,6 @@ export class WeChatMessagePoller {
 
     console.log(`[微信] 轮询已启动`);
 
-    // 监听 abortSignal，立即停止轮询器
-    // Listen for abortSignal to immediately stop the poller
     if (this.options.abortSignal) {
       if (this.options.abortSignal.aborted) {
         this.stop();
@@ -91,8 +192,6 @@ export class WeChatMessagePoller {
       );
     }
 
-    // 获取机器人信息（wxid 和昵称）
-    // Fetch robot info to get the robot's wxid and nickname
     try {
       const robotInfo = await getRobotInfo({
         baseUrl: this.options.baseUrl,
@@ -106,15 +205,12 @@ export class WeChatMessagePoller {
       }
     } catch {
       // 忽略获取机器人信息时的错误
-      // Ignore errors when fetching robot info
     }
 
-    // 初始化最后轮询时间戳为当前时间，避免获取旧消息
-    // Initialize last poll timestamps to current time to avoid fetching old messages
-    const now = Math.floor(Date.now() / 1000);
+    // 预热联系人游标，但不要直接跳到当前时间，否则重启时容易漏掉刚到达的消息。
     const contactIds = await this.resolveContactIds();
     for (const contactId of contactIds) {
-      this.lastPollTimestamps.set(contactId, now);
+      this.ensureContactCursor(contactId);
     }
 
     this.schedulePoll();
@@ -165,21 +261,15 @@ export class WeChatMessagePoller {
   private async resolveContactIds(): Promise<string[]> {
     const config = this.options.pollingConfig;
 
-    // 如果指定了联系人 ID 列表，直接使用
-    // If explicit contact IDs are provided, use them
     if (config?.pollContactIds && config.pollContactIds.length > 0) {
       return config.pollContactIds;
     }
 
-    // 如果启用了轮询所有联系人，从目录获取
-    // If pollAllContacts is enabled, fetch from directory
     if (config?.pollAllContacts) {
       const contactIds: string[] = [];
       const maxContacts = config.maxPollContacts ?? DEFAULT_MAX_POLL_CONTACTS;
 
       try {
-        // 获取好友列表
-        // Get friends
         const friendsResponse = await getContactList(
           {
             baseUrl: this.options.baseUrl,
@@ -193,8 +283,6 @@ export class WeChatMessagePoller {
           contactIds.push(contact.wechat_id);
         }
 
-        // 获取群聊列表
-        // Get chat rooms
         if (contactIds.length < maxContacts) {
           const roomsResponse = await getChatRoomList({
             baseUrl: this.options.baseUrl,
@@ -208,7 +296,6 @@ export class WeChatMessagePoller {
         }
       } catch {
         // 忽略获取联系人列表时的错误
-        // Ignore errors when fetching contact list
       }
 
       return contactIds;
@@ -225,86 +312,146 @@ export class WeChatMessagePoller {
     const contactIds = await this.resolveContactIds();
     if (contactIds.length === 0) return;
 
-    // 轮询每个联系人的新消息
-    // Poll each contact for new messages
     for (const contactId of contactIds) {
       if (!this.isRunning) break;
       if (this.options.abortSignal?.aborted) break;
 
       try {
-        const response = await getChatHistory({
-          baseUrl: this.options.baseUrl,
-          apiToken: this.options.apiToken,
-          robotId: this.options.robotId,
-          contactId,
-          pageIndex: 1,
-          pageSize: 20,
-        });
-
-        const items = response.data?.items ?? [];
-        const lastPollTimestamp = this.lastPollTimestamps.get(contactId) ?? 0;
-
-        // 处理新消息（响应中最新的在前，所以反转处理旧的先）
-        // Process new messages (newest first in response, so we reverse to process oldest first)
-        const newMessages = items
-          .filter((item) => {
-            const messageKey = `${contactId}:${item.msg_id}`;
-            if (this.seenMessageIds.has(messageKey)) return false;
-            // 立即添加到已处理集合，防止重复
-            // Add to seen immediately to prevent duplicates
-            this.seenMessageIds.add(messageKey);
-            if (item.created_at <= lastPollTimestamp) return false;
-            return true;
-          })
-          .reverse();
-
-        for (const item of newMessages) {
-          // 跳过机器人自己发送的消息
-          // Skip messages sent by the robot itself
-          if (item.message_source === "robot") continue;
-          if (this.robotWxid && item.sender_wxid === this.robotWxid) continue;
-
-          // 跳过已撤回的消息
-          // Skip recalled messages
-          if (item.is_recalled) continue;
-
-          // 暂时只处理文本消息（type 1 = 文本）
-          // Skip non-text messages for now (type 1 = text)
-          if (item.type !== 1) continue;
-
-          const inboundMessage = this.convertToInboundMessage(item, contactId);
-
-          const sender = item.sender_nickname ?? item.sender_wxid;
-          const content =
-            inboundMessage.body.length > 50
-              ? inboundMessage.body.substring(0, 50) + "..."
-              : inboundMessage.body;
-          const atMe = inboundMessage.isAtMe ? " [@]" : "";
-          console.log(`[微信] 收到消息 ${sender}${atMe}: ${content}`);
-
-          await this.options.onMessage(inboundMessage);
-        }
-
-        // 更新此联系人的最后轮询时间戳
-        // Update last poll timestamp for this contact
-        if (items.length > 0) {
-          const maxTimestamp = Math.max(...items.map((item) => item.created_at));
-          this.lastPollTimestamps.set(contactId, maxTimestamp);
-        }
+        await this.pollContact(contactId);
       } catch (error) {
-        console.error(`[微信] 轮询错误:`, error);
+        console.error(`[微信] 轮询错误 (${contactId}):`, error);
+      }
+    }
+  }
+
+  private ensureContactCursor(contactId: string): WeChatMessageCursor {
+    const existing = this.lastPollCursors.get(contactId);
+    if (existing) {
+      return existing;
+    }
+
+    const initialCursor = {
+      timestamp: Math.max(0, Math.floor(Date.now() / 1000) - INITIAL_LOOKBACK_SECONDS),
+      msgId: 0,
+    };
+    this.lastPollCursors.set(contactId, initialCursor);
+    return initialCursor;
+  }
+
+  private rememberSeenMessage(messageKey: string): void {
+    if (this.seenMessageIds.has(messageKey)) {
+      this.seenMessageIds.delete(messageKey);
+    }
+    this.seenMessageIds.add(messageKey);
+
+    if (this.seenMessageIds.size <= MAX_SEEN_MESSAGE_IDS) {
+      return;
+    }
+
+    const staleIds = Array.from(this.seenMessageIds).slice(
+      0,
+      this.seenMessageIds.size - TRIMMED_SEEN_MESSAGE_IDS,
+    );
+    for (const id of staleIds) {
+      this.seenMessageIds.delete(id);
+    }
+  }
+
+  private async pollContact(contactId: string): Promise<void> {
+    const committedCursor = this.ensureContactCursor(contactId);
+    const scanCursor = buildScanCursor(committedCursor);
+    const items = await this.fetchPendingMessages(contactId, scanCursor);
+    if (items.length === 0) {
+      return;
+    }
+
+    let nextCursor = committedCursor;
+
+    for (const item of items) {
+      const messageKey = buildMessageKey(contactId, item.msg_id);
+
+      if (this.seenMessageIds.has(messageKey)) {
+        nextCursor = maxCursor(nextCursor, item);
+        continue;
+      }
+
+      if (item.message_source === "robot") {
+        this.rememberSeenMessage(messageKey);
+        nextCursor = maxCursor(nextCursor, item);
+        continue;
+      }
+      if (this.robotWxid && item.sender_wxid === this.robotWxid) {
+        this.rememberSeenMessage(messageKey);
+        nextCursor = maxCursor(nextCursor, item);
+        continue;
+      }
+      if (item.is_recalled) {
+        this.rememberSeenMessage(messageKey);
+        nextCursor = maxCursor(nextCursor, item);
+        continue;
+      }
+      if (!isSupportedInboundMessage(item)) {
+        this.rememberSeenMessage(messageKey);
+        nextCursor = maxCursor(nextCursor, item);
+        continue;
+      }
+
+      const inboundMessage = this.convertToInboundMessage(item, contactId);
+      const sender = item.sender_nickname ?? item.sender_wxid;
+      const content =
+        inboundMessage.body.length > 50
+          ? inboundMessage.body.substring(0, 50) + "..."
+          : inboundMessage.body;
+      const atMe = inboundMessage.isAtMe ? " [@]" : "";
+      const quoted = inboundMessage.quotedMessage ? " [引用]" : "";
+      console.log(`[微信] 收到消息 ${sender}${atMe}${quoted}: ${content}`);
+
+      await this.options.onMessage(inboundMessage);
+      this.rememberSeenMessage(messageKey);
+      nextCursor = maxCursor(nextCursor, item);
+    }
+
+    this.lastPollCursors.set(contactId, nextCursor);
+  }
+
+  private async fetchPendingMessages(
+    contactId: string,
+    scanCursor: WeChatMessageCursor,
+  ): Promise<WeChatChatHistoryItem[]> {
+    const pendingItems = new Map<string, WeChatChatHistoryItem>();
+
+    for (let pageIndex = 1; pageIndex <= MAX_HISTORY_PAGES_PER_POLL; pageIndex += 1) {
+      const response = await getChatHistory({
+        baseUrl: this.options.baseUrl,
+        apiToken: this.options.apiToken,
+        robotId: this.options.robotId,
+        contactId,
+        pageIndex,
+        pageSize: CHAT_HISTORY_PAGE_SIZE,
+      });
+
+      const items = response.data?.items ?? [];
+      if (items.length === 0) {
+        break;
+      }
+
+      for (const item of items) {
+        if (compareItemToCursor(item, scanCursor) > 0) {
+          pendingItems.set(buildMessageKey(contactId, item.msg_id), item);
+        }
+      }
+
+      const oldestItem = items[items.length - 1];
+      const reachedCommittedWindow = compareItemToCursor(oldestItem, scanCursor) <= 0;
+      if (reachedCommittedWindow) {
+        break;
+      }
+      if (items.length < CHAT_HISTORY_PAGE_SIZE) {
+        break;
       }
     }
 
-    // 清理旧的已处理消息 ID，防止内存泄漏
-    // Clean up old seen message IDs to prevent memory leak
-    if (this.seenMessageIds.size > 10000) {
-      const idsArray = Array.from(this.seenMessageIds);
-      const toRemove = idsArray.slice(0, 5000);
-      for (const id of toRemove) {
-        this.seenMessageIds.delete(id);
-      }
-    }
+    return Array.from(pendingItems.values()).sort(compareItemsAscending);
   }
 
   /**
@@ -318,15 +465,14 @@ export class WeChatMessagePoller {
     const isChatRoom = item.is_chat_room || contactId.endsWith("@chatroom");
     const content = item.content || "";
     const displayContent = item.display_full_content || "";
+    const quotedMessage = isQuotedReplyMessage(item)
+      ? parseWeChatQuotedMessage({
+          content,
+          displayFullContent: displayContent,
+        })
+      : null;
+    const messageBody = quotedMessage?.currentBody?.trim() || fallbackMessageBody(item);
 
-    // 检查是否 @了我：
-    // 1. API 的 is_atme 字段
-    // 2. display_full_content 包含 "在群聊中@了你"（系统提示）
-    // 3. content 包含 @robotNickname
-    // Check if @mentioned:
-    // 1. API is_atme field
-    // 2. display_full_content contains "在群聊中@了你" (system hint)
-    // 3. content contains @robotNickname
     let isAtMe = item.is_atme;
     if (!isAtMe && displayContent.includes("@了你")) {
       isAtMe = true;
@@ -335,7 +481,6 @@ export class WeChatMessagePoller {
       isAtMe = content.includes(`@${this.robotNickname}`);
     }
 
-    // 调试：输出 @检测信息
     if (isChatRoom) {
       console.log(
         `[微信] @检测: api.is_atme=${item.is_atme}, robotNickname=${this.robotNickname}, content前30字="${content.slice(0, 30)}", 最终isAtMe=${isAtMe}`,
@@ -343,27 +488,29 @@ export class WeChatMessagePoller {
     }
 
     return {
-      id: `${contactId}:${item.msg_id}`,
+      id: buildMessageKey(contactId, item.msg_id),
       msgId: item.msg_id,
       from: isChatRoom ? contactId : item.sender_wxid,
       senderWxid: item.sender_wxid,
       senderNickname: item.sender_nickname,
       toWxid: item.to_wxid,
-      body: content || displayContent,
-      timestamp: item.created_at * 1000, // 转换为毫秒
+      body: messageBody,
+      timestamp: item.created_at * 1000,
       chatType: isChatRoom ? "group" : "direct",
       chatId: contactId,
       isAtMe,
       isRecalled: item.is_recalled,
       messageType: item.type,
+      appMessageType: item.app_msg_type,
       attachmentUrl: item.attachment_url,
+      quotedMessage: buildQuotedInboundContext(quotedMessage),
     };
   }
 }
 
 /**
- * Create a WeChat message poller.
- * 创建微信消息轮询器
+ * Create and start a WeChat message poller.
+ * 创建并启动微信消息轮询器
  */
 export function createWeChatPoller(options: WeChatPollingOptions): WeChatMessagePoller {
   return new WeChatMessagePoller(options);

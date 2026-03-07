@@ -946,6 +946,15 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         section: "messaging",
       },
       {
+        key: "longTextThreshold",
+        label: "长文本阈值 (字符)",
+        type: "number",
+        placeholder: "2000",
+        description:
+          "文本长度超过该值时自动走 /message/send/longtext；带 @ 提及的消息仍走普通文本接口",
+        section: "messaging",
+      },
+      {
         key: "polling.pollingIntervalMs",
         label: "轮询间隔 (ms)",
         type: "number",

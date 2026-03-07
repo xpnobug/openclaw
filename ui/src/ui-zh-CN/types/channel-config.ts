@@ -118,8 +118,9 @@ export type WeChatChannelConfig = BaseChannelConfig & {
   robotId?: number;
   defaultAccount?: string;
   requireMention?: boolean;
-  commandAllowFrom?: string[];  // 指令/工具调用白名单
-  safetyPrefix?: string;        // 访客安全前缀
+  longTextThreshold?: number;
+  commandAllowFrom?: string[]; // 指令/工具调用白名单
+  safetyPrefix?: string; // 访客安全前缀
   polling?: WeChatPollingConfig;
   accounts?: Record<string, WeChatChannelConfig>;
 };
@@ -214,11 +215,11 @@ export type FeishuHeartbeatConfig = {
 
 // 飞书工具配置
 export type FeishuToolsConfig = {
-  doc?: boolean;      // 文档操作
-  wiki?: boolean;     // 知识库操作
-  drive?: boolean;    // 云盘操作
-  perm?: boolean;     // 权限管理
-  scopes?: boolean;   // 应用权限诊断
+  doc?: boolean; // 文档操作
+  wiki?: boolean; // 知识库操作
+  drive?: boolean; // 云盘操作
+  perm?: boolean; // 权限管理
+  scopes?: boolean; // 应用权限诊断
 };
 
 // 飞书群组配置
@@ -248,7 +249,7 @@ export type FeishuAccountConfig = {
   appSecret?: string;
   encryptKey?: string;
   verificationToken?: string;
-  domain?: "feishu" | "lark" | string;
+  domain?: string;
   connectionMode?: "websocket" | "webhook";
   webhookPath?: string;
   webhookPort?: number;
@@ -280,7 +281,7 @@ export type FeishuChannelConfig = BaseChannelConfig & {
   appSecret?: string;
   encryptKey?: string;
   verificationToken?: string;
-  domain?: "feishu" | "lark" | string;
+  domain?: string;
   connectionMode?: "websocket" | "webhook";
   webhookPath?: string;
   webhookPort?: number;
