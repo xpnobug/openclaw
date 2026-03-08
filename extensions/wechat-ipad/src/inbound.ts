@@ -24,6 +24,20 @@ function normalizeIdentity(entry: string): string {
     .toLowerCase();
 }
 
+function formatQuotedMessageFallbackPrefix(
+  quotedMessage?: WechatIpadInboundMessage["quotedMessage"],
+): string {
+  if (!quotedMessage?.quotedBody?.trim()) {
+    return "";
+  }
+
+  const sender =
+    quotedMessage.quotedSender?.trim() || quotedMessage.quotedSenderWxid?.trim() || "原消息";
+  const body = quotedMessage.quotedBody.trim();
+  const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
+  return `【引用 ${sender}】\n${preview}\n\n`;
+}
+
 /**
  * 统一处理 wechat-ipad 入站：策略校验 + 路由 + 回复派发。
  */
@@ -147,18 +161,30 @@ export async function handleWechatIpadInboundMessage(
     OriginatingTo: transportTo,
     UserTrustLevel: isTrusted ? "trusted" : "guest",
     AllowedCapabilities: isTrusted ? ["chat", "tools", "files", "commands"] : ["chat"],
+    ReplyToId: msg.quotedMessage?.quotedMessageId,
+    ReplyToIdFull: msg.quotedMessage?.quotedMessageId,
+    ReplyToBody: msg.quotedMessage?.quotedBody,
+    ReplyToSender: msg.quotedMessage?.quotedSender ?? msg.quotedMessage?.quotedSenderWxid,
+    ReplyToIsQuote: msg.quotedMessage ? true : undefined,
   });
 
   if (!ctxPayload) {
     return;
   }
 
+  let quoteFallbackPending = Boolean(msg.quotedMessage?.quotedBody?.trim());
+  const quoteFallbackPrefix = formatQuotedMessageFallbackPrefix(msg.quotedMessage);
+
   const { dispatcher, replyOptions, markDispatchIdle } =
     runtime.channel.reply.createReplyDispatcherWithTyping({
       deliver: async (payload: { text?: string; body?: string }) => {
-        const text = payload.text ?? payload.body ?? "";
+        let text = payload.text ?? payload.body ?? "";
         if (!text.trim()) {
           return;
+        }
+        if (quoteFallbackPending && quoteFallbackPrefix) {
+          text = `${quoteFallbackPrefix}${text}`;
+          quoteFallbackPending = false;
         }
         await sendWechatIpadText(target, text, {
           baseUrl,

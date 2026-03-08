@@ -2,6 +2,7 @@
  * 通道配置详情组件
  */
 import { html, nothing } from "lit";
+import type { WechatIpadAccountUiState, WechatIpadUiLoginPhase } from "../../controllers/state.js";
 import type {
   ChannelConfigField,
   ChannelMeta,
@@ -15,32 +16,13 @@ import { CHANNEL_METADATA } from "./channel-metadata.js";
 export type ChannelDetailProps = {
   channelsConfig: ChannelsConfigData;
   selectedChannel: string | null;
-  wechatIpadLoginMessage: string | null;
-  wechatIpadLoginQrDataUrl: string | null;
-  wechatIpadLoginConnected: boolean | null;
-  wechatIpadBusy: boolean;
-  wechatIpadLoginType: "ipad" | "win" | "mac" | "car";
-  wechatIpadLoginTypeConfirmOpen: boolean;
-  wechatIpadLoginTypeDraft: "ipad" | "win" | "mac" | "car";
-  wechatIpadLoginTypeConfirmForce: boolean;
-  wechatIpadPhase:
-    | "idle"
-    | "loading_qr"
-    | "qr_ready"
-    | "scanned"
-    | "verification"
-    | "connected"
-    | "expired";
-  wechatIpadCountdownSeconds: number | null;
-  wechatIpadCountdownDeadlineMs: number | null;
-  wechatIpadLastWaitAtMs: number | null;
-  wechatIpadAutoPolling: boolean;
-  wechatIpadRequiresVerification: boolean;
-  wechatIpadTicket: string | null;
-  wechatIpadData62: string | null;
-  wechatIpadVerificationCode: string;
-  wechatIpadVerificationBusy: boolean;
+  wechatIpadSelectedAccountId: string | null;
+  wechatIpadAccountOrder: string[];
+  wechatIpadStateByAccount: Record<string, WechatIpadAccountUiState>;
+  wechatIpadCurrentState: WechatIpadAccountUiState;
+  wechatIpadCurrentPhase: WechatIpadUiLoginPhase;
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
+  onWechatIpadAccountSelect: (accountId: string) => void;
   onWechatIpadStart: (force: boolean) => void;
   onWechatIpadWait: () => void;
   onWechatIpadLogout: () => void;
@@ -54,6 +36,46 @@ export type ChannelDetailProps = {
 /**
  * 渲染通道配置详情
  */
+const WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS = new Set([
+  "name",
+  "baseUrl",
+  "robotId",
+  "wxid",
+  "loginType",
+  "dmPolicy",
+  "groupPolicy",
+  "allowFrom",
+  "commandAllowFrom",
+  "requireMention",
+  "safetyPrefix",
+]);
+
+function isWechatIpadAccountScopedField(fieldKey: string): boolean {
+  return WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS.has(fieldKey) || fieldKey.startsWith("inbound.");
+}
+
+function resolveWechatIpadConfigFieldPath(fieldKey: string, accountId: string | null): string {
+  if (!accountId || !isWechatIpadAccountScopedField(fieldKey)) {
+    return fieldKey;
+  }
+  return `accounts.${accountId}.${fieldKey}`;
+}
+
+function resolveWechatIpadConfigFieldValue(
+  config: Record<string, unknown>,
+  fieldKey: string,
+  accountId: string | null,
+): unknown {
+  if (!accountId || !isWechatIpadAccountScopedField(fieldKey)) {
+    return resolveNestedValue(config, fieldKey);
+  }
+  const accountValue = resolveNestedValue(
+    config,
+    resolveWechatIpadConfigFieldPath(fieldKey, accountId),
+  );
+  return accountValue === undefined ? resolveNestedValue(config, fieldKey) : accountValue;
+}
+
 export function renderChannelDetail(props: ChannelDetailProps) {
   if (!props.selectedChannel) {
     return html`
@@ -70,6 +92,10 @@ export function renderChannelDetail(props: ChannelDetailProps) {
   }
 
   const config = (props.channelsConfig[channel.id] ?? {}) as Record<string, unknown>;
+  const wechatIpadCurrentAccountId =
+    channel.id === "wechat-ipad"
+      ? (props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "default")
+      : null;
 
   // 按 section 分组字段
   const fieldsBySection = new Map<string, ChannelConfigField[]>();
@@ -115,16 +141,28 @@ export function renderChannelDetail(props: ChannelDetailProps) {
             <div class="channel-detail__section">
               <h4 class="channel-detail__section-title">${section.label}</h4>
               <div class="channel-detail__fields">
-                ${fieldsBySection
-                  .get(section.id)!
-                  .map((field) =>
-                    renderConfigField(
-                      channel,
-                      field,
-                      resolveNestedValue(config, field.key),
-                      props.onChannelConfigUpdate,
-                    ),
-                  )}
+                ${fieldsBySection.get(section.id)!.map((field) => {
+                  const actualFieldKey =
+                    channel.id === "wechat-ipad"
+                      ? resolveWechatIpadConfigFieldPath(field.key, wechatIpadCurrentAccountId)
+                      : field.key;
+                  const actualField =
+                    actualFieldKey === field.key ? field : { ...field, key: actualFieldKey };
+                  const value =
+                    channel.id === "wechat-ipad"
+                      ? resolveWechatIpadConfigFieldValue(
+                          config,
+                          field.key,
+                          wechatIpadCurrentAccountId,
+                        )
+                      : resolveNestedValue(config, field.key);
+                  return renderConfigField(
+                    channel,
+                    actualField,
+                    value,
+                    props.onChannelConfigUpdate,
+                  );
+                })}
               </div>
             </div>
           `,
@@ -134,7 +172,7 @@ export function renderChannelDetail(props: ChannelDetailProps) {
   `;
 }
 
-function resolveWechatLoginStatusText(phase: ChannelDetailProps["wechatIpadPhase"]): string {
+function resolveWechatLoginStatusText(phase: WechatIpadUiLoginPhase): string {
   switch (phase) {
     case "loading_qr":
       return "等待二维码生成";
@@ -158,94 +196,196 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
     return nothing;
   }
 
-  const statusText = resolveWechatLoginStatusText(props.wechatIpadPhase);
+  const currentState = props.wechatIpadCurrentState;
+  const statusText = resolveWechatLoginStatusText(props.wechatIpadCurrentPhase);
   const connectedText =
-    props.wechatIpadLoginConnected == null
+    currentState.loginConnected == null
       ? "未知"
-      : props.wechatIpadLoginConnected
+      : currentState.loginConnected
         ? "已连接"
         : "未连接";
+  const currentAccountId =
+    props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "default";
+  const channelConfig = (props.channelsConfig["wechat-ipad"] ?? {}) as Record<string, unknown>;
+  const accountBaseUrl = resolveWechatIpadConfigFieldValue(
+    channelConfig,
+    "baseUrl",
+    currentAccountId,
+  );
+  const accountRobotId = resolveWechatIpadConfigFieldValue(
+    channelConfig,
+    "robotId",
+    currentAccountId,
+  );
+  const accountWxid = resolveWechatIpadConfigFieldValue(channelConfig, "wxid", currentAccountId);
+  const accountLoginType = resolveWechatIpadConfigFieldValue(
+    channelConfig,
+    "loginType",
+    currentAccountId,
+  );
+  const lastWaitText =
+    currentState.lastWaitAtMs != null
+      ? new Date(currentState.lastWaitAtMs).toLocaleTimeString()
+      : null;
+  const startButtonText = currentState.busy
+    ? currentState.phase === "loading_qr"
+      ? "正在获取二维码..."
+      : "处理中..."
+    : "开始扫码";
+  const waitButtonText = currentState.waitInFlight ? "正在检查状态..." : "手动检查状态";
+  const verificationButtonText = currentState.verificationBusy ? "正在提交验证码..." : "提交验证码";
 
   return html`
     <div class="channel-detail__wechat-login">
+      ${
+        props.wechatIpadAccountOrder.length > 0
+          ? html`
+              <div class="channel-detail__wechat-login-device-tabs">
+                ${props.wechatIpadAccountOrder.map(
+                  (accountId) => html`
+                    <button
+                      class=${`mc-btn ${props.wechatIpadSelectedAccountId === accountId ? "mc-btn--primary" : ""}`}
+                      @click=${() => props.onWechatIpadAccountSelect(accountId)}
+                    >
+                      ${accountId}
+                    </button>
+                  `,
+                )}
+              </div>
+            `
+          : nothing
+      }
       <div class="channel-detail__wechat-login-head">
         <h4 class="channel-detail__section-title">扫码登录</h4>
         <div class="channel-detail__wechat-login-status">
           当前状态：${statusText}（连接：${connectedText}）
           ${
-            props.wechatIpadAutoPolling
+            currentState.autoPolling
               ? html`
                   <span class="channel-detail__wechat-login-badge">状态轮询中</span>
                 `
               : nothing
           }
           ${
-            props.wechatIpadCountdownSeconds != null
-              ? html`<span class="channel-detail__wechat-login-countdown">剩余 ${props.wechatIpadCountdownSeconds}s</span>`
+            currentState.countdownSeconds != null
+              ? html`<span class="channel-detail__wechat-login-countdown">剩余 ${currentState.countdownSeconds}s</span>`
               : nothing
           }
         </div>
       </div>
+      <div class="channel-detail__wechat-login-summary">
+        <div class="channel-detail__wechat-login-summary-row">
+          <span class="channel-detail__wechat-login-summary-label">当前账户</span>
+          <span class="channel-detail__wechat-login-summary-value">${currentAccountId}</span>
+        </div>
+        <div class="channel-detail__wechat-login-summary-row">
+          <span class="channel-detail__wechat-login-summary-label">设备类型</span>
+          <span class="channel-detail__wechat-login-summary-value">${
+            typeof (accountLoginType ?? currentState.loginType) === "string"
+              ? (accountLoginType ?? currentState.loginType)
+              : "未配置"
+          }</span>
+        </div>
+        <div class="channel-detail__wechat-login-summary-row">
+          <span class="channel-detail__wechat-login-summary-label">桥接地址</span>
+          <span class="channel-detail__wechat-login-summary-value">${typeof accountBaseUrl === "string" ? accountBaseUrl : "未配置"}</span>
+        </div>
+        <div class="channel-detail__wechat-login-summary-row">
+          <span class="channel-detail__wechat-login-summary-label">机器人 ID</span>
+          <span class="channel-detail__wechat-login-summary-value">${
+            typeof accountRobotId === "string" || typeof accountRobotId === "number"
+              ? accountRobotId
+              : "未配置"
+          }</span>
+        </div>
+        <div class="channel-detail__wechat-login-summary-row">
+          <span class="channel-detail__wechat-login-summary-label">wxid</span>
+          <span class="channel-detail__wechat-login-summary-value">${typeof accountWxid === "string" ? accountWxid : "未登录"}</span>
+        </div>
+        ${
+          lastWaitText
+            ? html`
+                <div class="channel-detail__wechat-login-summary-row">
+                  <span class="channel-detail__wechat-login-summary-label">最近检查</span>
+                  <span class="channel-detail__wechat-login-summary-value">${lastWaitText}</span>
+                </div>
+              `
+            : nothing
+        }
+      </div>
       <div class="channel-detail__wechat-login-actions">
         <button
           class="mc-btn mc-btn--primary"
-          ?disabled=${props.wechatIpadBusy || props.wechatIpadLoginTypeConfirmOpen}
+          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${() => props.onWechatIpadStart(false)}
         >
-          开始扫码
+          ${startButtonText}
         </button>
         <button
           class="mc-btn"
-          ?disabled=${props.wechatIpadBusy || props.wechatIpadLoginTypeConfirmOpen}
+          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${() => props.onWechatIpadStart(true)}
         >
           重新生成二维码
         </button>
         <button
           class="mc-btn"
-          ?disabled=${props.wechatIpadBusy || props.wechatIpadLoginTypeConfirmOpen}
+          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${props.onWechatIpadWait}
         >
-          手动检查状态
+          ${waitButtonText}
         </button>
+        ${
+          currentState.phase === "expired"
+            ? html`
+                <button
+                  class="mc-btn mc-btn--primary"
+                  ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
+                  @click=${() => props.onWechatIpadStart(true)}
+                >
+                  二维码已过期，重新生成
+                </button>
+              `
+            : nothing
+        }
         <button
           class="mc-btn"
-          ?disabled=${props.wechatIpadBusy || props.wechatIpadLoginTypeConfirmOpen}
+          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${props.onWechatIpadLogout}
         >
           退出登录
         </button>
       </div>
       ${
-        props.wechatIpadLoginTypeConfirmOpen
+        currentState.loginTypeConfirmOpen
           ? html`
             <div class="channel-detail__wechat-login-type-confirm">
               <div class="channel-detail__wechat-login-type-confirm-title">选择登录设备类型</div>
               <div class="channel-detail__wechat-login-device-tabs">
                 <button
-                  class=${`mc-btn ${props.wechatIpadLoginTypeDraft === "ipad" ? "mc-btn--primary" : ""}`}
-                  ?disabled=${props.wechatIpadBusy}
+                  class=${`mc-btn ${currentState.loginTypeDraft === "ipad" ? "mc-btn--primary" : ""}`}
+                  ?disabled=${currentState.busy}
                   @click=${() => props.onWechatIpadLoginTypeChange("ipad")}
                 >
                   iPad
                 </button>
                 <button
-                  class=${`mc-btn ${props.wechatIpadLoginTypeDraft === "win" ? "mc-btn--primary" : ""}`}
-                  ?disabled=${props.wechatIpadBusy}
+                  class=${`mc-btn ${currentState.loginTypeDraft === "win" ? "mc-btn--primary" : ""}`}
+                  ?disabled=${currentState.busy}
                   @click=${() => props.onWechatIpadLoginTypeChange("win")}
                 >
                   Windows
                 </button>
                 <button
-                  class=${`mc-btn ${props.wechatIpadLoginTypeDraft === "mac" ? "mc-btn--primary" : ""}`}
-                  ?disabled=${props.wechatIpadBusy}
+                  class=${`mc-btn ${currentState.loginTypeDraft === "mac" ? "mc-btn--primary" : ""}`}
+                  ?disabled=${currentState.busy}
                   @click=${() => props.onWechatIpadLoginTypeChange("mac")}
                 >
                   Mac
                 </button>
                 <button
-                  class=${`mc-btn ${props.wechatIpadLoginTypeDraft === "car" ? "mc-btn--primary" : ""}`}
-                  ?disabled=${props.wechatIpadBusy}
+                  class=${`mc-btn ${currentState.loginTypeDraft === "car" ? "mc-btn--primary" : ""}`}
+                  ?disabled=${currentState.busy}
                   @click=${() => props.onWechatIpadLoginTypeChange("car")}
                 >
                   Car
@@ -254,14 +394,14 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
               <div class="channel-detail__wechat-login-type-confirm-actions">
                 <button
                   class="mc-btn"
-                  ?disabled=${props.wechatIpadBusy}
+                  ?disabled=${currentState.busy}
                   @click=${props.onWechatIpadLoginTypeConfirmCancel}
                 >
                   取消
                 </button>
                 <button
                   class="mc-btn mc-btn--primary"
-                  ?disabled=${props.wechatIpadBusy}
+                  ?disabled=${currentState.busy}
                   @click=${props.onWechatIpadLoginTypeConfirmSubmit}
                 >
                   确认并获取二维码
@@ -272,17 +412,17 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
           : nothing
       }
       ${
-        props.wechatIpadLoginMessage
-          ? html`<div class="channel-detail__wechat-login-message">${props.wechatIpadLoginMessage}</div>`
+        currentState.loginMessage
+          ? html`<div class="channel-detail__wechat-login-message">${currentState.loginMessage}</div>`
           : nothing
       }
       ${
-        props.wechatIpadLoginQrDataUrl
+        currentState.loginQrDataUrl
           ? html`
             <div class="channel-detail__wechat-login-qr-wrap">
               <img
                 class="channel-detail__wechat-login-qr"
-                src=${props.wechatIpadLoginQrDataUrl}
+                src=${currentState.loginQrDataUrl}
                 alt="WeChat iPad 登录二维码"
               />
             </div>
@@ -290,20 +430,20 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
           : nothing
       }
       ${
-        props.wechatIpadRequiresVerification
+        currentState.requiresVerification
           ? html`
             <div class="channel-detail__wechat-verification">
               <div class="channel-detail__wechat-verification-title">安全验证</div>
               <div class="channel-detail__wechat-verification-desc">
                 检测到二次验证，请输入验证码并提交。
                 ${
-                  props.wechatIpadTicket
-                    ? html`<span class="channel-detail__wechat-verification-ticket">ticket: ${props.wechatIpadTicket}</span>`
+                  currentState.ticket
+                    ? html`<span class="channel-detail__wechat-verification-ticket">ticket: ${currentState.ticket}</span>`
                     : nothing
                 }
                 ${
-                  props.wechatIpadData62
-                    ? html`<span class="channel-detail__wechat-verification-ticket">data62: ${props.wechatIpadData62}</span>`
+                  currentState.data62
+                    ? html`<span class="channel-detail__wechat-verification-ticket">data62: ${currentState.data62}</span>`
                     : nothing
                 }
               </div>
@@ -311,8 +451,8 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
                 class="mc-input"
                 type="text"
                 placeholder="请输入验证码"
-                .value=${props.wechatIpadVerificationCode}
-                ?disabled=${props.wechatIpadVerificationBusy}
+                .value=${currentState.verificationCode}
+                ?disabled=${currentState.verificationBusy}
                 @input=${(event: Event) =>
                   props.onWechatIpadVerificationCodeChange(
                     (event.target as HTMLInputElement).value,
@@ -320,10 +460,10 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
               />
               <button
                 class="mc-btn mc-btn--primary"
-                ?disabled=${props.wechatIpadVerificationBusy || !props.wechatIpadVerificationCode.trim()}
+                ?disabled=${currentState.verificationBusy || !currentState.verificationCode.trim()}
                 @click=${props.onWechatIpadSubmitVerificationCode}
               >
-                提交验证码
+                ${verificationButtonText}
               </button>
             </div>
           `

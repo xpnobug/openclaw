@@ -13,6 +13,7 @@
 export {
   // 类型导出
   type ModelConfigState,
+  type WechatIpadAccountUiState,
   type SessionRow,
   type SessionsListResult,
   type ToolProfileId,
@@ -32,6 +33,7 @@ export {
   type WorkspaceFileInfo,
   // 初始化函数
   createInitialModelConfigState,
+  createInitialWechatIpadAccountUiState,
   getDefaultCronState,
 } from "./state";
 

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   checkLoginQr,
+  collectInboundContactIds,
+  listContactIdsViaApi,
   pollInboundMessages,
   requestLoginQr,
   sendMediaViaApi,
@@ -131,6 +133,222 @@ describe("wechat-ipad api requestLoginQr", () => {
     expect(callArg.endpoint).toContain("/api/Login/LoginCheckQR");
   });
 
+  it("lists contact ids via contact list api with seq pagination", async () => {
+    const listRequestFn = vi
+      .fn(async (_arg: RequestArg) => ({
+        CurrentWxcontactSeq: 10,
+        CurrentChatRoomContactSeq: 20,
+        CountinueFlag: 1,
+        ContactUsernameList: ["wxid_a", "room@chatroom", "wxid_bot"],
+      }))
+      .mockResolvedValueOnce({
+        CurrentWxcontactSeq: 10,
+        CurrentChatRoomContactSeq: 20,
+        CountinueFlag: 1,
+        ContactUsernameList: ["wxid_a", "room@chatroom", "wxid_bot"],
+      })
+      .mockResolvedValueOnce({
+        CurrentWxcontactSeq: 11,
+        CurrentChatRoomContactSeq: 21,
+        CountinueFlag: 0,
+        ContactUsernameList: ["wxid_b", "room@chatroom"],
+      });
+
+    const result = await listContactIdsViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+      },
+      listRequestFn,
+    );
+
+    expect(result.contactIds).toEqual(["wxid_a", "room@chatroom", "wxid_b"]);
+    expect(result.currentWxcontactSeq).toBe(11);
+    expect(result.currentChatRoomContactSeq).toBe(21);
+    expect(listRequestFn).toHaveBeenCalledTimes(2);
+
+    const firstArg = listRequestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    const secondArg = listRequestFn.mock.calls[1]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    expect(firstArg.endpoint).toBe("/api/Friend/GetContractList");
+    expect(firstArg.body).toEqual({
+      Wxid: "wxid_bot",
+      CurrentWxcontactSeq: 0,
+      CurrentChatRoomContactSeq: 0,
+    });
+    expect(secondArg.body).toEqual({
+      Wxid: "wxid_bot",
+      CurrentWxcontactSeq: 10,
+      CurrentChatRoomContactSeq: 20,
+    });
+  });
+
+  it("detects group mentions and self messages from sync payload", async () => {
+    const syncRequestFn = vi.fn(async (_arg: RequestArg) => ({
+      AddMsgs: [
+        {
+          MsgId: 101,
+          NewMsgId: 201,
+          FromUserName: { string: "room@chatroom" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 1,
+          Content: { string: "wxid_member:\n@你 hello" },
+          MsgSource:
+            "<msgsource><atuserlist><![CDATA[wxid_bot,wxid_other]]></atuserlist></msgsource>",
+          CreateTime: 1700000000,
+        },
+        {
+          MsgId: 102,
+          NewMsgId: 202,
+          FromUserName: { string: "wxid_bot" },
+          ToUserName: { string: "wxid_friend" },
+          MsgType: 1,
+          Content: { string: "self" },
+          CreateTime: 1700000001,
+        },
+      ],
+    }));
+
+    const result = await pollInboundMessages(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+      },
+      syncRequestFn,
+    );
+
+    expect(result.items).toHaveLength(2);
+    expect(result.items[0]?.isAtMe).toBe(true);
+    expect(result.items[0]?.isFromSelf).toBe(false);
+    expect(result.items[0]?.messageType).toBe(1);
+    expect(result.items[0]?.contentType).toBe("text");
+    expect(result.items[1]?.isAtMe).toBe(false);
+    expect(result.items[1]?.isFromSelf).toBe(true);
+  });
+
+  it("maps high-value inbound message types and quote payload", async () => {
+    const syncRequestFn = vi.fn(async (_arg: RequestArg) => ({
+      AddMsgs: [
+        {
+          MsgId: 201,
+          NewMsgId: 301,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 3,
+          Content: { string: "[图片]" },
+          CreateTime: 1700000100,
+        },
+        {
+          MsgId: 202,
+          NewMsgId: 302,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 34,
+          Content: { string: "[语音]" },
+          CreateTime: 1700000101,
+        },
+        {
+          MsgId: 203,
+          NewMsgId: 303,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 43,
+          Content: { string: "[视频]" },
+          CreateTime: 1700000102,
+        },
+        {
+          MsgId: 204,
+          NewMsgId: 304,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 10002,
+          Content: { string: "你撤回了一条消息" },
+          CreateTime: 1700000103,
+        },
+        {
+          MsgId: 205,
+          NewMsgId: 305,
+          FromUserName: { string: "room@chatroom" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 49,
+          Content: {
+            string:
+              "<msg><appmsg><title><![CDATA[我来回复一下]]></title><type>57</type><refermsg><svrid>123456789</svrid><fromusr><![CDATA[wxid_sender]]></fromusr><chatusr><![CDATA[room@chatroom]]></chatusr><displayname><![CDATA[张三]]></displayname><content><![CDATA[原消息内容 &amp; 细节]]></content><type>1</type></refermsg></appmsg></msg>",
+          },
+          CreateTime: 1700000104,
+        },
+        {
+          MsgId: 206,
+          NewMsgId: 306,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 49,
+          Content: {
+            string: "<msg><appmsg><title><![CDATA[文档]]></title><type>6</type></appmsg></msg>",
+          },
+          CreateTime: 1700000105,
+        },
+        {
+          MsgId: 207,
+          NewMsgId: 307,
+          FromUserName: { string: "wxid_a" },
+          ToUserName: { string: "wxid_bot" },
+          MsgType: 49,
+          Content: {
+            string: "<msg><appmsg><title><![CDATA[文章]]></title><type>5</type></appmsg></msg>",
+          },
+          CreateTime: 1700000106,
+        },
+      ],
+    }));
+
+    const result = await pollInboundMessages(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+      },
+      syncRequestFn,
+    );
+
+    expect(result.items).toHaveLength(7);
+    expect(result.items[0]?.contentType).toBe("image");
+    expect(result.items[1]?.contentType).toBe("voice");
+    expect(result.items[2]?.contentType).toBe("video");
+    expect(result.items[3]?.contentType).toBe("system");
+    expect(result.items[4]?.contentType).toBe("quote");
+    expect(result.items[4]?.appMessageType).toBe(57);
+    expect(result.items[4]?.body).toBe("我来回复一下");
+    expect(result.items[4]?.quotedMessage).toEqual({
+      currentBody: "我来回复一下",
+      quotedBody: "原消息内容 & 细节",
+      quotedSender: "张三",
+      quotedSenderWxid: "wxid_sender",
+      quotedChatId: "room@chatroom",
+      quotedMessageId: "123456789",
+      quotedMessageType: 1,
+      rawXml: expect.stringContaining("<appmsg>"),
+    });
+    expect(result.items[5]?.contentType).toBe("file");
+    expect(result.items[5]?.appMessageType).toBe(6);
+    expect(result.items[6]?.contentType).toBe("link");
+    expect(result.items[6]?.appMessageType).toBe(5);
+  });
+
   it("uses /api/Msg contracts for text/media/sync", async () => {
     const textRequestFn = vi.fn(async (_arg: RequestArg) => ({
       List: [{ NewMsgId: 200 }],
@@ -196,6 +414,7 @@ describe("wechat-ipad api requestLoginQr", () => {
     expect(mediaRes.messageId).toBe("300");
     expect(syncRes.items).toHaveLength(1);
     expect(syncRes.items[0]?.senderId).toBe("wxid_a");
+    expect(syncRes.contactIds).toEqual(["wxid_a"]);
 
     const textArg = textRequestFn.mock.calls[0]?.[0] as RequestArg & {
       body?: Record<string, unknown>;
@@ -216,5 +435,42 @@ describe("wechat-ipad api requestLoginQr", () => {
     expect(syncArg.endpoint).toBe("/api/Msg/Sync");
     expect(syncArg.body?.Wxid).toBe("wxid_bot");
     expect(syncArg.body?.Scene).toBe(0);
+  });
+
+  it("collects inbound contact ids for direct and group messages", () => {
+    const contactIds = collectInboundContactIds([
+      {
+        id: "1",
+        from: "wxid_a",
+        senderId: "wxid_a",
+        chatId: "wxid_a",
+        chatType: "direct",
+        body: "hi",
+        timestamp: 1,
+        isAtMe: false,
+      },
+      {
+        id: "2",
+        from: "room@chatroom",
+        senderId: "wxid_member",
+        chatId: "room@chatroom",
+        chatType: "group",
+        body: "hello",
+        timestamp: 2,
+        isAtMe: false,
+      },
+      {
+        id: "3",
+        from: "wxid_a",
+        senderId: "wxid_a",
+        chatId: "wxid_a",
+        chatType: "direct",
+        body: "repeat",
+        timestamp: 3,
+        isAtMe: false,
+      },
+    ]);
+
+    expect(contactIds).toEqual(["wxid_a", "room@chatroom"]);
   });
 });

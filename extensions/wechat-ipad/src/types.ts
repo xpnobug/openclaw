@@ -121,6 +121,30 @@ export type WechatIpadLoginSession = {
   connectedAt?: number;
 };
 
+export type WechatIpadInboundContentType =
+  | "text"
+  | "image"
+  | "voice"
+  | "video"
+  | "file"
+  | "link"
+  | "quote"
+  | "card"
+  | "system"
+  | "status"
+  | "unknown";
+
+export type WechatIpadQuotedMessage = {
+  currentBody: string;
+  quotedBody?: string;
+  quotedSender?: string;
+  quotedSenderWxid?: string;
+  quotedChatId?: string;
+  quotedMessageId?: string;
+  quotedMessageType?: number;
+  rawXml: string;
+};
+
 export type WechatIpadInboundMessage = {
   id: string;
   msgId?: string;
@@ -133,6 +157,10 @@ export type WechatIpadInboundMessage = {
   timestamp: number;
   isAtMe: boolean;
   isFromSelf?: boolean;
+  messageType?: number;
+  appMessageType?: number;
+  contentType?: WechatIpadInboundContentType;
+  quotedMessage?: WechatIpadQuotedMessage | null;
 };
 
 export type WechatIpadProbeResult = {

@@ -11,7 +11,7 @@ import type {
   ToolPolicyConfig,
   ToolsConfig,
   AgentWithTools,
-} from "../../controllers/model-config";
+} from "../../controllers/state.js";
 import { renderToolsList, renderProfileSection } from "../tools/index.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -27,6 +27,9 @@ export type AgentToolsProps = {
   loading: boolean;
   saving: boolean;
   dirty: boolean;
+
+  // 当前生效配置快照 / Effective config snapshot
+  configForm: Record<string, unknown> | null;
 
   // 全局工具配置 / Global tools config
   toolsConfig: ToolsConfig | null;
@@ -58,15 +61,28 @@ export type AgentToolsProps = {
  * Render agent tools configuration panel
  */
 export function renderAgentTools(props: AgentToolsProps) {
-  const { agentId, agentName, saving, toolsConfig, agentToolsConfigs, toolsExpanded } = props;
+  const { agentId, agentName, saving, configForm, toolsConfig, agentToolsConfigs, toolsExpanded } =
+    props;
 
   // 获取全局配置和 Agent 配置
   const globalConfig = toolsConfig ?? {};
-  const agentConfig = agentToolsConfigs.find((a) => a.id === agentId)?.tools ?? {};
+  const configAgents = Array.isArray(
+    (configForm as { agents?: { list?: unknown } } | null)?.agents?.list,
+  )
+    ? (((configForm as { agents?: { list?: unknown } }).agents?.list ?? []) as Array<
+        Record<string, unknown>
+      >)
+    : [];
+  const snapshotAgentTools = configAgents.find((agent) => agent.id === agentId)?.tools;
+  const agentConfig =
+    agentToolsConfigs.find((a) => a.id === agentId)?.tools ??
+    (snapshotAgentTools && typeof snapshotAgentTools === "object"
+      ? (snapshotAgentTools as ToolPolicyConfig)
+      : {});
 
   // 档案选择 Props
   const profileProps = {
-    profileValue: (agentConfig.profile ?? "__default__") as ToolProfileId | "__default__",
+    profileValue: agentConfig.profile ?? "__default__",
     isGlobal: false,
     globalProfile: globalConfig.profile,
     saving,

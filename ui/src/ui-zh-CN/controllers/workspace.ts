@@ -7,10 +7,157 @@
  */
 import type { ModelConfigState } from "./state";
 
+type WorkspaceListResult = {
+  workspaceDir: string;
+  agentId: string;
+  files: Array<{
+    name: string;
+    path: string;
+    exists: boolean;
+    size: number;
+    modifiedAt: number | null;
+  }>;
+};
+
+type WorkspaceReadResult = {
+  name: string;
+  path: string;
+  exists: boolean;
+  content: string;
+  workspaceDir?: string;
+};
+
 function formatWorkspaceError(action: string, err: unknown, workspaceDir?: string): string {
   const details = String(err);
   const location = workspaceDir ? ` 当前工作区目录: ${workspaceDir}。` : "";
   return `${action}: ${details}。${location}请检查 Agent 工作区配置，优先使用绝对路径或以 ~ 开头的路径。`;
+}
+
+function isWorkspaceMethodUnavailableError(err: unknown): boolean {
+  return /unknown method:\s*workspace\./i.test(String(err));
+}
+
+function getWorkspaceAgentId(state: ModelConfigState): string {
+  return state.workspaceAgentId?.trim() || state.selectedAgentId?.trim() || "";
+}
+
+async function requestWorkspaceFilesList(state: ModelConfigState): Promise<WorkspaceListResult> {
+  try {
+    return (await state.client!.request("workspace.files.list", {
+      agentId: state.workspaceAgentId || undefined,
+    })) as WorkspaceListResult;
+  } catch (err) {
+    if (!isWorkspaceMethodUnavailableError(err)) {
+      throw err;
+    }
+
+    const agentId = getWorkspaceAgentId(state);
+    if (!agentId) {
+      throw err;
+    }
+
+    const res = (await state.client!.request("agents.files.list", {
+      agentId,
+    })) as {
+      agentId: string;
+      workspace: string;
+      files: Array<{
+        name: string;
+        path: string;
+        missing: boolean;
+        size?: number;
+        updatedAtMs?: number;
+      }>;
+    };
+
+    return {
+      workspaceDir: res.workspace,
+      agentId: res.agentId,
+      files: res.files.map((file) => ({
+        name: file.name,
+        path: file.path,
+        exists: !file.missing,
+        size: file.size ?? 0,
+        modifiedAt: file.updatedAtMs ?? null,
+      })),
+    };
+  }
+}
+
+async function requestWorkspaceFileRead(
+  state: ModelConfigState,
+  fileName: string,
+): Promise<WorkspaceReadResult> {
+  try {
+    return (await state.client!.request("workspace.file.read", {
+      fileName,
+      agentId: state.workspaceAgentId || undefined,
+    })) as WorkspaceReadResult;
+  } catch (err) {
+    if (!isWorkspaceMethodUnavailableError(err)) {
+      throw err;
+    }
+
+    const agentId = getWorkspaceAgentId(state);
+    if (!agentId) {
+      throw err;
+    }
+
+    const res = (await state.client!.request("agents.files.get", {
+      agentId,
+      name: fileName,
+    })) as {
+      workspace: string;
+      file: {
+        name: string;
+        path: string;
+        missing: boolean;
+        content?: string;
+      };
+    };
+
+    return {
+      name: res.file.name,
+      path: res.file.path,
+      exists: !res.file.missing,
+      content: res.file.content ?? "",
+      workspaceDir: res.workspace,
+    };
+  }
+}
+
+async function requestWorkspaceFileWrite(
+  state: ModelConfigState,
+  fileName: string,
+  content: string,
+): Promise<{ workspaceDir?: string }> {
+  try {
+    await state.client!.request("workspace.file.write", {
+      fileName,
+      content,
+      agentId: state.workspaceAgentId || undefined,
+    });
+    return {};
+  } catch (err) {
+    if (!isWorkspaceMethodUnavailableError(err)) {
+      throw err;
+    }
+
+    const agentId = getWorkspaceAgentId(state);
+    if (!agentId) {
+      throw err;
+    }
+
+    const res = (await state.client!.request("agents.files.set", {
+      agentId,
+      name: fileName,
+      content,
+    })) as {
+      workspace: string;
+    };
+
+    return { workspaceDir: res.workspace };
+  }
 }
 
 /**
@@ -18,27 +165,16 @@ function formatWorkspaceError(action: string, err: unknown, workspaceDir?: strin
  * Load workspace file list
  */
 export async function loadWorkspaceFiles(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.workspaceLoading = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法，支持 memory/ 目录扫描
-    // Use extension plugin method, supports memory/ directory scanning
-    const res = (await state.client.request("workspace.files.list", {
-      agentId: state.workspaceAgentId || undefined,
-    })) as {
-      workspaceDir: string;
-      agentId: string;
-      files: Array<{
-        name: string;
-        path: string;
-        exists: boolean;
-        size: number;
-        modifiedAt: number | null;
-      }>;
-    };
+    // 优先使用 workspace-editor 扩展；未启用时回退到内建 agents.files.* 方法
+    const res = await requestWorkspaceFilesList(state);
 
     state.workspaceFiles = res.files;
     state.workspaceDir = res.workspaceDir;
@@ -58,27 +194,22 @@ export async function selectWorkspaceFile(
   state: ModelConfigState,
   fileName: string,
 ): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.workspaceSelectedFile = fileName;
   state.workspaceLoading = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法
-    // Use extension plugin method
-    const res = (await state.client.request("workspace.file.read", {
-      fileName,
-      agentId: state.workspaceAgentId || undefined,
-    })) as {
-      name: string;
-      path: string;
-      exists: boolean;
-      content: string;
-    };
+    const res = await requestWorkspaceFileRead(state, fileName);
 
     state.workspaceEditorContent = res.content ?? "";
     state.workspaceOriginalContent = res.content ?? "";
+    if (res.workspaceDir) {
+      state.workspaceDir = res.workspaceDir;
+    }
 
     if (!res.exists) {
       state.workspaceError = "文件不存在，编辑后保存将自动创建";
@@ -95,19 +226,23 @@ export async function selectWorkspaceFile(
  * Save current workspace file
  */
 export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected || !state.workspaceSelectedFile) {return;}
+  if (!state.client || !state.connected || !state.workspaceSelectedFile) {
+    return;
+  }
 
   state.workspaceSaving = true;
   state.workspaceError = null;
 
   try {
-    // 使用扩展插件方法
-    // Use extension plugin method
-    await state.client.request("workspace.file.write", {
-      fileName: state.workspaceSelectedFile,
-      content: state.workspaceEditorContent,
-      agentId: state.workspaceAgentId || undefined,
-    });
+    const res = await requestWorkspaceFileWrite(
+      state,
+      state.workspaceSelectedFile,
+      state.workspaceEditorContent,
+    );
+
+    if (res.workspaceDir) {
+      state.workspaceDir = res.workspaceDir;
+    }
 
     // 保存成功后更新原始内容 / Update original content after save
     state.workspaceOriginalContent = state.workspaceEditorContent;
@@ -125,10 +260,7 @@ export async function saveWorkspaceFile(state: ModelConfigState): Promise<void> 
  * 创建新的工作区文件（设置空内容，等待用户编辑后保存）
  * Create new workspace file (set empty content, wait for user to edit and save)
  */
-export function createWorkspaceFile(
-  state: ModelConfigState,
-  fileName: string,
-): void {
+export function createWorkspaceFile(state: ModelConfigState, fileName: string): void {
   state.workspaceSelectedFile = fileName;
   state.workspaceEditorContent = "";
   state.workspaceOriginalContent = "";
@@ -139,10 +271,7 @@ export function createWorkspaceFile(
  * 更新编辑器内容
  * Update editor content
  */
-export function updateWorkspaceEditorContent(
-  state: ModelConfigState,
-  content: string,
-): void {
+export function updateWorkspaceEditorContent(state: ModelConfigState, content: string): void {
   state.workspaceEditorContent = content;
 }
 

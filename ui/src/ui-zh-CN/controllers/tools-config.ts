@@ -5,12 +5,13 @@
  * 处理工具权限的配置操作
  * Handles tools permission configuration operations
  */
-import type {
-  ModelConfigState,
-  ToolPolicyConfig,
-  ToolProfileId,
-  AgentOption,
-  AgentWithTools,
+import {
+  invalidateModelConfigDerivedState,
+  type ModelConfigState,
+  type ToolPolicyConfig,
+  type ToolProfileId,
+  type AgentOption,
+  type AgentWithTools,
 } from "./state";
 
 /**
@@ -19,7 +20,9 @@ import type {
 export function hasToolsConfigChanges(state: ModelConfigState): boolean {
   const currentGlobal = JSON.stringify(state.toolsConfig ?? {});
   const originalGlobal = JSON.stringify(state.toolsConfigOriginal ?? {});
-  if (currentGlobal !== originalGlobal) return true;
+  if (currentGlobal !== originalGlobal) {
+    return true;
+  }
 
   const currentAgents = JSON.stringify(state.agentToolsConfigs ?? []);
   const originalAgents = JSON.stringify(state.agentToolsConfigsOriginal ?? []);
@@ -38,8 +41,12 @@ export function getToolsAgents(state: ModelConfigState): AgentOption[] {
 
   // 排序：默认 agent 在前
   agents.sort((a, b) => {
-    if (a.isDefault && !b.isDefault) return -1;
-    if (!a.isDefault && b.isDefault) return 1;
+    if (a.isDefault && !b.isDefault) {
+      return -1;
+    }
+    if (!a.isDefault && b.isDefault) {
+      return 1;
+    }
     const aLabel = a.name?.trim() ? a.name : a.id;
     const bLabel = b.name?.trim() ? b.name : b.id;
     return aLabel.localeCompare(bLabel);
@@ -51,10 +58,7 @@ export function getToolsAgents(state: ModelConfigState): AgentOption[] {
 /**
  * 选择工具权限管理的作用域
  */
-export function selectToolsAgent(
-  state: ModelConfigState,
-  agentId: string | null,
-): void {
+export function selectToolsAgent(state: ModelConfigState, agentId: string | null): void {
   state.toolsSelectedAgent = agentId;
 }
 
@@ -74,10 +78,17 @@ export function updateGlobalToolsConfig(
   value: unknown,
 ): void {
   const current = state.toolsConfig ?? {};
-  state.toolsConfig = {
+  const next = {
     ...current,
     [field]: value,
-  };
+  } as ToolPolicyConfig;
+
+  if (next[field] === undefined) {
+    delete next[field];
+  }
+
+  state.toolsConfig = next;
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -91,18 +102,40 @@ export function updateAgentToolsConfig(
 ): void {
   const agents = [...state.agentToolsConfigs];
   const index = agents.findIndex((a) => a.id === agentId);
-  if (index < 0) return;
+  const baseAgent =
+    index >= 0
+      ? agents[index]
+      : state.modelConfigAgentsList.find((agent) => agent.id === agentId)
+        ? {
+            id: agentId,
+            name: state.modelConfigAgentsList.find((agent) => agent.id === agentId)?.name,
+            default: state.modelConfigAgentsList.find((agent) => agent.id === agentId)?.default,
+          }
+        : {
+            id: agentId,
+          };
 
-  const agent = agents[index];
-  const tools = agent.tools ?? {};
-  agents[index] = {
-    ...agent,
-    tools: {
-      ...tools,
-      [field]: value,
-    },
+  const nextTools = {
+    ...baseAgent.tools,
+    [field]: value,
+  } as ToolPolicyConfig;
+  if (nextTools[field] === undefined) {
+    delete nextTools[field];
+  }
+
+  const nextAgent: AgentWithTools = {
+    ...baseAgent,
+    tools: Object.keys(nextTools).length > 0 ? nextTools : undefined,
   };
+
+  if (index >= 0) {
+    agents[index] = nextAgent;
+  } else {
+    agents.push(nextAgent);
+  }
+
   state.agentToolsConfigs = agents;
+  invalidateModelConfigDerivedState(state);
 }
 
 /**
@@ -142,7 +175,9 @@ export function addAgentToolsDenyEntry(
 ): void {
   const agents = [...state.agentToolsConfigs];
   const index = agents.findIndex((a) => a.id === agentId);
-  if (index < 0) return;
+  if (index < 0) {
+    return;
+  }
 
   const agent = agents[index];
   const tools = agent.tools ?? {};
@@ -170,7 +205,9 @@ export function removeAgentToolsDenyEntry(
 ): void {
   const agents = [...state.agentToolsConfigs];
   const index = agents.findIndex((a) => a.id === agentId);
-  if (index < 0) return;
+  if (index < 0) {
+    return;
+  }
 
   const agent = agents[index];
   const tools = agent.tools ?? {};
@@ -190,10 +227,12 @@ export function removeAgentToolsDenyEntry(
  */
 export function extractToolsConfig(config: Record<string, unknown>): ToolPolicyConfig {
   const tools = config.tools as Record<string, unknown> | undefined;
-  if (!tools) return {};
+  if (!tools) {
+    return {};
+  }
 
   return {
-    profile: tools.profile as ToolProfileId | undefined,
+    profile: typeof tools.profile === "string" ? (tools.profile as ToolProfileId) : undefined,
     allow: tools.allow as string[] | undefined,
     alsoAllow: tools.alsoAllow as string[] | undefined,
     deny: tools.deny as string[] | undefined,
@@ -205,10 +244,14 @@ export function extractToolsConfig(config: Record<string, unknown>): ToolPolicyC
  */
 export function extractAgentToolsConfigs(config: Record<string, unknown>): AgentWithTools[] {
   const agents = config.agents as Record<string, unknown> | undefined;
-  if (!agents) return [];
+  if (!agents) {
+    return [];
+  }
 
   const list = agents.list as Array<Record<string, unknown>> | undefined;
-  if (!Array.isArray(list)) return [];
+  if (!Array.isArray(list)) {
+    return [];
+  }
 
   return list
     .filter((entry) => entry && typeof entry === "object")
@@ -218,12 +261,15 @@ export function extractAgentToolsConfigs(config: Record<string, unknown>): Agent
         id: (entry.id as string) ?? "",
         name: entry.name as string | undefined,
         default: entry.default as boolean | undefined,
-        tools: tools ? {
-          profile: tools.profile as ToolProfileId | undefined,
-          allow: tools.allow as string[] | undefined,
-          alsoAllow: tools.alsoAllow as string[] | undefined,
-          deny: tools.deny as string[] | undefined,
-        } : undefined,
+        tools: tools
+          ? {
+              profile:
+                typeof tools.profile === "string" ? (tools.profile as ToolProfileId) : undefined,
+              allow: tools.allow as string[] | undefined,
+              alsoAllow: tools.alsoAllow as string[] | undefined,
+              deny: tools.deny as string[] | undefined,
+            }
+          : undefined,
       };
     })
     .filter((entry) => entry.id);

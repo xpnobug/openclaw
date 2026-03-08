@@ -3,14 +3,16 @@
  * Tools profile selection component
  */
 import { html } from "lit";
-import type { ProfileSectionProps, ToolProfileId } from "./types";
+import { live } from "lit/directives/live.js";
 import { TOOL_PROFILES } from "./constants";
+import type { ProfileSectionProps, ToolProfileId } from "./types";
 
 /**
  * 渲染档案选择区块
  */
 export function renderProfileSection(props: ProfileSectionProps) {
   const { profileValue, isGlobal, globalProfile, saving, onProfileChange } = props;
+  const selectedValue = isGlobal ? (profileValue ?? "") : (profileValue ?? "__default__");
 
   const handleChange = (event: Event) => {
     const target = event.target as HTMLSelectElement;
@@ -33,11 +35,13 @@ export function renderProfileSection(props: ProfileSectionProps) {
         <div>
           <h4 class="permissions-section__title">配置档案</h4>
           <p class="permissions-section__desc">
-            ${isGlobal
-              ? "选择预设的工具配置档案，或留空使用默认配置。"
-              : globalProfile
-                ? `全局档案: ${globalProfile}`
-                : "全局未设置档案，使用系统默认"}
+            ${
+              isGlobal
+                ? "选择预设的工具配置档案，或留空使用默认配置。"
+                : globalProfile
+                  ? `全局档案: ${globalProfile}`
+                  : "全局未设置档案，使用系统默认"
+            }
           </p>
         </div>
       </div>
@@ -49,17 +53,19 @@ export function renderProfileSection(props: ProfileSectionProps) {
               选择预设的工具权限集合
             </span>
           </div>
-          <select class="permissions-select" ?disabled=${saving} @change=${handleChange}>
-            ${isGlobal
-              ? html`<option value="" ?selected=${!profileValue}>
-                  未设置（使用系统默认）
-                </option>`
-              : html`<option value="__default__" ?selected=${profileValue === "__default__" || !profileValue}>
+          <select class="permissions-select" .value=${live(selectedValue)} ?disabled=${saving} @change=${handleChange}>
+            ${
+              isGlobal
+                ? html`
+                    <option value="">未设置（使用系统默认）</option>
+                  `
+                : html`<option value="__default__">
                   使用全局设置${globalProfile ? ` (${globalProfile})` : ""}
-                </option>`}
+                </option>`
+            }
             ${TOOL_PROFILES.map(
               (profile) =>
-                html`<option value=${profile.value} ?selected=${profileValue === profile.value}>
+                html`<option value=${profile.value}>
                   ${profile.label} - ${profile.description}
                 </option>`,
             )}

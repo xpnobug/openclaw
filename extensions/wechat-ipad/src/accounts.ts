@@ -5,6 +5,7 @@ import type {
   ResolvedWechatIpadAccount,
   WechatIpadAccountConfig,
   WechatIpadConfig,
+  WechatIpadInboundConfig,
   WechatIpadInboundMode,
   WechatIpadPollingConfig,
 } from "./types.js";
@@ -28,7 +29,31 @@ function listConfiguredAccountIds(cfg: OpenClawConfig): string[] {
   if (!accounts || typeof accounts !== "object") {
     return [];
   }
-  return Object.keys(accounts).filter(Boolean);
+  return Object.keys(accounts)
+    .map((accountId) => normalizeAccountId(accountId))
+    .filter(Boolean);
+}
+
+function hasDefaultAccountSpecificConfig(cfg: OpenClawConfig): boolean {
+  const section = getWechatIpadConfig(cfg);
+  if (!section) {
+    return false;
+  }
+
+  if (
+    section.accounts &&
+    typeof section.accounts === "object" &&
+    section.accounts[DEFAULT_ACCOUNT_ID]
+  ) {
+    return true;
+  }
+
+  return Boolean(
+    section.name?.trim() ||
+    section.apiToken?.trim() ||
+    section.tokenFile?.trim() ||
+    section.wxid?.trim(),
+  );
 }
 
 function resolveAccountConfig(
@@ -42,11 +67,89 @@ function resolveAccountConfig(
   return accounts[accountId] as WechatIpadAccountConfig | undefined;
 }
 
-function mergeAccountConfig(cfg: OpenClawConfig, accountId: string): WechatIpadAccountConfig {
+function resolveSharedTopLevelDefaults(cfg: OpenClawConfig): WechatIpadAccountConfig {
   const raw = getWechatIpadConfig(cfg) ?? {};
-  const { accounts: _ignored, defaultAccount: _ignored2, ...base } = raw;
-  const account = resolveAccountConfig(cfg, accountId) ?? {};
-  return { ...base, ...account };
+  return {
+    markdown: raw.markdown,
+    baseUrl: raw.baseUrl,
+    robotId: raw.robotId,
+    loginType: raw.loginType,
+    inbound: raw.inbound,
+    dmPolicy: raw.dmPolicy,
+    groupPolicy: raw.groupPolicy,
+    allowFrom: raw.allowFrom,
+    commandAllowFrom: raw.commandAllowFrom,
+    requireMention: raw.requireMention,
+    safetyPrefix: raw.safetyPrefix,
+  };
+}
+
+function resolveDefaultTopLevelConfig(cfg: OpenClawConfig): WechatIpadAccountConfig {
+  const raw = getWechatIpadConfig(cfg) ?? {};
+  const { accounts: _ignored, defaultAccount: _ignoredDefaultAccount, ...base } = raw;
+  return base;
+}
+
+function resolveAccountsDefaultConfig(cfg: OpenClawConfig): WechatIpadAccountConfig {
+  const defaults = resolveAccountConfig(cfg, DEFAULT_ACCOUNT_ID) ?? {};
+  const {
+    enabled: _ignoredEnabled,
+    apiToken: _ignoredApiToken,
+    tokenFile: _ignoredTokenFile,
+    wxid: _ignoredWxid,
+    ...shared
+  } = defaults;
+  return shared;
+}
+
+function mergeInboundConfig(
+  base: WechatIpadInboundConfig | undefined,
+  account: WechatIpadInboundConfig | undefined,
+): WechatIpadInboundConfig | undefined {
+  if (!base && !account) {
+    return undefined;
+  }
+
+  return {
+    ...(base ?? {}),
+    ...(account ?? {}),
+    polling: {
+      ...(base?.polling ?? {}),
+      ...(account?.polling ?? {}),
+    },
+  };
+}
+
+function mergeWechatIpadConfigLayers(
+  ...layers: Array<WechatIpadAccountConfig | undefined>
+): WechatIpadAccountConfig {
+  let merged: WechatIpadAccountConfig = {};
+  for (const layer of layers) {
+    if (!layer) {
+      continue;
+    }
+    merged = {
+      ...merged,
+      ...layer,
+      inbound: mergeInboundConfig(merged.inbound, layer.inbound),
+    };
+  }
+  return merged;
+}
+
+function mergeAccountConfig(cfg: OpenClawConfig, accountId: string): WechatIpadAccountConfig {
+  if (accountId === DEFAULT_ACCOUNT_ID) {
+    return mergeWechatIpadConfigLayers(
+      resolveDefaultTopLevelConfig(cfg),
+      resolveAccountConfig(cfg, accountId),
+    );
+  }
+
+  return mergeWechatIpadConfigLayers(
+    resolveAccountsDefaultConfig(cfg),
+    resolveSharedTopLevelDefaults(cfg),
+    resolveAccountConfig(cfg, accountId),
+  );
 }
 
 function resolveInboundMode(config: WechatIpadAccountConfig): WechatIpadInboundMode {
@@ -60,24 +163,24 @@ function resolvePollingConfig(config: WechatIpadAccountConfig): Required<WechatI
     lookbackSeconds: polling?.lookbackSeconds ?? DEFAULT_POLLING.lookbackSeconds,
     maxPagesPerPoll: polling?.maxPagesPerPoll ?? DEFAULT_POLLING.maxPagesPerPoll,
     pollAllContacts: polling?.pollAllContacts ?? DEFAULT_POLLING.pollAllContacts,
-    pollContactIds: polling?.pollContactIds ?? DEFAULT_POLLING.pollContactIds,
+    pollContactIds: [...(polling?.pollContactIds ?? DEFAULT_POLLING.pollContactIds)],
   };
 }
 
 export function listWechatIpadAccountIds(cfg: OpenClawConfig): string[] {
-  const ids = listConfiguredAccountIds(cfg);
-  if (ids.length === 0) {
-    return [DEFAULT_ACCOUNT_ID];
+  const ids = new Set(listConfiguredAccountIds(cfg));
+  if (hasDefaultAccountSpecificConfig(cfg) || ids.size === 0) {
+    ids.add(DEFAULT_ACCOUNT_ID);
   }
-  return ids.sort((a, b) => a.localeCompare(b));
+  return Array.from(ids).sort((a, b) => a.localeCompare(b));
 }
 
 export function resolveDefaultWechatIpadAccountId(cfg: OpenClawConfig): string {
-  const section = getWechatIpadConfig(cfg);
-  if (section?.defaultAccount?.trim()) {
-    return section.defaultAccount.trim();
-  }
   const ids = listWechatIpadAccountIds(cfg);
+  const preferred = getWechatIpadConfig(cfg)?.defaultAccount?.trim();
+  if (preferred && ids.includes(preferred)) {
+    return preferred;
+  }
   if (ids.includes(DEFAULT_ACCOUNT_ID)) {
     return DEFAULT_ACCOUNT_ID;
   }
@@ -97,17 +200,23 @@ export function resolveWechatIpadAccount(params: {
 
   const normalizedConfig: WechatIpadAccountConfig = {
     ...merged,
+    name: merged.name?.trim() || undefined,
+    baseUrl: merged.baseUrl?.trim() || undefined,
+    apiToken: merged.apiToken?.trim() || undefined,
+    tokenFile: merged.tokenFile?.trim() || undefined,
+    robotId: merged.robotId?.trim() || undefined,
     wxid: merged.wxid?.trim() || undefined,
+    loginType: merged.loginType?.trim().toLowerCase() as WechatIpadAccountConfig["loginType"],
   };
 
   return {
     accountId,
-    name: normalizedConfig.name?.trim() || undefined,
+    name: normalizedConfig.name,
     enabled,
-    baseUrl: normalizedConfig.baseUrl?.trim() || DEFAULT_BASE_URL,
+    baseUrl: normalizedConfig.baseUrl || DEFAULT_BASE_URL,
     apiToken: tokenResolution.token,
     tokenSource: tokenResolution.source,
-    robotId: normalizedConfig.robotId?.trim() || DEFAULT_ROBOT_ID,
+    robotId: normalizedConfig.robotId || DEFAULT_ROBOT_ID,
     inbound: {
       mode: resolveInboundMode(normalizedConfig),
       polling: resolvePollingConfig(normalizedConfig),

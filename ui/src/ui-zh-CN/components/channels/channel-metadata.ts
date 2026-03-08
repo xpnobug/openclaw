@@ -1026,7 +1026,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       },
       {
         key: "loginType",
-        label: "扫码设备类型",
+        label: "默认扫码设备类型",
         type: "select",
         options: [
           { value: "ipad", label: "iPad" },
@@ -1035,6 +1035,8 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
           { value: "car", label: "Car" },
         ],
         section: "api",
+        description:
+          "作为新账户或未单独配置账户的默认值；当前登录面板中的设备类型切换会优先写入选中账户。",
       },
       {
         key: "defaultAccount",

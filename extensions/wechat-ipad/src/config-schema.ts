@@ -1,3 +1,4 @@
+import { normalizeAccountId } from "openclaw/plugin-sdk";
 import { MarkdownConfigSchema } from "openclaw/plugin-sdk";
 import { z } from "zod";
 
@@ -33,7 +34,22 @@ const accountSchema = z.object({
   safetyPrefix: z.string().optional(),
 });
 
-export const WechatIpadConfigSchema = accountSchema.extend({
-  accounts: z.object({}).catchall(accountSchema).optional(),
-  defaultAccount: z.string().optional(),
-});
+export const WechatIpadConfigSchema = accountSchema
+  .extend({
+    accounts: z.object({}).catchall(accountSchema).optional(),
+    defaultAccount: z.string().optional(),
+  })
+  .superRefine((value, ctx) => {
+    const accounts = value.accounts ?? {};
+    const defaultAccount = value.defaultAccount?.trim();
+    if (defaultAccount && Object.keys(accounts).length > 0) {
+      const normalizedDefaultAccount = normalizeAccountId(defaultAccount);
+      if (!Object.prototype.hasOwnProperty.call(accounts, normalizedDefaultAccount)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["defaultAccount"],
+          message: `channels.wechat-ipad.defaultAccount="${defaultAccount}" does not match a configured account key`,
+        });
+      }
+    }
+  });

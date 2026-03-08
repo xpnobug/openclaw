@@ -7,6 +7,7 @@ import type { AgentsConfigProps } from "../views/agents/types";
 import type { WorkspaceFileInfo } from "./model-config";
 import {
   buildEffectiveConfigSnapshot,
+  createInitialWechatIpadAccountUiState,
   getAvailableModels,
   hasModelConfigChanges,
 } from "./model-config";
@@ -113,6 +114,7 @@ type DataProps = Omit<
   | "onNavigateToChannels"
   | "onAddChannel"
   | "onChannelsRefresh"
+  | "onWechatIpadAccountSelect"
   | "onWechatIpadStart"
   | "onWechatIpadWait"
   | "onWechatIpadLogout"
@@ -251,24 +253,15 @@ export function buildPropsData(s: Record<string, any>): DataProps {
     channelsSelectedChannel: s.modelConfigSelectedChannel,
     channelsLoading: s.modelConfigLoading,
     channelsError: null,
-    channelsWechatIpadLoginMessage: s.channelsWechatIpadLoginMessage,
-    channelsWechatIpadLoginQrDataUrl: s.channelsWechatIpadLoginQrDataUrl,
-    channelsWechatIpadLoginConnected: s.channelsWechatIpadLoginConnected,
-    channelsWechatIpadBusy: s.channelsWechatIpadBusy,
-    channelsWechatIpadLoginType: s.channelsWechatIpadLoginType,
-    channelsWechatIpadLoginTypeConfirmOpen: s.channelsWechatIpadLoginTypeConfirmOpen,
-    channelsWechatIpadLoginTypeDraft: s.channelsWechatIpadLoginTypeDraft,
-    channelsWechatIpadLoginTypeConfirmForce: s.channelsWechatIpadLoginTypeConfirmForce,
-    channelsWechatIpadPhase: s.channelsWechatIpadPhase,
-    channelsWechatIpadCountdownSeconds: s.channelsWechatIpadCountdownSeconds,
-    channelsWechatIpadCountdownDeadlineMs: s.channelsWechatIpadCountdownDeadlineMs,
-    channelsWechatIpadLastWaitAtMs: s.channelsWechatIpadLastWaitAtMs,
-    channelsWechatIpadAutoPolling: s.channelsWechatIpadAutoPolling,
-    channelsWechatIpadRequiresVerification: s.channelsWechatIpadRequiresVerification,
-    channelsWechatIpadTicket: s.channelsWechatIpadTicket,
-    channelsWechatIpadData62: s.channelsWechatIpadData62,
-    channelsWechatIpadVerificationCode: s.channelsWechatIpadVerificationCode,
-    channelsWechatIpadVerificationBusy: s.channelsWechatIpadVerificationBusy,
+    channelsWechatIpadSelectedAccountId: s.channelsWechatIpadSelectedAccountId,
+    channelsWechatIpadAccountOrder: s.channelsWechatIpadAccountOrder,
+    channelsWechatIpadStateByAccount: s.channelsWechatIpadStateByAccount,
+    channelsWechatIpadCurrentState:
+      s.channelsWechatIpadStateByAccount[s.channelsWechatIpadSelectedAccountId ?? ""] ??
+      createInitialWechatIpadAccountUiState(),
+    channelsWechatIpadCurrentPhase:
+      s.channelsWechatIpadStateByAccount[s.channelsWechatIpadSelectedAccountId ?? ""]?.phase ??
+      "idle",
 
     // 定时任务
     cronLoading: s.cronLoading,

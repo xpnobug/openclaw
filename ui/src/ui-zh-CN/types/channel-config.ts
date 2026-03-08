@@ -123,7 +123,7 @@ export type WechatIpadInboundConfig = {
   polling?: WechatIpadPollingConfig;
 };
 
-export type WechatIpadChannelConfig = BaseChannelConfig & {
+export type WechatIpadAccountConfig = BaseChannelConfig & {
   name?: string;
   baseUrl?: string;
   apiToken?: string;
@@ -131,12 +131,19 @@ export type WechatIpadChannelConfig = BaseChannelConfig & {
   robotId?: string;
   wxid?: string;
   loginType?: "ipad" | "win" | "mac" | "car";
-  defaultAccount?: string;
   inbound?: WechatIpadInboundConfig;
   commandAllowFrom?: string[];
   requireMention?: boolean;
   safetyPrefix?: string;
-  accounts?: Record<string, WechatIpadChannelConfig>;
+};
+
+export type WechatIpadChannelConfig = WechatIpadAccountConfig & {
+  // 顶层 loginType 作为单账户/默认回退值保留；多账户 UI 优先使用 accounts[accountId].loginType。
+  loginType?: "ipad" | "win" | "mac" | "car";
+  // 多账户 UI 初始选中顺序：defaultAccount -> accounts 首项 -> default。
+  defaultAccount?: string;
+  // 多账户配置；账户值不再递归包含 accounts/defaultAccount。
+  accounts?: Record<string, WechatIpadAccountConfig>;
 };
 
 export type WeChatChannelConfig = BaseChannelConfig & {

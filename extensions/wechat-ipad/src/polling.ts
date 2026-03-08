@@ -1,4 +1,4 @@
-import { pollInboundMessages } from "./api.js";
+import { collectInboundContactIds, listContactIdsViaApi, pollInboundMessages } from "./api.js";
 import type { WechatIpadInboundMessage, WechatIpadPollingConfig } from "./types.js";
 
 export type WechatIpadPollingOptions = {
@@ -18,6 +18,15 @@ const TRIM_GLOBAL_SEEN_TO = 10000;
 const SYNC_BATCH_SIZE = 50;
 const SELF_MSG_SOURCE_MARKER =
   ":\n<msgsource><bizflag>0</bizflag><silence>0</silence><membercount>0</membercount><signature>0</signature><tmp_node>0</tmp_node><sec_msg_node><alnode><fr>0</fr></alnode></sec_msg_node></msgsource>";
+const SUPPORTED_INBOUND_CONTENT_TYPES = new Set([
+  "text",
+  "quote",
+  "image",
+  "voice",
+  "video",
+  "file",
+  "link",
+]);
 
 function buildSeenKey(accountId: string, chatId: string, id: string): string {
   return `${accountId}:${chatId}:${id}`;
@@ -38,6 +47,9 @@ export class WechatIpadMessagePoller {
   private readonly options: WechatIpadPollingOptions;
   private readonly seen = new Set<string>();
   private readonly lastTimestampByContact = new Map<string, number>();
+  private readonly knownContactIds = new Set<string>();
+  private currentWxcontactSeq = 0;
+  private currentChatRoomContactSeq = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
 
@@ -93,7 +105,7 @@ export class WechatIpadMessagePoller {
   }
 
   private async pollOnce(): Promise<void> {
-    const contacts = this.resolveContacts();
+    const contacts = await this.resolveContacts();
     if (contacts.length === 0) {
       return;
     }
@@ -103,14 +115,52 @@ export class WechatIpadMessagePoller {
     }
   }
 
-  private resolveContacts(): string[] {
+  private async resolveContacts(): Promise<string[]> {
     const cfg = this.options.pollingConfig;
     if (cfg.pollContactIds.length > 0) {
       return cfg.pollContactIds;
     }
     if (cfg.pollAllContacts) {
-      // MVP 阶段要求显式联系人列表；pollAllContacts 预留给后端聚合端点。
-      return [];
+      try {
+        const response = await listContactIdsViaApi({
+          options: {
+            baseUrl: this.options.baseUrl,
+            apiToken: this.options.apiToken,
+            robotId: this.options.robotId,
+          },
+          wxid: this.options.wxid,
+          currentWxcontactSeq: this.currentWxcontactSeq,
+          currentChatRoomContactSeq: this.currentChatRoomContactSeq,
+        });
+        this.currentWxcontactSeq = response.currentWxcontactSeq;
+        this.currentChatRoomContactSeq = response.currentChatRoomContactSeq;
+        for (const contactId of response.contactIds) {
+          this.knownContactIds.add(contactId);
+        }
+        if (this.knownContactIds.size > 0) {
+          return Array.from(this.knownContactIds);
+        }
+      } catch {
+        // 通讯录接口不可用时，回退到 Sync 推导联系人，避免阻断入站轮询。
+      }
+
+      const response = await pollInboundMessages({
+        options: {
+          baseUrl: this.options.baseUrl,
+          apiToken: this.options.apiToken,
+          robotId: this.options.robotId,
+        },
+        wxid: this.options.wxid,
+        scene: 0,
+      });
+      const discovered =
+        response.contactIds && response.contactIds.length > 0
+          ? response.contactIds
+          : collectInboundContactIds(response.items ?? []);
+      for (const contactId of discovered) {
+        this.knownContactIds.add(contactId);
+      }
+      return Array.from(this.knownContactIds);
     }
     return [];
   }
@@ -180,6 +230,9 @@ export class WechatIpadMessagePoller {
 
       for (const item of sortedItems) {
         if (item.isFromSelf || item.body.includes(SELF_MSG_SOURCE_MARKER)) {
+          continue;
+        }
+        if (!item.contentType || !SUPPORTED_INBOUND_CONTENT_TYPES.has(item.contentType)) {
           continue;
         }
 

@@ -59,11 +59,29 @@ function applyAgentToolsConfigs(updatedConfig: JsonRecord, state: ModelConfigSta
   }
 
   const agentsConfig = (updatedConfig.agents ??= {}) as JsonRecord;
-  const list = (agentsConfig.list ?? []) as JsonRecord[];
+  const list = Array.isArray(agentsConfig.list) ? (agentsConfig.list as JsonRecord[]) : [];
+  agentsConfig.list = list;
 
   for (const agentTools of state.agentToolsConfigs) {
-    const existingAgent = list.find((agent) => agent.id === agentTools.id);
-    if (!existingAgent || !agentTools.tools) {
+    let existingAgent = list.find((agent) => agent.id === agentTools.id);
+
+    if (!existingAgent) {
+      if (!agentTools.tools) {
+        continue;
+      }
+
+      existingAgent = { id: agentTools.id };
+      if (agentTools.name) {
+        existingAgent.name = agentTools.name;
+      }
+      if (agentTools.default) {
+        existingAgent.default = true;
+      }
+      list.push(existingAgent);
+    }
+
+    if (!agentTools.tools) {
+      delete existingAgent.tools;
       continue;
     }
 
@@ -76,6 +94,10 @@ function applyAgentToolsConfigs(updatedConfig: JsonRecord, state: ModelConfigSta
     setOptionalStringArray(tools, "allow", agentTools.tools.allow);
     setOptionalStringArray(tools, "alsoAllow", agentTools.tools.alsoAllow);
     setOptionalStringArray(tools, "deny", agentTools.tools.deny);
+
+    if (Object.keys(tools).length === 0) {
+      delete existingAgent.tools;
+    }
   }
 }
 

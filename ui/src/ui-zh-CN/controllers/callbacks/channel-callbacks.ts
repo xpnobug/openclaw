@@ -1,6 +1,10 @@
 import type { AgentsConfigProps } from "../../views/agents/types";
 import { loadModelConfig } from "../model-config";
-import { invalidateModelConfigDerivedState } from "../state";
+import {
+  createInitialWechatIpadAccountUiState,
+  invalidateModelConfigDerivedState,
+  type WechatIpadAccountUiState,
+} from "../state";
 /**
  * 通道配置 回调
  */
@@ -13,6 +17,7 @@ type Pick_ = Pick<
   | "onNavigateToChannels"
   | "onAddChannel"
   | "onChannelsRefresh"
+  | "onWechatIpadAccountSelect"
   | "onWechatIpadStart"
   | "onWechatIpadWait"
   | "onWechatIpadLogout"
@@ -72,40 +77,151 @@ function scheduleCountdownTick(update: () => void): number {
   return window.setTimeout(update, 1000);
 }
 
-function clearWechatIpadAutoPollTimer(s: CallbackContext["s"]): void {
-  if (s.channelsWechatIpadAutoPollTimerId != null) {
-    window.clearTimeout(s.channelsWechatIpadAutoPollTimerId);
-    s.channelsWechatIpadAutoPollTimerId = null;
+function toReadableError(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
+
+function getWechatIpadChannelConfig(s: CallbackContext["s"]): Record<string, unknown> {
+  const raw = s.modelConfigChannelsConfig?.["wechat-ipad"];
+  return raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+}
+
+function getWechatIpadAccountsConfig(
+  s: CallbackContext["s"],
+): Record<string, Record<string, unknown>> {
+  const accounts = getWechatIpadChannelConfig(s).accounts;
+  return accounts && typeof accounts === "object"
+    ? (accounts as Record<string, Record<string, unknown>>)
+    : {};
+}
+
+function resolveSelectedWechatIpadAccountId(s: CallbackContext["s"]): string {
+  const selected = s.channelsWechatIpadSelectedAccountId?.trim();
+  if (selected) {
+    return selected;
+  }
+  const first = s.channelsWechatIpadAccountOrder[0]?.trim();
+  if (first) {
+    return first;
+  }
+  const channelConfig = getWechatIpadChannelConfig(s);
+  const defaultAccount =
+    typeof channelConfig.defaultAccount === "string" ? channelConfig.defaultAccount.trim() : "";
+  if (defaultAccount) {
+    return defaultAccount;
+  }
+  const firstAccount = Object.keys(getWechatIpadAccountsConfig(s))[0]?.trim();
+  return firstAccount || "default";
+}
+
+function getWechatIpadAccountState(
+  s: CallbackContext["s"],
+  accountId: string = resolveSelectedWechatIpadAccountId(s),
+): WechatIpadAccountUiState {
+  return ensureWechatIpadAccountState(s, accountId);
+}
+
+function updateWechatIpadAccountState(
+  s: CallbackContext["s"],
+  accountId: string,
+  updater: (state: WechatIpadAccountUiState) => void,
+): WechatIpadAccountUiState {
+  const state = ensureWechatIpadAccountState(s, accountId);
+  updater(state);
+  return state;
+}
+
+function getCurrentWechatIpadState(s: CallbackContext["s"]): WechatIpadAccountUiState {
+  return getWechatIpadAccountState(s, resolveSelectedWechatIpadAccountId(s));
+}
+
+function updateCurrentWechatIpadState(
+  s: CallbackContext["s"],
+  updater: (state: WechatIpadAccountUiState) => void,
+): WechatIpadAccountUiState {
+  return updateWechatIpadAccountState(s, resolveSelectedWechatIpadAccountId(s), updater);
+}
+
+function resolveWechatIpadLoginTypeFromConfig(
+  s: CallbackContext["s"],
+  accountId: string,
+): "ipad" | "win" | "mac" | "car" {
+  const channelConfig = getWechatIpadChannelConfig(s);
+  const accounts = getWechatIpadAccountsConfig(s);
+  return resolveWechatIpadLoginType(accounts[accountId]?.loginType ?? channelConfig.loginType);
+}
+
+function ensureWechatIpadAccountState(
+  s: CallbackContext["s"],
+  accountId: string,
+): WechatIpadAccountUiState {
+  const existing = s.channelsWechatIpadStateByAccount[accountId];
+  if (existing) {
+    return existing;
+  }
+  const loginType = resolveWechatIpadLoginTypeFromConfig(s, accountId);
+  const next: WechatIpadAccountUiState = {
+    ...createInitialWechatIpadAccountUiState(),
+    loginType,
+    loginTypeDraft: loginType,
+  };
+  s.channelsWechatIpadStateByAccount = {
+    ...s.channelsWechatIpadStateByAccount,
+    [accountId]: next,
+  };
+  return next;
+}
+
+function syncWechatIpadAccountOrderFromConfig(s: CallbackContext["s"]): void {
+  const channelConfig = getWechatIpadChannelConfig(s);
+  const accountIds = Object.keys(getWechatIpadAccountsConfig(s));
+  const defaultAccount =
+    typeof channelConfig.defaultAccount === "string" ? channelConfig.defaultAccount.trim() : "";
+  const selected = s.channelsWechatIpadSelectedAccountId?.trim();
+  const fallback = defaultAccount || accountIds[0] || "default";
+  s.channelsWechatIpadAccountOrder = accountIds.length > 0 ? accountIds : [fallback];
+  s.channelsWechatIpadSelectedAccountId =
+    selected && s.channelsWechatIpadAccountOrder.includes(selected) ? selected : fallback;
+  ensureWechatIpadAccountState(s, s.channelsWechatIpadSelectedAccountId);
+}
+
+function selectWechatIpadAccount(s: CallbackContext["s"], accountId: string): void {
+  ensureWechatIpadAccountState(s, accountId);
+  s.channelsWechatIpadSelectedAccountId = accountId;
+}
+
+function clearWechatIpadAutoPollTimer(state: WechatIpadAccountUiState): void {
+  if (state.autoPollTimerId != null) {
+    window.clearTimeout(state.autoPollTimerId);
+    state.autoPollTimerId = null;
   }
 }
 
-function stopWechatIpadAutoPolling(s: CallbackContext["s"]): void {
-  clearWechatIpadAutoPollTimer(s);
-  s.channelsWechatIpadAutoPolling = false;
+function stopWechatIpadAutoPolling(state: WechatIpadAccountUiState): void {
+  clearWechatIpadAutoPollTimer(state);
+  state.autoPolling = false;
 }
 
 function scheduleWechatIpadAutoPoll(
-  s: CallbackContext["s"],
+  state: WechatIpadAccountUiState,
   trigger: () => void,
   delayMs = 3000,
 ): void {
-  clearWechatIpadAutoPollTimer(s);
-  s.channelsWechatIpadAutoPolling = true;
-  s.channelsWechatIpadAutoPollTimerId = window.setTimeout(() => {
-    s.channelsWechatIpadAutoPollTimerId = null;
+  clearWechatIpadAutoPollTimer(state);
+  state.autoPolling = true;
+  state.autoPollTimerId = window.setTimeout(() => {
+    state.autoPollTimerId = null;
     trigger();
   }, delayMs);
 }
 
-function isWechatIpadTerminalPhase(
-  phase: CallbackContext["s"]["channelsWechatIpadPhase"],
-): boolean {
+function isWechatIpadTerminalPhase(phase: WechatIpadAccountUiState["phase"]): boolean {
   return phase === "connected" || phase === "verification" || phase === "expired";
 }
 
 function resolveWechatIpadWaitPhase(
   message: string | null,
-  currentPhase: CallbackContext["s"]["channelsWechatIpadPhase"],
+  currentPhase: WechatIpadAccountUiState["phase"],
 ): "qr_ready" | "scanned" | "expired" {
   const normalized = message ?? "";
   if (/expired|过期|失效/i.test(normalized)) {
@@ -120,29 +236,36 @@ function resolveWechatIpadWaitPhase(
   return currentPhase === "scanned" ? "scanned" : "qr_ready";
 }
 
-function refreshWechatIpadCountdown(s: CallbackContext["s"], update: () => void): void {
-  if (!s.channelsWechatIpadCountdownDeadlineMs) {
-    s.channelsWechatIpadCountdownSeconds = null;
+function refreshWechatIpadCountdown(
+  state: WechatIpadAccountUiState,
+  update: () => void,
+  onTick: () => void,
+): void {
+  if (!state.countdownDeadlineMs) {
+    state.countdownSeconds = null;
     return;
   }
-  const remainingMs = s.channelsWechatIpadCountdownDeadlineMs - Date.now();
+  const remainingMs = state.countdownDeadlineMs - Date.now();
   if (remainingMs <= 0) {
-    s.channelsWechatIpadCountdownSeconds = 0;
-    s.channelsWechatIpadCountdownDeadlineMs = null;
-    if (!s.channelsWechatIpadLoginConnected) {
-      s.channelsWechatIpadPhase = "expired";
+    state.countdownSeconds = 0;
+    state.countdownDeadlineMs = null;
+    if (!state.loginConnected) {
+      state.phase = "expired";
     }
+    onTick();
     update();
     return;
   }
-  s.channelsWechatIpadCountdownSeconds = Math.ceil(remainingMs / 1000);
+  state.countdownSeconds = Math.ceil(remainingMs / 1000);
+  onTick();
   update();
-  scheduleCountdownTick(() => refreshWechatIpadCountdown(s, update));
+  scheduleCountdownTick(() => refreshWechatIpadCountdown(state, update, onTick));
 }
 
 function primeWechatIpadCountdown(
-  s: CallbackContext["s"],
+  state: WechatIpadAccountUiState,
   update: () => void,
+  onTick: () => void,
   params: { message?: string | null; expiredTime?: unknown },
 ): void {
   const countdownSeconds =
@@ -151,35 +274,36 @@ function primeWechatIpadCountdown(
   if (countdownSeconds == null) {
     return;
   }
-  s.channelsWechatIpadCountdownDeadlineMs = Date.now() + countdownSeconds * 1000;
-  s.channelsWechatIpadCountdownSeconds = countdownSeconds;
-  scheduleCountdownTick(() => refreshWechatIpadCountdown(s, update));
-}
-
-function toReadableError(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
+  state.countdownDeadlineMs = Date.now() + countdownSeconds * 1000;
+  state.countdownSeconds = countdownSeconds;
+  scheduleCountdownTick(() => refreshWechatIpadCountdown(state, update, onTick));
 }
 
 function applyWechatIpadLoginTypeToConfig(
   s: CallbackContext["s"],
+  accountId: string,
   loginType: "ipad" | "win" | "mac" | "car",
 ): void {
   const current = s.modelConfigChannelsConfig ?? {};
-  const channelConfig = JSON.parse(JSON.stringify(current["wechat-ipad"] ?? {}));
-  channelConfig.loginType = loginType;
+  const channelConfig = JSON.parse(JSON.stringify(current["wechat-ipad"] ?? {})) as Record<
+    string,
+    unknown
+  >;
+  const accounts =
+    channelConfig.accounts && typeof channelConfig.accounts === "object"
+      ? (channelConfig.accounts as Record<string, Record<string, unknown>>)
+      : {};
+  const accountConfig =
+    accounts[accountId] && typeof accounts[accountId] === "object" ? accounts[accountId] : {};
+  channelConfig.accounts = {
+    ...accounts,
+    [accountId]: {
+      ...accountConfig,
+      loginType,
+    },
+  };
   s.modelConfigChannelsConfig = { ...current, ["wechat-ipad"]: channelConfig };
   invalidateModelConfigDerivedState(s);
-}
-
-function resolveWechatIpadLoginTypeFromState(
-  s: CallbackContext["s"],
-): "ipad" | "win" | "mac" | "car" {
-  const rawConfig = s.modelConfigChannelsConfig?.["wechat-ipad"];
-  const configLoginType =
-    rawConfig && typeof rawConfig === "object"
-      ? (rawConfig as { loginType?: unknown }).loginType
-      : undefined;
-  return resolveWechatIpadLoginType(configLoginType ?? s.channelsWechatIpadLoginType);
 }
 
 export function createChannelCallbacks(
@@ -188,42 +312,55 @@ export function createChannelCallbacks(
 ): Pick_ {
   const { s, update } = ctx;
 
-  const triggerWechatIpadAutoWait = () => {
+  const touchWechatIpadState = (accountId: string): WechatIpadAccountUiState => {
+    const state = getWechatIpadAccountState(s, accountId);
+    selectWechatIpadAccount(s, accountId);
+    return state;
+  };
+
+  const triggerWechatIpadAutoWait = (accountId: string) => {
+    const state = touchWechatIpadState(accountId);
     if (
-      !s.channelsWechatIpadLoginQrDataUrl ||
-      isWechatIpadTerminalPhase(s.channelsWechatIpadPhase) ||
-      s.channelsWechatIpadCountdownSeconds === 0
+      !state.loginQrDataUrl ||
+      isWechatIpadTerminalPhase(state.phase) ||
+      state.countdownSeconds === 0
     ) {
-      stopWechatIpadAutoPolling(s);
+      stopWechatIpadAutoPolling(state);
+      selectWechatIpadAccount(s, accountId);
       update();
       return;
     }
-    void runWechatIpadWait(true);
+    void runWechatIpadWait(accountId, true);
   };
 
-  async function runWechatIpadWait(fromAutoPoll: boolean): Promise<void> {
+  async function runWechatIpadWait(accountId: string, fromAutoPoll: boolean): Promise<void> {
     if (!s.client || !s.connected) {
       if (fromAutoPoll) {
-        stopWechatIpadAutoPolling(s);
+        stopWechatIpadAutoPolling(touchWechatIpadState(accountId));
+        selectWechatIpadAccount(s, accountId);
         update();
       }
       return;
     }
 
+    const state = touchWechatIpadState(accountId);
+
     if (
       fromAutoPoll &&
-      (!s.channelsWechatIpadLoginQrDataUrl ||
-        isWechatIpadTerminalPhase(s.channelsWechatIpadPhase) ||
-        s.channelsWechatIpadCountdownSeconds === 0)
+      (!state.loginQrDataUrl ||
+        isWechatIpadTerminalPhase(state.phase) ||
+        state.countdownSeconds === 0)
     ) {
-      stopWechatIpadAutoPolling(s);
+      stopWechatIpadAutoPolling(state);
+      selectWechatIpadAccount(s, accountId);
       update();
       return;
     }
 
-    if (s.channelsWechatIpadBusy || s.channelsWechatIpadWaitInFlight) {
-      if (fromAutoPoll && s.channelsWechatIpadAutoPolling) {
-        scheduleWechatIpadAutoPoll(s, triggerWechatIpadAutoWait, 1500);
+    if (state.busy || state.waitInFlight) {
+      if (fromAutoPoll && state.autoPolling) {
+        scheduleWechatIpadAutoPoll(state, () => triggerWechatIpadAutoWait(accountId), 1500);
+        selectWechatIpadAccount(s, accountId);
         update();
       }
       return;
@@ -232,12 +369,13 @@ export function createChannelCallbacks(
     let shouldScheduleNext = false;
     let nextDelayMs = 3000;
 
-    s.channelsWechatIpadWaitInFlight = true;
-    s.channelsWechatIpadBusy = true;
-    s.channelsWechatIpadLastWaitAtMs = Date.now();
-    if (s.channelsWechatIpadPhase === "qr_ready") {
-      s.channelsWechatIpadPhase = "scanned";
+    state.waitInFlight = true;
+    state.busy = true;
+    state.lastWaitAtMs = Date.now();
+    if (state.phase === "qr_ready") {
+      state.phase = "scanned";
     }
+    selectWechatIpadAccount(s, accountId);
     update();
 
     try {
@@ -251,67 +389,68 @@ export function createChannelCallbacks(
       }>("web.login.wait", {
         channel: "wechat-ipad",
         timeoutMs: 120000,
-        accountId: "default",
+        accountId,
       });
 
-      s.channelsWechatIpadLoginMessage = res.message ?? null;
-      s.channelsWechatIpadLoginConnected = res.connected ?? null;
-      s.channelsWechatIpadRequiresVerification = res.requiresVerification === true;
-      s.channelsWechatIpadTicket = res.ticket ?? null;
+      state.loginMessage = res.message ?? null;
+      state.loginConnected = res.connected ?? null;
+      state.requiresVerification = res.requiresVerification === true;
+      state.ticket = res.ticket ?? null;
       if (res.data62) {
-        s.channelsWechatIpadData62 = res.data62;
+        state.data62 = res.data62;
       }
 
       if (res.connected) {
-        s.channelsWechatIpadLoginQrDataUrl = null;
-        s.channelsWechatIpadRequiresVerification = false;
-        s.channelsWechatIpadTicket = null;
-        s.channelsWechatIpadVerificationCode = "";
-        s.channelsWechatIpadPhase = "connected";
-        s.channelsWechatIpadCountdownDeadlineMs = null;
-        s.channelsWechatIpadCountdownSeconds = null;
-        stopWechatIpadAutoPolling(s);
+        state.loginQrDataUrl = null;
+        state.requiresVerification = false;
+        state.ticket = null;
+        state.verificationCode = "";
+        state.phase = "connected";
+        state.countdownDeadlineMs = null;
+        state.countdownSeconds = null;
+        stopWechatIpadAutoPolling(state);
       } else if (res.requiresVerification) {
-        s.channelsWechatIpadPhase = "verification";
-        stopWechatIpadAutoPolling(s);
+        state.phase = "verification";
+        stopWechatIpadAutoPolling(state);
       } else {
         const message = res.message ?? "";
-        const nextPhase = resolveWechatIpadWaitPhase(message, s.channelsWechatIpadPhase);
-        if (nextPhase === "expired" || s.channelsWechatIpadCountdownSeconds === 0) {
-          s.channelsWechatIpadPhase = "expired";
-          s.channelsWechatIpadCountdownDeadlineMs = null;
-          s.channelsWechatIpadCountdownSeconds = null;
-          stopWechatIpadAutoPolling(s);
+        const nextPhase = resolveWechatIpadWaitPhase(message, state.phase);
+        if (nextPhase === "expired" || state.countdownSeconds === 0) {
+          state.phase = "expired";
+          state.countdownDeadlineMs = null;
+          state.countdownSeconds = null;
+          stopWechatIpadAutoPolling(state);
         } else {
-          s.channelsWechatIpadPhase = nextPhase;
-          if (fromAutoPoll || s.channelsWechatIpadAutoPolling) {
+          state.phase = nextPhase;
+          if (fromAutoPoll || state.autoPolling) {
             shouldScheduleNext = true;
           }
         }
       }
     } catch (err) {
-      s.channelsWechatIpadLoginMessage = toReadableError(err);
-      s.channelsWechatIpadLoginConnected = null;
-      s.channelsWechatIpadRequiresVerification = false;
-      if (fromAutoPoll || s.channelsWechatIpadAutoPolling) {
+      state.loginMessage = toReadableError(err);
+      state.loginConnected = null;
+      state.requiresVerification = false;
+      if (fromAutoPoll || state.autoPolling) {
         shouldScheduleNext = true;
         nextDelayMs = 5000;
       }
     } finally {
-      s.channelsWechatIpadWaitInFlight = false;
-      s.channelsWechatIpadBusy = false;
+      state.waitInFlight = false;
+      state.busy = false;
 
       if (
         shouldScheduleNext &&
-        s.channelsWechatIpadLoginQrDataUrl &&
-        !isWechatIpadTerminalPhase(s.channelsWechatIpadPhase) &&
-        s.channelsWechatIpadCountdownSeconds !== 0
+        state.loginQrDataUrl &&
+        !isWechatIpadTerminalPhase(state.phase) &&
+        state.countdownSeconds !== 0
       ) {
-        scheduleWechatIpadAutoPoll(s, triggerWechatIpadAutoWait, nextDelayMs);
+        scheduleWechatIpadAutoPoll(state, () => triggerWechatIpadAutoWait(accountId), nextDelayMs);
       } else if (fromAutoPoll) {
-        stopWechatIpadAutoPolling(s);
+        stopWechatIpadAutoPolling(state);
       }
 
+      selectWechatIpadAccount(s, accountId);
       update();
     }
   }
@@ -320,9 +459,8 @@ export function createChannelCallbacks(
     onChannelSelect: (channelId) => {
       s.modelConfigSelectedChannel = channelId;
       if (channelId === "wechat-ipad") {
-        const loginType = resolveWechatIpadLoginTypeFromState(s);
-        s.channelsWechatIpadLoginType = loginType;
-        s.channelsWechatIpadLoginTypeDraft = loginType;
+        syncWechatIpadAccountOrderFromConfig(s);
+        selectWechatIpadAccount(s, resolveSelectedWechatIpadAccountId(s));
       }
       update();
     },
@@ -343,18 +481,25 @@ export function createChannelCallbacks(
         target[parts[parts.length - 1]] = value;
       }
       s.modelConfigChannelsConfig = { ...current, [channelId]: channelConfig };
-      if (channelId === "wechat-ipad" && field === "loginType") {
-        const resolved = resolveWechatIpadLoginType(value);
-        s.channelsWechatIpadLoginType = resolved;
-        if (!s.channelsWechatIpadLoginTypeConfirmOpen) {
-          s.channelsWechatIpadLoginTypeDraft = resolved;
+      if (channelId === "wechat-ipad") {
+        syncWechatIpadAccountOrderFromConfig(s);
+        const selectedAccountId = resolveSelectedWechatIpadAccountId(s);
+        const accountScopedLoginTypeMatch = field.match(/^accounts\.([^.]+)\.loginType$/);
+        const loginTypeAccountId = accountScopedLoginTypeMatch?.[1] ?? selectedAccountId;
+        const state = ensureWechatIpadAccountState(s, loginTypeAccountId);
+        if (field === "loginType" || accountScopedLoginTypeMatch) {
+          const resolved = resolveWechatIpadLoginType(value);
+          state.loginType = resolved;
+          if (!state.loginTypeConfirmOpen) {
+            state.loginTypeDraft = resolved;
+          }
         }
+        selectWechatIpadAccount(s, selectedAccountId);
       }
       invalidateModelConfigDerivedState(s);
       update();
     },
     onNavigateToChannels: () => {
-      // 通过 DOM 事件通知外部
       const el = document.querySelector("openclaw-config-zh");
       el?.dispatchEvent(new CustomEvent("navigate-channels", { bubbles: true, composed: true }));
     },
@@ -364,93 +509,123 @@ export function createChannelCallbacks(
     },
     onChannelsRefresh: () => {
       void Promise.all([loadModelConfig(s), extra.loadChannelsStatus()]).then(() => {
-        const loginType = resolveWechatIpadLoginTypeFromState(s);
-        s.channelsWechatIpadLoginType = loginType;
-        s.channelsWechatIpadLoginTypeDraft = loginType;
+        syncWechatIpadAccountOrderFromConfig(s);
+        selectWechatIpadAccount(s, resolveSelectedWechatIpadAccountId(s));
         update();
       });
     },
+    onWechatIpadAccountSelect: (accountId) => {
+      updateWechatIpadAccountState(s, accountId, (state) => {
+        state.loginType = resolveWechatIpadLoginTypeFromConfig(s, accountId);
+        if (!state.loginTypeConfirmOpen) {
+          state.loginTypeDraft = state.loginType;
+        }
+      });
+      selectWechatIpadAccount(s, accountId);
+      update();
+    },
     onWechatIpadStart: (force) => {
-      if (!s.client || !s.connected || s.channelsWechatIpadBusy) {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = getCurrentWechatIpadState(s);
+      if (!s.client || !s.connected || state.busy) {
         return;
       }
-      stopWechatIpadAutoPolling(s);
-      s.channelsWechatIpadLoginTypeConfirmOpen = true;
-      s.channelsWechatIpadLoginTypeConfirmForce = force;
-      s.channelsWechatIpadLoginTypeDraft = resolveWechatIpadLoginTypeFromState(s);
+      updateCurrentWechatIpadState(s, (currentState) => {
+        stopWechatIpadAutoPolling(currentState);
+        currentState.loginTypeConfirmOpen = true;
+        currentState.loginTypeConfirmForce = force;
+        currentState.loginTypeDraft = resolveWechatIpadLoginTypeFromConfig(s, accountId);
+      });
+      selectWechatIpadAccount(s, accountId);
       update();
     },
     onWechatIpadWait: async () => {
-      await runWechatIpadWait(false);
+      await runWechatIpadWait(resolveSelectedWechatIpadAccountId(s), false);
     },
     onWechatIpadLogout: async () => {
-      if (!s.client || !s.connected || s.channelsWechatIpadBusy) {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = getCurrentWechatIpadState(s);
+      if (!s.client || !s.connected || state.busy) {
         return;
       }
-      stopWechatIpadAutoPolling(s);
-      s.channelsWechatIpadBusy = true;
+      updateCurrentWechatIpadState(s, (currentState) => {
+        stopWechatIpadAutoPolling(currentState);
+        currentState.busy = true;
+      });
+      selectWechatIpadAccount(s, accountId);
       update();
       try {
-        await s.client.request("channels.logout", { channel: "wechat-ipad", accountId: "default" });
-        s.channelsWechatIpadLoginMessage = "已退出登录。";
-        s.channelsWechatIpadLoginQrDataUrl = null;
-        s.channelsWechatIpadLoginConnected = null;
-        s.channelsWechatIpadRequiresVerification = false;
-        s.channelsWechatIpadTicket = null;
-        s.channelsWechatIpadData62 = null;
-        s.channelsWechatIpadVerificationCode = "";
-        s.channelsWechatIpadVerificationBusy = false;
-        s.channelsWechatIpadPhase = "idle";
-        s.channelsWechatIpadCountdownDeadlineMs = null;
-        s.channelsWechatIpadCountdownSeconds = null;
-        s.channelsWechatIpadLoginTypeConfirmOpen = false;
-        s.channelsWechatIpadLoginTypeConfirmForce = false;
+        await s.client.request("channels.logout", { channel: "wechat-ipad", accountId });
+        updateCurrentWechatIpadState(s, (currentState) => {
+          Object.assign(currentState, createInitialWechatIpadAccountUiState(), {
+            loginType: resolveWechatIpadLoginTypeFromConfig(s, accountId),
+            loginTypeDraft: resolveWechatIpadLoginTypeFromConfig(s, accountId),
+            loginMessage: "已退出登录。",
+          });
+        });
       } catch (err) {
-        s.channelsWechatIpadLoginMessage = toReadableError(err);
+        updateCurrentWechatIpadState(s, (currentState) => {
+          currentState.loginMessage = toReadableError(err);
+        });
       } finally {
-        s.channelsWechatIpadBusy = false;
-        s.channelsWechatIpadWaitInFlight = false;
+        updateCurrentWechatIpadState(s, (currentState) => {
+          currentState.busy = false;
+          currentState.waitInFlight = false;
+        });
+        selectWechatIpadAccount(s, accountId);
         update();
       }
     },
     onWechatIpadLoginTypeChange: (loginType) => {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
       const resolvedLoginType = resolveWechatIpadLoginType(loginType);
-      s.channelsWechatIpadLoginTypeDraft = resolvedLoginType;
-      if (!s.channelsWechatIpadLoginTypeConfirmOpen) {
-        s.channelsWechatIpadLoginType = resolvedLoginType;
-        applyWechatIpadLoginTypeToConfig(s, resolvedLoginType);
-      }
+      updateCurrentWechatIpadState(s, (currentState) => {
+        currentState.loginTypeDraft = resolvedLoginType;
+        if (!currentState.loginTypeConfirmOpen) {
+          currentState.loginType = resolvedLoginType;
+          applyWechatIpadLoginTypeToConfig(s, accountId, resolvedLoginType);
+        }
+      });
+      selectWechatIpadAccount(s, accountId);
       update();
     },
     onWechatIpadLoginTypeConfirmCancel: () => {
-      if (s.channelsWechatIpadBusy) {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = getCurrentWechatIpadState(s);
+      if (state.busy) {
         return;
       }
-      s.channelsWechatIpadLoginTypeConfirmOpen = false;
-      s.channelsWechatIpadLoginTypeConfirmForce = false;
-      s.channelsWechatIpadLoginTypeDraft = s.channelsWechatIpadLoginType;
+      updateCurrentWechatIpadState(s, (currentState) => {
+        currentState.loginTypeConfirmOpen = false;
+        currentState.loginTypeConfirmForce = false;
+        currentState.loginTypeDraft = currentState.loginType;
+      });
+      selectWechatIpadAccount(s, accountId);
       update();
     },
     onWechatIpadLoginTypeConfirmSubmit: async () => {
-      if (!s.client || !s.connected || s.channelsWechatIpadBusy) {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = touchWechatIpadState(accountId);
+      if (!s.client || !s.connected || state.busy) {
         return;
       }
 
-      const force = s.channelsWechatIpadLoginTypeConfirmForce;
-      const loginType = resolveWechatIpadLoginType(s.channelsWechatIpadLoginTypeDraft);
+      const force = state.loginTypeConfirmForce;
+      const loginType = resolveWechatIpadLoginType(state.loginTypeDraft);
 
-      s.channelsWechatIpadLoginType = loginType;
-      s.channelsWechatIpadLoginTypeDraft = loginType;
-      applyWechatIpadLoginTypeToConfig(s, loginType);
+      state.loginType = loginType;
+      state.loginTypeDraft = loginType;
+      applyWechatIpadLoginTypeToConfig(s, accountId, loginType);
 
-      stopWechatIpadAutoPolling(s);
-      s.channelsWechatIpadLoginTypeConfirmOpen = false;
-      s.channelsWechatIpadLoginTypeConfirmForce = false;
-      s.channelsWechatIpadBusy = true;
-      s.channelsWechatIpadPhase = "loading_qr";
-      s.channelsWechatIpadLoginConnected = null;
-      s.channelsWechatIpadCountdownDeadlineMs = null;
-      s.channelsWechatIpadCountdownSeconds = null;
+      stopWechatIpadAutoPolling(state);
+      state.loginTypeConfirmOpen = false;
+      state.loginTypeConfirmForce = false;
+      state.busy = true;
+      state.phase = "loading_qr";
+      state.loginConnected = null;
+      state.countdownDeadlineMs = null;
+      state.countdownSeconds = null;
+      selectWechatIpadAccount(s, accountId);
       update();
 
       try {
@@ -463,89 +638,93 @@ export function createChannelCallbacks(
           channel: "wechat-ipad",
           force,
           timeoutMs: 30000,
-          accountId: "default",
+          accountId,
           loginType,
         });
 
-        s.channelsWechatIpadLoginMessage = res.message ?? null;
-        s.channelsWechatIpadLoginQrDataUrl = res.qrDataUrl ?? null;
-        s.channelsWechatIpadLoginConnected = null;
-        s.channelsWechatIpadRequiresVerification = false;
-        s.channelsWechatIpadTicket = null;
-        s.channelsWechatIpadData62 = res.data62 ?? null;
-        s.channelsWechatIpadVerificationCode = "";
-        s.channelsWechatIpadPhase = res.qrDataUrl ? "qr_ready" : "loading_qr";
+        state.loginMessage = res.message ?? null;
+        state.loginQrDataUrl = res.qrDataUrl ?? null;
+        state.loginConnected = null;
+        state.requiresVerification = false;
+        state.ticket = null;
+        state.data62 = res.data62 ?? null;
+        state.verificationCode = "";
+        state.phase = res.qrDataUrl ? "qr_ready" : "loading_qr";
 
-        primeWechatIpadCountdown(s, update, {
+        primeWechatIpadCountdown(state, update, () => selectWechatIpadAccount(s, accountId), {
           message: res.message ?? null,
           expiredTime: res.expiredTime,
         });
 
         if (res.qrDataUrl) {
-          scheduleWechatIpadAutoPoll(s, triggerWechatIpadAutoWait, 1500);
+          scheduleWechatIpadAutoPoll(state, () => triggerWechatIpadAutoWait(accountId), 1500);
         }
       } catch (err) {
-        s.channelsWechatIpadLoginMessage = toReadableError(err);
-        s.channelsWechatIpadLoginQrDataUrl = null;
-        s.channelsWechatIpadLoginConnected = null;
-        s.channelsWechatIpadRequiresVerification = false;
-        s.channelsWechatIpadPhase = "idle";
-        s.channelsWechatIpadCountdownDeadlineMs = null;
-        s.channelsWechatIpadCountdownSeconds = null;
-        stopWechatIpadAutoPolling(s);
+        state.loginMessage = toReadableError(err);
+        state.loginQrDataUrl = null;
+        state.loginConnected = null;
+        state.requiresVerification = false;
+        state.phase = "idle";
+        state.countdownDeadlineMs = null;
+        state.countdownSeconds = null;
+        stopWechatIpadAutoPolling(state);
       } finally {
-        s.channelsWechatIpadBusy = false;
+        state.busy = false;
+        selectWechatIpadAccount(s, accountId);
         update();
       }
     },
     onWechatIpadVerificationCodeChange: (code) => {
-      s.channelsWechatIpadVerificationCode = code;
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = touchWechatIpadState(accountId);
+      state.verificationCode = code;
+      selectWechatIpadAccount(s, accountId);
       update();
     },
     onWechatIpadSubmitVerificationCode: async () => {
-      if (
-        !s.client ||
-        !s.connected ||
-        s.channelsWechatIpadVerificationBusy ||
-        !s.channelsWechatIpadVerificationCode.trim()
-      ) {
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = touchWechatIpadState(accountId);
+      if (!s.client || !s.connected || state.verificationBusy || !state.verificationCode.trim()) {
         return;
       }
 
-      if (!s.channelsWechatIpadTicket) {
-        s.channelsWechatIpadLoginMessage = "缺少 ticket，请先等待状态更新以获取安全校验信息。";
+      if (!state.ticket) {
+        state.loginMessage = "缺少 ticket，请先等待状态更新以获取安全校验信息。";
+        selectWechatIpadAccount(s, accountId);
         update();
         return;
       }
 
-      s.channelsWechatIpadVerificationBusy = true;
+      state.verificationBusy = true;
+      selectWechatIpadAccount(s, accountId);
       update();
 
       try {
         const res = await s.client.request<{ ok?: boolean; message?: string }>(
           "wechat-ipad.login.submitVerificationCode",
           {
-            code: s.channelsWechatIpadVerificationCode.trim(),
-            ...(s.channelsWechatIpadTicket ? { ticket: s.channelsWechatIpadTicket } : {}),
-            accountId: "default",
+            code: state.verificationCode.trim(),
+            ...(state.ticket ? { ticket: state.ticket } : {}),
+            accountId,
           },
         );
 
-        s.channelsWechatIpadLoginMessage = res.message ?? "验证码已提交，请继续等待登录结果。";
-        s.channelsWechatIpadVerificationCode = "";
-        s.channelsWechatIpadRequiresVerification = false;
-        s.channelsWechatIpadPhase = "scanned";
+        state.loginMessage = res.message ?? "验证码已提交，请继续等待登录结果。";
+        state.verificationCode = "";
+        state.requiresVerification = false;
+        state.phase = "scanned";
 
-        if (s.channelsWechatIpadLoginQrDataUrl) {
-          scheduleWechatIpadAutoPoll(s, triggerWechatIpadAutoWait, 1000);
+        if (state.loginQrDataUrl) {
+          scheduleWechatIpadAutoPoll(state, () => triggerWechatIpadAutoWait(accountId), 1000);
         }
       } catch (err) {
-        s.channelsWechatIpadLoginMessage = toReadableError(err);
-        s.channelsWechatIpadRequiresVerification = true;
-        s.channelsWechatIpadPhase = "verification";
-        stopWechatIpadAutoPolling(s);
+        state.loginMessage = toReadableError(err);
+        state.requiresVerification = true;
+        state.phase = "verification";
+        stopWechatIpadAutoPolling(state);
       } finally {
-        s.channelsWechatIpadVerificationBusy = false;
+        state.verificationBusy = false;
+        selectWechatIpadAccount(s, accountId);
         update();
       }
     },

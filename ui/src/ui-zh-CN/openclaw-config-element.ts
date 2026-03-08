@@ -35,6 +35,7 @@ import {
   loadAgentSessions,
   loadPermissions,
   createInitialModelConfigState,
+  createInitialWechatIpadAccountUiState,
   type ModelConfigState,
 } from "./controllers/model-config";
 // Props 构建器
@@ -205,17 +206,43 @@ export class OpenClawConfigElement extends LitElement {
       ]);
 
       const wechatIpadRaw = this._state.modelConfigChannelsConfig?.["wechat-ipad"];
-      const wechatIpadLoginType =
-        wechatIpadRaw && typeof wechatIpadRaw === "object"
-          ? (wechatIpadRaw as { loginType?: unknown }).loginType
-          : undefined;
-      this._state.channelsWechatIpadLoginType =
-        wechatIpadLoginType === "win" ||
-        wechatIpadLoginType === "mac" ||
-        wechatIpadLoginType === "car"
-          ? wechatIpadLoginType
-          : "ipad";
-      this._state.channelsWechatIpadLoginTypeDraft = this._state.channelsWechatIpadLoginType;
+      if (wechatIpadRaw && typeof wechatIpadRaw === "object") {
+        const record = wechatIpadRaw as {
+          defaultAccount?: unknown;
+          accounts?: Record<string, { loginType?: unknown }>;
+          loginType?: unknown;
+        };
+        const accountIds = Object.keys(record.accounts ?? {});
+        const selectedAccountId =
+          typeof record.defaultAccount === "string" && record.defaultAccount.trim()
+            ? record.defaultAccount.trim()
+            : (accountIds[0] ?? "default");
+        const orderedAccountIds = accountIds.length > 0 ? accountIds : [selectedAccountId];
+        const nextStateByAccount = { ...this._state.channelsWechatIpadStateByAccount };
+        for (const accountId of orderedAccountIds) {
+          if (nextStateByAccount[accountId]) {
+            continue;
+          }
+          const loginType =
+            record.accounts?.[accountId]?.loginType === "win" ||
+            record.accounts?.[accountId]?.loginType === "mac" ||
+            record.accounts?.[accountId]?.loginType === "car"
+              ? record.accounts?.[accountId]?.loginType
+              : record.loginType === "win" ||
+                  record.loginType === "mac" ||
+                  record.loginType === "car"
+                ? record.loginType
+                : "ipad";
+          nextStateByAccount[accountId] = {
+            ...createInitialWechatIpadAccountUiState(),
+            loginType,
+            loginTypeDraft: loginType,
+          };
+        }
+        this._state.channelsWechatIpadSelectedAccountId = selectedAccountId;
+        this._state.channelsWechatIpadAccountOrder = orderedAccountIds;
+        this._state.channelsWechatIpadStateByAccount = nextStateByAccount;
+      }
 
       if (this._state.selectedAgentId) {
         await loadAgentSessions(this._state, this._state.selectedAgentId);

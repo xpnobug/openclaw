@@ -3,6 +3,7 @@
  * 右侧面板 - 消息通道详细配置
  */
 import { html } from "lit";
+import type { WechatIpadAccountUiState, WechatIpadUiLoginPhase } from "../controllers/state.js";
 import type { ChannelsConfigData } from "../types/channel-config.js";
 import { icons, renderChannelList, renderChannelDetail } from "./channels";
 
@@ -12,34 +13,15 @@ export { CHANNEL_METADATA } from "./channels";
 export type ChannelsContentProps = {
   channelsConfig: ChannelsConfigData;
   selectedChannel: string | null;
-  wechatIpadLoginMessage: string | null;
-  wechatIpadLoginQrDataUrl: string | null;
-  wechatIpadLoginConnected: boolean | null;
-  wechatIpadBusy: boolean;
-  wechatIpadLoginType: "ipad" | "win" | "mac" | "car";
-  wechatIpadLoginTypeConfirmOpen: boolean;
-  wechatIpadLoginTypeDraft: "ipad" | "win" | "mac" | "car";
-  wechatIpadLoginTypeConfirmForce: boolean;
-  wechatIpadPhase:
-    | "idle"
-    | "loading_qr"
-    | "qr_ready"
-    | "scanned"
-    | "verification"
-    | "connected"
-    | "expired";
-  wechatIpadCountdownSeconds: number | null;
-  wechatIpadCountdownDeadlineMs: number | null;
-  wechatIpadLastWaitAtMs: number | null;
-  wechatIpadAutoPolling: boolean;
-  wechatIpadRequiresVerification: boolean;
-  wechatIpadTicket: string | null;
-  wechatIpadData62: string | null;
-  wechatIpadVerificationCode: string;
-  wechatIpadVerificationBusy: boolean;
+  wechatIpadSelectedAccountId: string | null;
+  wechatIpadAccountOrder: string[];
+  wechatIpadStateByAccount: Record<string, WechatIpadAccountUiState>;
+  wechatIpadCurrentState: WechatIpadAccountUiState;
+  wechatIpadCurrentPhase: WechatIpadUiLoginPhase;
   onChannelSelect: (channelId: string) => void;
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
   onNavigateToChannels: () => void;
+  onWechatIpadAccountSelect: (accountId: string) => void;
   onWechatIpadStart: (force: boolean) => void;
   onWechatIpadWait: () => void;
   onWechatIpadLogout: () => void;
@@ -80,25 +62,13 @@ export function renderChannelsContent(props: ChannelsContentProps) {
           ${renderChannelDetail({
             channelsConfig: props.channelsConfig,
             selectedChannel: props.selectedChannel,
-            wechatIpadLoginMessage: props.wechatIpadLoginMessage,
-            wechatIpadLoginQrDataUrl: props.wechatIpadLoginQrDataUrl,
-            wechatIpadLoginConnected: props.wechatIpadLoginConnected,
-            wechatIpadBusy: props.wechatIpadBusy,
-            wechatIpadLoginType: props.wechatIpadLoginType,
-            wechatIpadLoginTypeConfirmOpen: props.wechatIpadLoginTypeConfirmOpen,
-            wechatIpadLoginTypeDraft: props.wechatIpadLoginTypeDraft,
-            wechatIpadLoginTypeConfirmForce: props.wechatIpadLoginTypeConfirmForce,
-            wechatIpadPhase: props.wechatIpadPhase,
-            wechatIpadCountdownSeconds: props.wechatIpadCountdownSeconds,
-            wechatIpadCountdownDeadlineMs: props.wechatIpadCountdownDeadlineMs,
-            wechatIpadLastWaitAtMs: props.wechatIpadLastWaitAtMs,
-            wechatIpadAutoPolling: props.wechatIpadAutoPolling,
-            wechatIpadRequiresVerification: props.wechatIpadRequiresVerification,
-            wechatIpadTicket: props.wechatIpadTicket,
-            wechatIpadData62: props.wechatIpadData62,
-            wechatIpadVerificationCode: props.wechatIpadVerificationCode,
-            wechatIpadVerificationBusy: props.wechatIpadVerificationBusy,
+            wechatIpadSelectedAccountId: props.wechatIpadSelectedAccountId,
+            wechatIpadAccountOrder: props.wechatIpadAccountOrder,
+            wechatIpadStateByAccount: props.wechatIpadStateByAccount,
+            wechatIpadCurrentState: props.wechatIpadCurrentState,
+            wechatIpadCurrentPhase: props.wechatIpadCurrentPhase,
             onChannelConfigUpdate: props.onChannelConfigUpdate,
+            onWechatIpadAccountSelect: props.onWechatIpadAccountSelect,
             onWechatIpadStart: props.onWechatIpadStart,
             onWechatIpadWait: props.onWechatIpadWait,
             onWechatIpadLogout: props.onWechatIpadLogout,

@@ -29,6 +29,7 @@ describe("wechat-ipad api polling/send compatibility", () => {
           ToUserName: { string: "wxid_bot" },
           MsgType: 1,
           Content: { string: "wxid_member:\n群消息" },
+          MsgSource: "<msgsource><atuserlist>wxid_bot,wxid_other</atuserlist></msgsource>",
           CreateTime: 1700000001,
         },
       ],
@@ -55,6 +56,9 @@ describe("wechat-ipad api polling/send compatibility", () => {
     expect(result.items[1]?.chatId).toBe("room123@chatroom");
     expect(result.items[1]?.senderId).toBe("wxid_member");
     expect(result.items[1]?.body).toBe("群消息");
+    expect(result.items[1]?.isAtMe).toBe(true);
+    expect(result.items[1]?.isFromSelf).toBe(false);
+    expect(result.contactIds).toEqual(["wxid_a", "room123@chatroom"]);
 
     const callArg = requestFn.mock.calls[0]?.[0] as RequestArg & { body?: Record<string, unknown> };
     expect(callArg.method).toBe("POST");

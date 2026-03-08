@@ -5,6 +5,7 @@ export type RuntimeEnv = {
   log: (...args: unknown[]) => void;
   error: (...args: unknown[]) => void;
   exit: (code: number) => void;
+  flags?: Record<string, unknown>;
 };
 
 function shouldEmitRuntimeLog(env: NodeJS.ProcessEnv = process.env): boolean {

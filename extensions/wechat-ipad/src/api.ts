@@ -1,13 +1,30 @@
 import type {
   WechatIpadApiCallOptions,
+  WechatIpadInboundContentType,
   WechatIpadInboundMessage,
   WechatIpadLoginCheckResponse,
   WechatIpadLoginQrRequest,
   WechatIpadLoginQrResponse,
   WechatIpadLoginSession,
+  WechatIpadQuotedMessage,
   WechatIpadVerificationCodeRequest,
   WechatIpadVerificationCodeResponse,
 } from "./types.js";
+
+function resolveInboundContactId(item: WechatIpadInboundMessage): string {
+  return item.chatType === "group" ? item.chatId : item.senderId;
+}
+
+export function collectInboundContactIds(items: WechatIpadInboundMessage[]): string[] {
+  const contactIds = new Set<string>();
+  for (const item of items) {
+    const contactId = resolveInboundContactId(item)?.trim();
+    if (contactId) {
+      contactIds.add(contactId);
+    }
+  }
+  return Array.from(contactIds);
+}
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
@@ -49,6 +66,23 @@ function readStringField(input: Record<string, unknown>, keys: string[]): string
     }
   }
   return undefined;
+}
+
+function readStringListField(input: Record<string, unknown>, keys: string[]): string[] {
+  for (const key of keys) {
+    const value = input[key];
+    if (!Array.isArray(value)) {
+      continue;
+    }
+    const items = value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+    if (items.length > 0) {
+      return items;
+    }
+  }
+  return [];
 }
 
 function readIdField(input: Record<string, unknown>, keys: string[]): string | undefined {
@@ -221,7 +255,167 @@ function extractGroupSender(content: string): { senderId: string; body: string }
   };
 }
 
-function normalizeSyncAddMsg(record: WechatIpadSyncMessageRecord): WechatIpadInboundMessage | null {
+function stripCdata(value: string): string {
+  return value.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
+}
+
+function decodeXmlEntities(value: string): string {
+  return value
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, "&")
+    .replace(/&#x0A;/gi, "\n")
+    .replace(/&#10;/g, "\n")
+    .replace(/&#x0D;/gi, "\r")
+    .replace(/&#13;/g, "\r");
+}
+
+function stripTags(value: string): string {
+  return value.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "");
+}
+
+function normalizeXmlText(value: string | undefined): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const normalized = stripTags(decodeXmlEntities(stripCdata(value)))
+    .replace(/\r\n?/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  return normalized || undefined;
+}
+
+function extractXmlSection(xml: string, tagName: string): string | undefined {
+  const pattern = new RegExp(`<${tagName}\\b[^>]*>([\\s\\S]*?)<\\/${tagName}>`, "i");
+  return xml.match(pattern)?.[1];
+}
+
+function extractXmlTagText(xml: string, tagName: string): string | undefined {
+  return normalizeXmlText(extractXmlSection(xml, tagName));
+}
+
+function extractXmlNumericTag(xml: string, tagName: string): number | undefined {
+  const value = extractXmlTagText(xml, tagName);
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function extractMsgSourceTag(msgSource: string | undefined, tagName: string): string | null {
+  if (!msgSource?.trim()) {
+    return null;
+  }
+  const match = msgSource.match(new RegExp(`<${tagName}>([\\s\\S]*?)</${tagName}>`, "i"));
+  if (!match?.[1]) {
+    return null;
+  }
+  const normalized = normalizeXmlText(match[1]);
+  return normalized ?? null;
+}
+
+function resolveIsAtMe(
+  msgSource: string | undefined,
+  currentWxid: string,
+  chatType: "direct" | "group",
+): boolean {
+  if (chatType !== "group") {
+    return false;
+  }
+  const normalizedWxid = currentWxid.trim();
+  if (!normalizedWxid) {
+    return false;
+  }
+  const atUserList = extractMsgSourceTag(msgSource, "atuserlist");
+  if (!atUserList) {
+    return false;
+  }
+  return atUserList
+    .split(/[,，]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .some((item) => item === normalizedWxid);
+}
+
+function parseQuotedMessage(content: string): WechatIpadQuotedMessage | null {
+  const xml = content.trim();
+  if (!xml.includes("<appmsg") || !xml.includes("<refermsg")) {
+    return null;
+  }
+  const appmsgSection = extractXmlSection(xml, "appmsg") ?? xml;
+  const referSection = extractXmlSection(appmsgSection, "refermsg");
+  if (!referSection) {
+    return null;
+  }
+  return {
+    currentBody: extractXmlTagText(appmsgSection, "title") ?? "",
+    quotedBody: extractXmlTagText(referSection, "content"),
+    quotedSender: extractXmlTagText(referSection, "displayname"),
+    quotedSenderWxid: extractXmlTagText(referSection, "fromusr"),
+    quotedChatId: extractXmlTagText(referSection, "chatusr"),
+    quotedMessageId: extractXmlTagText(referSection, "svrid"),
+    quotedMessageType: extractXmlNumericTag(referSection, "type"),
+    rawXml: xml,
+  };
+}
+
+function resolveAppMessageType(content: string): number | undefined {
+  const xml = content.trim();
+  if (!xml.includes("<appmsg")) {
+    return undefined;
+  }
+  const appmsgSection = extractXmlSection(xml, "appmsg") ?? xml;
+  return extractXmlNumericTag(appmsgSection, "type");
+}
+
+function resolveInboundContentType(
+  messageType: number | undefined,
+  appMessageType: number | undefined,
+  quotedMessage: WechatIpadQuotedMessage | null,
+): WechatIpadInboundContentType {
+  if (messageType === 1) {
+    return "text";
+  }
+  if (messageType === 3) {
+    return "image";
+  }
+  if (messageType === 34) {
+    return "voice";
+  }
+  if (messageType === 43 || messageType === 62) {
+    return "video";
+  }
+  if (messageType === 42) {
+    return "card";
+  }
+  if (messageType === 51) {
+    return "status";
+  }
+  if (messageType === 10000 || messageType === 10002) {
+    return "system";
+  }
+  if (messageType === 49) {
+    if (quotedMessage || appMessageType === 57) {
+      return "quote";
+    }
+    if (appMessageType === 6) {
+      return "file";
+    }
+    if (appMessageType === 5) {
+      return "link";
+    }
+  }
+  return "unknown";
+}
+
+function normalizeSyncAddMsg(
+  record: WechatIpadSyncMessageRecord,
+  currentWxid: string,
+): WechatIpadInboundMessage | null {
   const fromUser = record.FromUserName?.string?.trim();
   const toUser = record.ToUserName?.string?.trim();
   const rawContent = record.Content?.string?.trim();
@@ -234,7 +428,15 @@ function normalizeSyncAddMsg(record: WechatIpadSyncMessageRecord): WechatIpadInb
   const chatId = isGroup ? (fromUser.endsWith("@chatroom") ? fromUser : toUser) : fromUser;
   const parsedGroup = isGroup ? extractGroupSender(rawContent) : null;
   const senderId = isGroup ? (parsedGroup?.senderId ?? fromUser) : fromUser;
-  const body = isGroup ? (parsedGroup?.body ?? rawContent) : rawContent;
+  const messageType =
+    typeof record.MsgType === "number" && Number.isFinite(record.MsgType)
+      ? record.MsgType
+      : undefined;
+  const parsedQuotedMessage = messageType === 49 ? parseQuotedMessage(rawContent) : null;
+  const appMessageType = messageType === 49 ? resolveAppMessageType(rawContent) : undefined;
+  const body =
+    parsedQuotedMessage?.currentBody?.trim() ||
+    (isGroup ? (parsedGroup?.body ?? rawContent) : rawContent);
 
   const msgIdRaw =
     typeof record.NewMsgId === "number" && Number.isFinite(record.NewMsgId)
@@ -250,6 +452,8 @@ function normalizeSyncAddMsg(record: WechatIpadSyncMessageRecord): WechatIpadInb
 
   const id = msgIdRaw ? `${chatId}:${msgIdRaw}` : `${chatId}:${createTimeMs}:${senderId}`;
 
+  const normalizedCurrentWxid = currentWxid.trim();
+
   return {
     id,
     msgId: msgIdRaw,
@@ -259,8 +463,12 @@ function normalizeSyncAddMsg(record: WechatIpadSyncMessageRecord): WechatIpadInb
     chatType,
     body,
     timestamp: createTimeMs,
-    isAtMe: false,
-    isFromSelf: false,
+    isAtMe: resolveIsAtMe(record.MsgSource, normalizedCurrentWxid, chatType),
+    isFromSelf: Boolean(normalizedCurrentWxid) && senderId === normalizedCurrentWxid,
+    messageType,
+    appMessageType,
+    contentType: resolveInboundContentType(messageType, appMessageType, parsedQuotedMessage),
+    quotedMessage: parsedQuotedMessage,
   };
 }
 
@@ -329,7 +537,7 @@ export async function pollInboundMessages(
     scene?: number;
   },
   requestFn: typeof request<Record<string, unknown>> = request,
-): Promise<{ items: WechatIpadInboundMessage[] }> {
+): Promise<{ items: WechatIpadInboundMessage[]; contactIds: string[] }> {
   const raw = await requestFn({
     options: params.options,
     method: "POST",
@@ -349,13 +557,81 @@ export async function pollInboundMessages(
     if (!item || typeof item !== "object") {
       continue;
     }
-    const normalized = normalizeSyncAddMsg(item as WechatIpadSyncMessageRecord);
+    const normalized = normalizeSyncAddMsg(item as WechatIpadSyncMessageRecord, params.wxid);
     if (normalized) {
       items.push(normalized);
     }
   }
 
-  return { items };
+  return {
+    items,
+    contactIds: collectInboundContactIds(items),
+  };
+}
+
+export async function listContactIdsViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    currentWxcontactSeq?: number;
+    currentChatRoomContactSeq?: number;
+    maxPages?: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{
+  contactIds: string[];
+  currentWxcontactSeq: number;
+  currentChatRoomContactSeq: number;
+}> {
+  const contactIds = new Set<string>();
+  const ownWxid = params.wxid.trim();
+  let currentWxcontactSeq = Math.max(0, params.currentWxcontactSeq ?? 0);
+  let currentChatRoomContactSeq = Math.max(0, params.currentChatRoomContactSeq ?? 0);
+  const maxPages = Math.max(1, params.maxPages ?? 20);
+
+  for (let page = 0; page < maxPages; page += 1) {
+    const raw = await requestFn({
+      options: params.options,
+      method: "POST",
+      endpoint: "/api/Friend/GetContractList",
+      body: {
+        Wxid: params.wxid,
+        CurrentWxcontactSeq: currentWxcontactSeq,
+        CurrentChatRoomContactSeq: currentChatRoomContactSeq,
+      },
+    });
+
+    const pageContactIds = readStringListField(raw, ["ContactUsernameList", "contactUsernameList"]);
+    for (const contactId of pageContactIds) {
+      if (contactId && contactId !== ownWxid) {
+        contactIds.add(contactId);
+      }
+    }
+
+    const nextWxcontactSeq =
+      readNumberField(raw, ["CurrentWxcontactSeq", "currentWxcontactSeq"]) ?? currentWxcontactSeq;
+    const nextChatRoomContactSeq =
+      readNumberField(raw, ["CurrentChatRoomContactSeq", "currentChatRoomContactSeq"]) ??
+      currentChatRoomContactSeq;
+    const continueFlag =
+      readNumberField(raw, ["CountinueFlag", "ContinueFlag", "countinueFlag", "continueFlag"]) ?? 0;
+    const seqAdvanced =
+      nextWxcontactSeq !== currentWxcontactSeq ||
+      nextChatRoomContactSeq !== currentChatRoomContactSeq;
+
+    currentWxcontactSeq = nextWxcontactSeq;
+    currentChatRoomContactSeq = nextChatRoomContactSeq;
+
+    if (!continueFlag || !seqAdvanced) {
+      break;
+    }
+  }
+
+  return {
+    contactIds: Array.from(contactIds),
+    currentWxcontactSeq,
+    currentChatRoomContactSeq,
+  };
 }
 
 function normalizeLoginType(

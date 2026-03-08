@@ -110,6 +110,63 @@ export type AgentIdentityEntry = {
 // 核心状态类型
 // ============================================
 
+export type WechatIpadUiLoginPhase =
+  | "idle"
+  | "loading_qr"
+  | "qr_ready"
+  | "scanned"
+  | "verification"
+  | "connected"
+  | "expired";
+
+export type WechatIpadAccountUiState = {
+  loginMessage: string | null;
+  loginQrDataUrl: string | null;
+  loginConnected: boolean | null;
+  busy: boolean;
+  loginType: "ipad" | "win" | "mac" | "car";
+  loginTypeConfirmOpen: boolean;
+  loginTypeDraft: "ipad" | "win" | "mac" | "car";
+  loginTypeConfirmForce: boolean;
+  phase: WechatIpadUiLoginPhase;
+  countdownSeconds: number | null;
+  countdownDeadlineMs: number | null;
+  lastWaitAtMs: number | null;
+  autoPolling: boolean;
+  autoPollTimerId: number | null;
+  waitInFlight: boolean;
+  requiresVerification: boolean;
+  ticket: string | null;
+  data62: string | null;
+  verificationCode: string;
+  verificationBusy: boolean;
+};
+
+export function createInitialWechatIpadAccountUiState(): WechatIpadAccountUiState {
+  return {
+    loginMessage: null,
+    loginQrDataUrl: null,
+    loginConnected: null,
+    busy: false,
+    loginType: "ipad",
+    loginTypeConfirmOpen: false,
+    loginTypeDraft: "ipad",
+    loginTypeConfirmForce: false,
+    phase: "idle",
+    countdownSeconds: null,
+    countdownDeadlineMs: null,
+    lastWaitAtMs: null,
+    autoPolling: false,
+    autoPollTimerId: null,
+    waitInFlight: false,
+    requiresVerification: false,
+    ticket: null,
+    data62: null,
+    verificationCode: "",
+    verificationBusy: false,
+  };
+}
+
 export type ModelConfigState = {
   client: GatewayBrowserClient | null;
   connected: boolean;
@@ -135,33 +192,9 @@ export type ModelConfigState = {
   // 通道配置
   modelConfigChannelsConfig: ChannelsConfigData | null;
   modelConfigSelectedChannel: string | null;
-  channelsWechatIpadLoginMessage: string | null;
-  channelsWechatIpadLoginQrDataUrl: string | null;
-  channelsWechatIpadLoginConnected: boolean | null;
-  channelsWechatIpadBusy: boolean;
-  channelsWechatIpadLoginType: "ipad" | "win" | "mac" | "car";
-  channelsWechatIpadLoginTypeConfirmOpen: boolean;
-  channelsWechatIpadLoginTypeDraft: "ipad" | "win" | "mac" | "car";
-  channelsWechatIpadLoginTypeConfirmForce: boolean;
-  channelsWechatIpadPhase:
-    | "idle"
-    | "loading_qr"
-    | "qr_ready"
-    | "scanned"
-    | "verification"
-    | "connected"
-    | "expired";
-  channelsWechatIpadCountdownSeconds: number | null;
-  channelsWechatIpadCountdownDeadlineMs: number | null;
-  channelsWechatIpadLastWaitAtMs: number | null;
-  channelsWechatIpadAutoPolling: boolean;
-  channelsWechatIpadAutoPollTimerId: number | null;
-  channelsWechatIpadWaitInFlight: boolean;
-  channelsWechatIpadRequiresVerification: boolean;
-  channelsWechatIpadTicket: string | null;
-  channelsWechatIpadData62: string | null;
-  channelsWechatIpadVerificationCode: string;
-  channelsWechatIpadVerificationBusy: boolean;
+  channelsWechatIpadSelectedAccountId: string | null;
+  channelsWechatIpadAccountOrder: string[];
+  channelsWechatIpadStateByAccount: Record<string, WechatIpadAccountUiState>;
   modelConfigVersion: number;
   modelConfigSnapshotCacheVersion: number | null;
   modelConfigSnapshotCache: Record<string, unknown> | null;
@@ -232,10 +265,6 @@ export type ModelConfigState = {
   addProviderError: string | null;
 };
 
-/**
- * 创建初始 ModelConfigState
- * Create initial ModelConfigState
- */
 export function createInitialModelConfigState(): ModelConfigState {
   return {
     client: null,
@@ -255,26 +284,9 @@ export function createInitialModelConfigState(): ModelConfigState {
     modelConfigHash: null,
     modelConfigChannelsConfig: null,
     modelConfigSelectedChannel: null,
-    channelsWechatIpadLoginMessage: null,
-    channelsWechatIpadLoginQrDataUrl: null,
-    channelsWechatIpadLoginConnected: null,
-    channelsWechatIpadBusy: false,
-    channelsWechatIpadLoginType: "ipad",
-    channelsWechatIpadLoginTypeConfirmOpen: false,
-    channelsWechatIpadLoginTypeDraft: "ipad",
-    channelsWechatIpadLoginTypeConfirmForce: false,
-    channelsWechatIpadPhase: "idle",
-    channelsWechatIpadCountdownSeconds: null,
-    channelsWechatIpadCountdownDeadlineMs: null,
-    channelsWechatIpadLastWaitAtMs: null,
-    channelsWechatIpadAutoPolling: false,
-    channelsWechatIpadAutoPollTimerId: null,
-    channelsWechatIpadWaitInFlight: false,
-    channelsWechatIpadRequiresVerification: false,
-    channelsWechatIpadTicket: null,
-    channelsWechatIpadData62: null,
-    channelsWechatIpadVerificationCode: "",
-    channelsWechatIpadVerificationBusy: false,
+    channelsWechatIpadSelectedAccountId: null,
+    channelsWechatIpadAccountOrder: [],
+    channelsWechatIpadStateByAccount: {},
     modelConfigVersion: 0,
     modelConfigSnapshotCacheVersion: null,
     modelConfigSnapshotCache: null,

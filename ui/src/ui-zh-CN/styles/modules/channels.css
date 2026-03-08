@@ -299,6 +299,35 @@
   flex-wrap: wrap;
 }
 
+.channel-detail__wechat-login-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.channel-detail__wechat-login-summary-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-detail__wechat-login-summary-label {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.channel-detail__wechat-login-summary-value {
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-word;
+}
+
 .channel-detail__wechat-login-countdown {
   margin-left: 8px;
   font-family: var(--font-mono);
