@@ -1,3 +1,14 @@
+import type { ChannelsConfigData } from "../types/channel-config";
+import { deepMerge } from "../utils/deep-merge";
+import { toNumberOrUndefined, sanitizeCompat } from "../utils/sanitize";
+import type {
+  ProviderConfig,
+  AgentDefaults,
+  GatewayConfig,
+  ModelConfig,
+} from "../views/model-config";
+import { extractAgentsList } from "./agents";
+import { loadPermissions } from "./permissions";
 /**
  * 配置加载和保存控制器
  * Config loading and saving controller
@@ -6,18 +17,11 @@
  * Handles config loading, saving, and applying operations
  */
 import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state";
-import type {
-  ProviderConfig,
-  AgentDefaults,
-  GatewayConfig,
-  ModelConfig,
-} from "../views/model-config";
-import type { ChannelsConfigData } from "../types/channel-config";
-import { deepMerge } from "../utils/deep-merge";
-import { toNumberOrUndefined, sanitizeCompat } from "../utils/sanitize";
-import { extractAgentsList } from "./agents";
-import { extractToolsConfig, extractAgentToolsConfigs, hasToolsConfigChanges } from "./tools-config";
-import { loadPermissions } from "./permissions";
+import {
+  extractToolsConfig,
+  extractAgentToolsConfigs,
+  hasToolsConfigChanges,
+} from "./tools-config";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -34,9 +38,11 @@ function setOptionalStringArray(target: JsonRecord, key: string, value?: string[
 }
 
 function applyGlobalToolsConfig(updatedConfig: JsonRecord, state: ModelConfigState): void {
-  if (!state.toolsConfig) {return;}
+  if (!state.toolsConfig) {
+    return;
+  }
 
-  const toolsConfig = ((updatedConfig.tools ??= {}) as JsonRecord);
+  const toolsConfig = (updatedConfig.tools ??= {}) as JsonRecord;
   if (state.toolsConfig.profile !== undefined) {
     toolsConfig.profile = state.toolsConfig.profile;
   } else {
@@ -48,16 +54,20 @@ function applyGlobalToolsConfig(updatedConfig: JsonRecord, state: ModelConfigSta
 }
 
 function applyAgentToolsConfigs(updatedConfig: JsonRecord, state: ModelConfigState): void {
-  if (state.agentToolsConfigs.length === 0) {return;}
+  if (state.agentToolsConfigs.length === 0) {
+    return;
+  }
 
-  const agentsConfig = ((updatedConfig.agents ??= {}) as JsonRecord);
+  const agentsConfig = (updatedConfig.agents ??= {}) as JsonRecord;
   const list = (agentsConfig.list ?? []) as JsonRecord[];
 
   for (const agentTools of state.agentToolsConfigs) {
     const existingAgent = list.find((agent) => agent.id === agentTools.id);
-    if (!existingAgent || !agentTools.tools) {continue;}
+    if (!existingAgent || !agentTools.tools) {
+      continue;
+    }
 
-    const tools = ((existingAgent.tools ??= {}) as JsonRecord);
+    const tools = (existingAgent.tools ??= {}) as JsonRecord;
     if (agentTools.tools.profile !== undefined) {
       tools.profile = agentTools.tools.profile;
     } else {
@@ -70,14 +80,18 @@ function applyAgentToolsConfigs(updatedConfig: JsonRecord, state: ModelConfigSta
 }
 
 function applyAgentIdentityConfigs(updatedConfig: JsonRecord, state: ModelConfigState): void {
-  if (state.modelConfigAgentsList.length === 0) {return;}
+  if (state.modelConfigAgentsList.length === 0) {
+    return;
+  }
 
-  const agentsConfig = ((updatedConfig.agents ??= {}) as JsonRecord);
+  const agentsConfig = (updatedConfig.agents ??= {}) as JsonRecord;
   const list = (agentsConfig.list ?? []) as JsonRecord[];
 
   for (const agentIdentity of state.modelConfigAgentsList) {
     const existingAgent = list.find((agent) => agent.id === agentIdentity.id);
-    if (!existingAgent) {continue;}
+    if (!existingAgent) {
+      continue;
+    }
 
     if (agentIdentity.identity && Object.keys(agentIdentity.identity).length > 0) {
       existingAgent.identity = agentIdentity.identity;
@@ -88,10 +102,14 @@ function applyAgentIdentityConfigs(updatedConfig: JsonRecord, state: ModelConfig
 }
 
 function sanitizeSkillsEntries(updatedConfig: JsonRecord): void {
-  if (!updatedConfig.skills || typeof updatedConfig.skills !== "object") {return;}
+  if (!updatedConfig.skills || typeof updatedConfig.skills !== "object") {
+    return;
+  }
 
   const skillsConfig = updatedConfig.skills as JsonRecord;
-  if (!skillsConfig.entries || typeof skillsConfig.entries !== "object") {return;}
+  if (!skillsConfig.entries || typeof skillsConfig.entries !== "object") {
+    return;
+  }
 
   const entries = skillsConfig.entries as JsonRecord;
   const sanitizedEntries: JsonRecord = {};
@@ -126,7 +144,10 @@ function serializeAgentsConfigState(state: ModelConfigState): string {
 }
 
 function getCurrentMainConfigSignature(state: ModelConfigState): string {
-  if (state.modelConfigMainSignatureVersion === state.modelConfigVersion && state.modelConfigMainSignature !== null) {
+  if (
+    state.modelConfigMainSignatureVersion === state.modelConfigVersion &&
+    state.modelConfigMainSignature !== null
+  ) {
     return state.modelConfigMainSignature;
   }
 
@@ -137,7 +158,10 @@ function getCurrentMainConfigSignature(state: ModelConfigState): string {
 }
 
 function getCurrentAgentsConfigSignature(state: ModelConfigState): string {
-  if (state.modelConfigAgentsSignatureVersion === state.modelConfigVersion && state.modelConfigAgentsSignature !== null) {
+  if (
+    state.modelConfigAgentsSignatureVersion === state.modelConfigVersion &&
+    state.modelConfigAgentsSignature !== null
+  ) {
     return state.modelConfigAgentsSignature;
   }
 
@@ -150,19 +174,23 @@ function getCurrentAgentsConfigSignature(state: ModelConfigState): string {
 /**
  * 从配置快照中提取模型供应商数据
  */
-function extractProviders(
-  config: Record<string, unknown>,
-): Record<string, ProviderConfig> {
+function extractProviders(config: Record<string, unknown>): Record<string, ProviderConfig> {
   const models = config.models as Record<string, unknown> | undefined;
-  if (!models) {return {};}
+  if (!models) {
+    return {};
+  }
 
   const providers = models.providers as Record<string, unknown> | undefined;
-  if (!providers) {return {};}
+  if (!providers) {
+    return {};
+  }
 
   const result: Record<string, ProviderConfig> = {};
 
   for (const [key, value] of Object.entries(providers)) {
-    if (!value || typeof value !== "object") {continue;}
+    if (!value || typeof value !== "object") {
+      continue;
+    }
 
     const provider = value as Record<string, unknown>;
     const modelsArray = provider.models as Array<Record<string, unknown>> | undefined;
@@ -194,19 +222,17 @@ function extractProviders(
  */
 function extractAgentDefaults(config: Record<string, unknown>): AgentDefaults {
   const agents = config.agents as Record<string, unknown> | undefined;
-  if (!agents) {return {};}
+  if (!agents) {
+    return {};
+  }
 
   const defaults = agents.defaults as Record<string, unknown> | undefined;
-  if (!defaults) {return {};}
+  if (!defaults) {
+    return {};
+  }
 
-  return {
-    maxConcurrent: defaults.maxConcurrent as number | undefined,
-    subagents: defaults.subagents as AgentDefaults["subagents"],
-    workspace: defaults.workspace as string | undefined,
-    model: defaults.model as AgentDefaults["model"],
-    contextPruning: defaults.contextPruning as AgentDefaults["contextPruning"],
-    compaction: defaults.compaction as AgentDefaults["compaction"],
-  };
+  // 保留 defaults 下所有字段，避免 UI 未建模字段在保存时被覆盖
+  return cloneJson(defaults) as AgentDefaults;
 }
 
 /**
@@ -214,7 +240,9 @@ function extractAgentDefaults(config: Record<string, unknown>): AgentDefaults {
  */
 function extractGatewayConfig(config: Record<string, unknown>): GatewayConfig {
   const gateway = config.gateway as Record<string, unknown> | undefined;
-  if (!gateway) {return {};}
+  if (!gateway) {
+    return {};
+  }
 
   return cloneJson(gateway) as GatewayConfig;
 }
@@ -224,7 +252,9 @@ function extractGatewayConfig(config: Record<string, unknown>): GatewayConfig {
  */
 function extractChannelsConfig(config: Record<string, unknown>): ChannelsConfigData {
   const channels = config.channels as Record<string, unknown> | undefined;
-  if (!channels) {return {};}
+  if (!channels) {
+    return {};
+  }
 
   return channels as ChannelsConfigData;
 }
@@ -233,7 +263,9 @@ function extractChannelsConfig(config: Record<string, unknown>): ChannelsConfigD
  * 清理 providers 配置，确保数字字段是正确的类型
  * Sanitize providers config to ensure numeric fields have correct types
  */
-function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<string, ProviderConfig> {
+function sanitizeProviders(
+  providers: Record<string, ProviderConfig>,
+): Record<string, ProviderConfig> {
   const result: Record<string, ProviderConfig> = {};
   for (const [key, provider] of Object.entries(providers)) {
     result[key] = {
@@ -243,12 +275,14 @@ function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<st
         // 确保数字字段是数字类型
         maxTokens: toNumberOrUndefined(model.maxTokens),
         contextWindow: toNumberOrUndefined(model.contextWindow),
-        cost: model.cost ? {
-          input: toNumberOrUndefined(model.cost.input) ?? 0,
-          output: toNumberOrUndefined(model.cost.output) ?? 0,
-          cacheRead: toNumberOrUndefined(model.cost.cacheRead),
-          cacheWrite: toNumberOrUndefined(model.cost.cacheWrite),
-        } : undefined,
+        cost: model.cost
+          ? {
+              input: toNumberOrUndefined(model.cost.input) ?? 0,
+              output: toNumberOrUndefined(model.cost.output) ?? 0,
+              cacheRead: toNumberOrUndefined(model.cost.cacheRead),
+              cacheWrite: toNumberOrUndefined(model.cost.cacheWrite),
+            }
+          : undefined,
         // 清理 compat 字段
         compat: model.compat ? sanitizeCompat(model.compat) : undefined,
       })),
@@ -261,7 +295,9 @@ function sanitizeProviders(providers: Record<string, ProviderConfig>): Record<st
  * 加载模型配置
  */
 export async function loadModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.modelConfigLoading = true;
   state.lastError = null;
@@ -319,7 +355,9 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
 /**
  * 基于当前编辑态构建最新配置快照
  */
-export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<string, unknown> | null {
+export function buildEffectiveConfigSnapshot(
+  state: ModelConfigState,
+): Record<string, unknown> | null {
   if (!state.modelConfigFullSnapshot) {
     return null;
   }
@@ -337,17 +375,32 @@ export function buildEffectiveConfigSnapshot(state: ModelConfigState): Record<st
   if (!updatedConfig.models) {
     updatedConfig.models = {};
   }
-  (updatedConfig.models as Record<string, unknown>).providers = sanitizeProviders(state.modelConfigProviders);
+  (updatedConfig.models as Record<string, unknown>).providers = sanitizeProviders(
+    state.modelConfigProviders,
+  );
 
-  // 更新 agents.defaults
-  if (!updatedConfig.agents) {
-    updatedConfig.agents = {};
+  // 更新 agents.defaults（深度合并，保留 UI 未建模字段）
+  const agentsConfig = (updatedConfig.agents ??= {}) as JsonRecord;
+  const existingDefaults =
+    agentsConfig.defaults &&
+    typeof agentsConfig.defaults === "object" &&
+    !Array.isArray(agentsConfig.defaults)
+      ? (agentsConfig.defaults as JsonRecord)
+      : {};
+  const editedDefaults =
+    state.modelConfigAgentDefaults && typeof state.modelConfigAgentDefaults === "object"
+      ? (state.modelConfigAgentDefaults as JsonRecord)
+      : {};
+  const mergedDefaults = deepMerge(existingDefaults, editedDefaults);
+  if (Object.keys(mergedDefaults).length > 0) {
+    agentsConfig.defaults = mergedDefaults;
+  } else {
+    delete agentsConfig.defaults;
   }
-  (updatedConfig.agents as Record<string, unknown>).defaults = state.modelConfigAgentDefaults;
 
   // 更新 gateway（深度合并，保留未在 UI 中展开的字段）
   updatedConfig.gateway = deepMerge(
-    ((updatedConfig.gateway as Record<string, unknown> | undefined) ?? {}),
+    (updatedConfig.gateway as Record<string, unknown> | undefined) ?? {},
     (state.modelConfigGateway as Record<string, unknown>) ?? {},
   );
 
@@ -414,12 +467,18 @@ function buildConfigRaw(state: ModelConfigState): string | null {
  */
 export function hasModelConfigChanges(state: ModelConfigState): boolean {
   // 检查权限配置是否有更改
-  if (state.permissionsDirty) {return true;}
+  if (state.permissionsDirty) {
+    return true;
+  }
 
   // 检查工具配置是否有更改
-  if (hasToolsConfigChanges(state)) {return true;}
+  if (hasToolsConfigChanges(state)) {
+    return true;
+  }
 
-  if (!state.modelConfigOriginal) {return false;}
+  if (!state.modelConfigOriginal) {
+    return false;
+  }
 
   if (
     state.modelConfigOriginalMainSignature !== null &&
@@ -443,7 +502,9 @@ export function hasModelConfigChanges(state: ModelConfigState): boolean {
  */
 function hasMainConfigChanges(state: ModelConfigState): boolean {
   // 检查工具配置是否有更改
-  if (hasToolsConfigChanges(state)) {return true;}
+  if (hasToolsConfigChanges(state)) {
+    return true;
+  }
 
   if (
     state.modelConfigOriginalAgentsSignature !== null &&
@@ -452,7 +513,9 @@ function hasMainConfigChanges(state: ModelConfigState): boolean {
     return true;
   }
 
-  if (!state.modelConfigOriginal) {return false;}
+  if (!state.modelConfigOriginal) {
+    return false;
+  }
 
   if (state.modelConfigOriginalMainSignature === null) {
     return false;
@@ -475,8 +538,25 @@ function extractErrorDetails(err: unknown): string {
         const issueMessages = details.issues.map((issue: unknown) => {
           if (issue && typeof issue === "object") {
             const i = issue as Record<string, unknown>;
-            const path = Array.isArray(i.path) ? i.path.join(".") : String(i.path ?? "");
-            const message = String(i.message ?? "");
+            const path = Array.isArray(i.path)
+              ? i.path
+                  .map((segment) =>
+                    typeof segment === "string" || typeof segment === "number"
+                      ? String(segment)
+                      : JSON.stringify(segment),
+                  )
+                  .join(".")
+              : typeof i.path === "string" || typeof i.path === "number"
+                ? String(i.path)
+                : i.path == null
+                  ? ""
+                  : JSON.stringify(i.path);
+            const message =
+              typeof i.message === "string" || typeof i.message === "number"
+                ? String(i.message)
+                : i.message == null
+                  ? ""
+                  : JSON.stringify(i.message);
             return path ? path + ": " + message : message;
           }
           return String(issue);
@@ -496,7 +576,9 @@ function extractErrorDetails(err: unknown): string {
  * 保存模型配置（仅保存，不重启服务）
  */
 export async function saveModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.modelConfigSaving = true;
   state.lastError = null;
@@ -537,7 +619,6 @@ export async function saveModelConfig(state: ModelConfigState): Promise<void> {
     if (state.execApprovalsSnapshot) {
       await loadPermissions(state);
     }
-
   } catch (err) {
     // 提取详细的验证错误信息
     const errorDetails = extractErrorDetails(err);
@@ -551,7 +632,9 @@ export async function saveModelConfig(state: ModelConfigState): Promise<void> {
  * 保存并应用模型配置（保存 + 重启服务）
  */
 export async function applyModelConfig(state: ModelConfigState): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   // 防止重复调用
   if (state.modelConfigApplying) {
@@ -605,7 +688,6 @@ export async function applyModelConfig(state: ModelConfigState): Promise<void> {
     if (state.execApprovalsSnapshot) {
       await loadPermissions(state);
     }
-
   } catch (err) {
     // 提取详细的验证错误信息
     const errorDetails = extractErrorDetails(err);

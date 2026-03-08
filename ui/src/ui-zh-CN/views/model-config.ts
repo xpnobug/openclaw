@@ -3,7 +3,23 @@
  * Agent-centric 配置布局
  */
 import { html } from "lit";
-import { renderAgentsConfig, type AgentsConfigProps } from "./agents-config";
+import type {
+  CronJob,
+  CronStatus,
+  CronRunLogEntry,
+  ChannelUiMetaEntry,
+  GatewayAgentRow,
+} from "../../ui/types.js";
+import type { CronFormState } from "../../ui/ui-types.js";
+import type { ExecApprovalsTarget, ExecApprovalsTargetNode } from "../controllers/permissions.js";
+import type {
+  ToolPolicyConfig,
+  ToolsConfig,
+  AgentWithTools,
+  PermissionsTabId,
+  SessionsListResult,
+} from "../controllers/state.js";
+import type { ChannelsConfigData } from "../types/channel-config.js";
 import type {
   SkillStatusReport,
   SkillsConfig,
@@ -16,21 +32,8 @@ import type {
   SkillDeleteState,
   EditableSkillSource,
   SkillEditorMode,
-} from "../types/skills-config";
-import type {
-  ExecApprovalsTarget,
-  ExecApprovalsTargetNode,
-} from "../controllers/model-config";
-import type { ChannelsConfigData } from "../types/channel-config";
-import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry, GatewayAgentRow } from "../../ui/types";
-import type { CronFormState } from "../../ui/ui-types";
-import type {
-  ToolPolicyConfig,
-  ToolsConfig,
-  AgentWithTools,
-  PermissionsTabId,
-  SessionsListResult,
-} from "../controllers/model-config";
+} from "../types/skills-config.js";
+import { renderAgentsConfig, type AgentsConfigProps } from "./agents-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions
@@ -96,6 +99,8 @@ export type AgentDefaults = {
   compaction?: {
     mode?: string;
   };
+  // 允许保留 UI 未显式建模的 defaults 字段（例如 memorySearch）
+  [key: string]: unknown;
 };
 
 export type GatewayControlUiConfig = {
@@ -109,21 +114,21 @@ export type GatewayControlUiConfig = {
 };
 
 export type GatewayAuthConfig = {
-  mode?: "none" | "token" | "password" | "trusted-proxy" | string;
+  mode?: string;
   token?: string;
   password?: string;
   allowTailscale?: boolean;
 };
 
 export type GatewayTailscaleConfig = {
-  mode?: "off" | "serve" | "funnel" | string;
+  mode?: string;
   resetOnExit?: boolean;
 };
 
 export type GatewayConfig = {
   port?: number;
-  mode?: "local" | "remote" | string;
-  bind?: "auto" | "lan" | "loopback" | "tailnet" | "custom" | string;
+  mode?: string;
+  bind?: string;
   customBindHost?: string;
   controlUi?: GatewayControlUiConfig;
   auth?: GatewayAuthConfig;
@@ -174,10 +179,12 @@ export type ModelConfigProps = {
 
   // 添加供应商弹窗状态
   showAddProviderModal?: boolean;
-  addProviderForm?: import("../components/providers-content").ProviderFormState;
+  addProviderForm?: import("../components/providers-content.js").ProviderFormState;
   addProviderError?: string | null;
   onShowAddProviderModal?: (show: boolean) => void;
-  onAddProviderFormChange?: (patch: Partial<import("../components/providers-content").ProviderFormState>) => void;
+  onAddProviderFormChange?: (
+    patch: Partial<import("../components/providers-content.js").ProviderFormState>,
+  ) => void;
   onAddProviderConfirm?: () => void;
 
   // 会话管理相关 (用于 Agent 设置页)
