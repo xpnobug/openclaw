@@ -6,7 +6,7 @@
 export type DmPolicy = "pairing" | "allowlist" | "open" | "disabled";
 
 // 群组访问策略
-export type GroupPolicy = "open" | "disabled" | "allowlist";
+export type GroupPolicy = "open" | "disabled" | "allowlist" | "pairing";
 
 // 通道基础配置
 export type BaseChannelConfig = {
@@ -108,6 +108,35 @@ export type WeChatPollingConfig = {
   pollContactIds?: string[];
   pollAllContacts?: boolean;
   maxPollContacts?: number;
+};
+
+export type WechatIpadPollingConfig = {
+  intervalMs?: number;
+  lookbackSeconds?: number;
+  maxPagesPerPoll?: number;
+  pollAllContacts?: boolean;
+  pollContactIds?: string[];
+};
+
+export type WechatIpadInboundConfig = {
+  mode?: "polling" | "webhook";
+  polling?: WechatIpadPollingConfig;
+};
+
+export type WechatIpadChannelConfig = BaseChannelConfig & {
+  name?: string;
+  baseUrl?: string;
+  apiToken?: string;
+  tokenFile?: string;
+  robotId?: string;
+  wxid?: string;
+  loginType?: "ipad" | "win" | "mac" | "car";
+  defaultAccount?: string;
+  inbound?: WechatIpadInboundConfig;
+  commandAllowFrom?: string[];
+  requireMention?: boolean;
+  safetyPrefix?: string;
+  accounts?: Record<string, WechatIpadChannelConfig>;
 };
 
 export type WeChatChannelConfig = BaseChannelConfig & {
@@ -317,7 +346,7 @@ export type ChannelConfigField = {
   type: "text" | "password" | "number" | "select" | "toggle" | "array" | "textarea";
   placeholder?: string;
   description?: string;
-  options?: Array<{ value: string; label: string }>;
+  options?: ReadonlyArray<{ value: string; label: string }>;
   required?: boolean;
   section?: string;
 };
@@ -339,6 +368,7 @@ export type ChannelsConfigData = {
   // 扩展通道
   feishu?: FeishuChannelConfig;
   wechat?: WeChatChannelConfig;
+  "wechat-ipad"?: WechatIpadChannelConfig;
   matrix?: MatrixChannelConfig;
   mattermost?: MattermostChannelConfig;
   nostr?: NostrChannelConfig;

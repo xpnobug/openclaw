@@ -2,7 +2,7 @@
  * 通道元数据定义
  * 包含所有支持的消息通道配置
  */
-import type { ChannelMeta } from "../../types/channel-config";
+import type { ChannelMeta } from "../../types/channel-config.js";
 import {
   DM_POLICY_OPTIONS,
   GROUP_POLICY_OPTIONS,
@@ -21,7 +21,7 @@ import {
   FEISHU_MARKDOWN_MODE_OPTIONS,
   FEISHU_TABLE_MODE_OPTIONS,
   FEISHU_HEARTBEAT_VISIBILITY_OPTIONS,
-} from "../../types/channel-fields";
+} from "../../types/channel-fields.js";
 
 export const CHANNEL_METADATA: ChannelMeta[] = [
   // ===== 内置通道 =====
@@ -981,6 +981,153 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         type: "number",
         placeholder: "100",
         section: "polling",
+      },
+    ],
+  },
+  {
+    id: "wechat-ipad",
+    label: "WeChat iPad",
+    icon: "wechat",
+    description: "WeChat iPad HTTP 桥接通道 (扩展)",
+    docsUrl: "https://docs.openclaw.ai/channels/wechat-ipad",
+    configFields: [
+      { key: "enabled", label: "启用", type: "toggle", section: "basic" },
+      {
+        key: "name",
+        label: "账户名称",
+        type: "text",
+        placeholder: "我的微信 iPad",
+        section: "basic",
+      },
+      {
+        key: "baseUrl",
+        label: "桥接服务地址",
+        type: "text",
+        placeholder: "http://localhost:9000",
+        required: true,
+        section: "api",
+      },
+      {
+        key: "robotId",
+        label: "机器人 ID",
+        type: "text",
+        placeholder: "default",
+        required: true,
+        section: "api",
+      },
+      {
+        key: "wxid",
+        label: "登录账号 wxid",
+        type: "text",
+        placeholder: "扫码后自动回填，或手动填写",
+        section: "api",
+        description:
+          "扫码成功后可自动获取；也可手动填写，用于 /api/Msg/Sync、/api/Msg/SendTxt、/api/Msg/UploadImg 的 Wxid 字段",
+      },
+      {
+        key: "loginType",
+        label: "扫码设备类型",
+        type: "select",
+        options: [
+          { value: "ipad", label: "iPad" },
+          { value: "win", label: "Windows" },
+          { value: "mac", label: "Mac" },
+          { value: "car", label: "Car" },
+        ],
+        section: "api",
+      },
+      {
+        key: "defaultAccount",
+        label: "默认账户",
+        type: "text",
+        placeholder: "default",
+        section: "basic",
+      },
+      {
+        key: "inbound.mode",
+        label: "入站模式",
+        type: "select",
+        options: [
+          { value: "polling", label: "轮询 (polling)" },
+          { value: "webhook", label: "回调 (webhook，预留)" },
+        ],
+        section: "polling",
+        description: "MVP 建议使用 polling；webhook 为预留模式",
+      },
+      {
+        key: "inbound.polling.intervalMs",
+        label: "轮询间隔 (ms)",
+        type: "number",
+        placeholder: "3000",
+        section: "polling",
+      },
+      {
+        key: "inbound.polling.lookbackSeconds",
+        label: "回看窗口 (秒)",
+        type: "number",
+        placeholder: "120",
+        section: "polling",
+      },
+      {
+        key: "inbound.polling.maxPagesPerPoll",
+        label: "每轮最大页数",
+        type: "number",
+        placeholder: "10",
+        section: "polling",
+      },
+      {
+        key: "inbound.polling.pollAllContacts",
+        label: "轮询全部联系人",
+        type: "toggle",
+        section: "polling",
+      },
+      {
+        key: "inbound.polling.pollContactIds",
+        label: "轮询联系人 ID",
+        type: "array",
+        placeholder: "wxid_xxx 或 xxx@chatroom",
+        section: "polling",
+      },
+      {
+        key: "dmPolicy",
+        label: "私聊策略",
+        type: "select",
+        options: DM_POLICY_OPTIONS,
+        section: "access",
+      },
+      {
+        key: "groupPolicy",
+        label: "群聊策略",
+        type: "select",
+        options: GROUP_POLICY_OPTIONS,
+        section: "access",
+      },
+      {
+        key: "allowFrom",
+        label: "对话白名单",
+        type: "array",
+        placeholder: "wxid_xxx",
+        section: "access",
+      },
+      {
+        key: "commandAllowFrom",
+        label: "指令白名单",
+        type: "array",
+        placeholder: "wxid_admin",
+        section: "access",
+      },
+      {
+        key: "requireMention",
+        label: "群聊需要 @提及",
+        type: "toggle",
+        section: "access",
+      },
+      {
+        key: "safetyPrefix",
+        label: "访客安全前缀",
+        type: "textarea",
+        placeholder: "留空使用默认值",
+        section: "access",
       },
     ],
   },

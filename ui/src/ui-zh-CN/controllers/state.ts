@@ -1,4 +1,4 @@
-import { DEFAULT_CRON_FORM } from "../../ui/app-defaults";
+import { DEFAULT_CRON_FORM } from "../../ui/app-defaults.js";
 /**
  * 模型配置核心状态定义
  * Model config core state definitions
@@ -6,19 +6,19 @@ import { DEFAULT_CRON_FORM } from "../../ui/app-defaults";
  * 包含所有状态类型定义和初始状态创建函数
  * Contains all state type definitions and initial state creation functions
  */
-import type { GatewayBrowserClient } from "../../ui/gateway";
-import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry } from "../../ui/types";
-import type { CronFormState } from "../../ui/ui-types";
+import type { GatewayBrowserClient } from "../../ui/gateway.js";
+import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry } from "../../ui/types.js";
+import type { CronFormState } from "../../ui/ui-types.js";
 import type {
   ExecApprovalsSnapshot,
   ExecApprovalsFile,
   ExecApprovalsAllowlistEntry,
   AgentOption,
-} from "../components/permissions/types";
-import type { ProviderFormState } from "../components/providers-content";
-import type { WorkspaceFileInfo } from "../components/workspace-content";
-import type { ChannelsConfigData } from "../types/channel-config";
-import type { ProviderConfig, AgentDefaults, GatewayConfig } from "../views/model-config";
+} from "../components/permissions/types.js";
+import type { ProviderFormState } from "../components/providers-content.js";
+import type { WorkspaceFileInfo } from "../components/workspace-content.js";
+import type { ChannelsConfigData } from "../types/channel-config.js";
+import type { ProviderConfig, AgentDefaults, GatewayConfig } from "../views/model-config.js";
 
 // 重新导出权限相关类型 / Re-export permission types
 export type {
@@ -26,10 +26,10 @@ export type {
   ExecApprovalsFile,
   ExecApprovalsAllowlistEntry,
   AgentOption,
-} from "../components/permissions/types";
+} from "../components/permissions/types.js";
 
 // 重新导出工作区文件类型 / Re-export workspace file types
-export type { WorkspaceFileInfo } from "../components/workspace-content";
+export type { WorkspaceFileInfo } from "../components/workspace-content.js";
 
 // ============================================
 // 会话相关类型
@@ -135,6 +135,33 @@ export type ModelConfigState = {
   // 通道配置
   modelConfigChannelsConfig: ChannelsConfigData | null;
   modelConfigSelectedChannel: string | null;
+  channelsWechatIpadLoginMessage: string | null;
+  channelsWechatIpadLoginQrDataUrl: string | null;
+  channelsWechatIpadLoginConnected: boolean | null;
+  channelsWechatIpadBusy: boolean;
+  channelsWechatIpadLoginType: "ipad" | "win" | "mac" | "car";
+  channelsWechatIpadLoginTypeConfirmOpen: boolean;
+  channelsWechatIpadLoginTypeDraft: "ipad" | "win" | "mac" | "car";
+  channelsWechatIpadLoginTypeConfirmForce: boolean;
+  channelsWechatIpadPhase:
+    | "idle"
+    | "loading_qr"
+    | "qr_ready"
+    | "scanned"
+    | "verification"
+    | "connected"
+    | "expired";
+  channelsWechatIpadCountdownSeconds: number | null;
+  channelsWechatIpadCountdownDeadlineMs: number | null;
+  channelsWechatIpadLastWaitAtMs: number | null;
+  channelsWechatIpadAutoPolling: boolean;
+  channelsWechatIpadAutoPollTimerId: number | null;
+  channelsWechatIpadWaitInFlight: boolean;
+  channelsWechatIpadRequiresVerification: boolean;
+  channelsWechatIpadTicket: string | null;
+  channelsWechatIpadData62: string | null;
+  channelsWechatIpadVerificationCode: string;
+  channelsWechatIpadVerificationBusy: boolean;
   modelConfigVersion: number;
   modelConfigSnapshotCacheVersion: number | null;
   modelConfigSnapshotCache: Record<string, unknown> | null;
@@ -228,6 +255,26 @@ export function createInitialModelConfigState(): ModelConfigState {
     modelConfigHash: null,
     modelConfigChannelsConfig: null,
     modelConfigSelectedChannel: null,
+    channelsWechatIpadLoginMessage: null,
+    channelsWechatIpadLoginQrDataUrl: null,
+    channelsWechatIpadLoginConnected: null,
+    channelsWechatIpadBusy: false,
+    channelsWechatIpadLoginType: "ipad",
+    channelsWechatIpadLoginTypeConfirmOpen: false,
+    channelsWechatIpadLoginTypeDraft: "ipad",
+    channelsWechatIpadLoginTypeConfirmForce: false,
+    channelsWechatIpadPhase: "idle",
+    channelsWechatIpadCountdownSeconds: null,
+    channelsWechatIpadCountdownDeadlineMs: null,
+    channelsWechatIpadLastWaitAtMs: null,
+    channelsWechatIpadAutoPolling: false,
+    channelsWechatIpadAutoPollTimerId: null,
+    channelsWechatIpadWaitInFlight: false,
+    channelsWechatIpadRequiresVerification: false,
+    channelsWechatIpadTicket: null,
+    channelsWechatIpadData62: null,
+    channelsWechatIpadVerificationCode: "",
+    channelsWechatIpadVerificationBusy: false,
     modelConfigVersion: 0,
     modelConfigSnapshotCacheVersion: null,
     modelConfigSnapshotCache: null,

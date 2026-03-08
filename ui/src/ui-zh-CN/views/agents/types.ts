@@ -11,18 +11,18 @@ import type {
   CronRunLogEntry,
   ChannelUiMetaEntry,
   GatewayAgentRow,
-} from "../../../ui/types";
-import type { CronFormState } from "../../../ui/ui-types";
-import type { AgentStatus, AgentGroup } from "../../components/agent/agent-sidebar";
-import type { ProviderFormState } from "../../components/providers-content";
+} from "../../../ui/types.js";
+import type { CronFormState } from "../../../ui/ui-types.js";
+import type { AgentStatus, AgentGroup } from "../../components/agent/agent-sidebar.js";
+import type { ProviderFormState } from "../../components/providers-content.js";
 import type {
   ToolsConfig,
   AgentWithTools,
   ToolPolicyConfig,
   SessionsListResult as AgentSessionsListResult,
-} from "../../controllers/model-config";
-import type { AgentPanel, GlobalPanel, ConfigSnapshot } from "../../types/agents-config";
-import type { ChannelsConfigData } from "../../types/channel-config";
+} from "../../controllers/state.js";
+import type { AgentPanel, GlobalPanel, ConfigSnapshot } from "../../types/agents-config.js";
+import type { ChannelsConfigData } from "../../types/channel-config.js";
 import type {
   SkillStatusReport,
   SkillsConfig,
@@ -36,8 +36,8 @@ import type {
   SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
-} from "../../types/skills-config";
-import type { ProviderConfig, GatewayConfig, AgentDefaults } from "../model-config";
+} from "../../types/skills-config.js";
+import type { ProviderConfig, GatewayConfig, AgentDefaults } from "../model-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Agent 向导数据类型 / Agent Wizard Data Type
@@ -166,6 +166,31 @@ export type AgentsConfigProps = {
   channelsSelectedChannel: string | null;
   channelsLoading: boolean;
   channelsError: string | null;
+  channelsWechatIpadLoginMessage: string | null;
+  channelsWechatIpadLoginQrDataUrl: string | null;
+  channelsWechatIpadLoginConnected: boolean | null;
+  channelsWechatIpadBusy: boolean;
+  channelsWechatIpadLoginType: "ipad" | "win" | "mac" | "car";
+  channelsWechatIpadLoginTypeConfirmOpen: boolean;
+  channelsWechatIpadLoginTypeDraft: "ipad" | "win" | "mac" | "car";
+  channelsWechatIpadLoginTypeConfirmForce: boolean;
+  channelsWechatIpadPhase:
+    | "idle"
+    | "loading_qr"
+    | "qr_ready"
+    | "scanned"
+    | "verification"
+    | "connected"
+    | "expired";
+  channelsWechatIpadCountdownSeconds: number | null;
+  channelsWechatIpadCountdownDeadlineMs: number | null;
+  channelsWechatIpadLastWaitAtMs: number | null;
+  channelsWechatIpadAutoPolling: boolean;
+  channelsWechatIpadRequiresVerification: boolean;
+  channelsWechatIpadTicket: string | null;
+  channelsWechatIpadData62: string | null;
+  channelsWechatIpadVerificationCode: string;
+  channelsWechatIpadVerificationBusy: boolean;
 
   // 定时任务面板数据 / Cron panel data
   cronLoading: boolean;
@@ -305,6 +330,14 @@ export type AgentsConfigProps = {
   onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
   onNavigateToChannels: () => void;
   onChannelsRefresh?: () => void;
+  onWechatIpadStart: (force: boolean) => void;
+  onWechatIpadWait: () => void;
+  onWechatIpadLogout: () => void;
+  onWechatIpadLoginTypeChange: (loginType: "ipad" | "win" | "mac" | "car") => void;
+  onWechatIpadLoginTypeConfirmCancel: () => void;
+  onWechatIpadLoginTypeConfirmSubmit: () => void;
+  onWechatIpadVerificationCodeChange: (code: string) => void;
+  onWechatIpadSubmitVerificationCode: () => void;
 
   // 定时任务回调 / Cron callbacks
   onCronFormChange: (patch: Partial<CronFormState>) => void;

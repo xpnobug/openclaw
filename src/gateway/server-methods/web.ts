@@ -1,4 +1,8 @@
-import { listChannelPlugins } from "../../channels/plugins/index.js";
+import {
+  getChannelPlugin,
+  listChannelPlugins,
+  normalizeChannelId,
+} from "../../channels/plugins/index.js";
 import {
   ErrorCodes,
   errorShape,
@@ -9,16 +13,47 @@ import {
 import { formatForLog } from "../ws-log.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
-const WEB_LOGIN_METHODS = new Set(["web.login.start", "web.login.wait"]);
+function supportsWebLoginMethod(
+  pluginId: string | null,
+  method: "web.login.start" | "web.login.wait",
+) {
+  if (!pluginId) {
+    return true;
+  }
+  const plugin = getChannelPlugin(pluginId);
+  if (!plugin) {
+    return false;
+  }
+  return (plugin.gatewayMethods ?? []).includes(method);
+}
 
-const resolveWebLoginProvider = () =>
-  listChannelPlugins().find((plugin) =>
-    (plugin.gatewayMethods ?? []).some((method) => WEB_LOGIN_METHODS.has(method)),
-  ) ?? null;
+const resolveWebLoginProvider = (
+  method: "web.login.start" | "web.login.wait",
+  channelId?: string,
+) => {
+  const normalizedChannelId = normalizeChannelId(channelId ?? null);
+  if (channelId && !normalizedChannelId) {
+    return null;
+  }
+  if (normalizedChannelId) {
+    const plugin = getChannelPlugin(normalizedChannelId);
+    if (!plugin) {
+      return null;
+    }
+    return supportsWebLoginMethod(plugin.id, method) ? plugin : null;
+  }
+  return listChannelPlugins().find((plugin) => supportsWebLoginMethod(plugin.id, method)) ?? null;
+};
 
 function resolveAccountId(params: unknown): string | undefined {
   return typeof (params as { accountId?: unknown }).accountId === "string"
     ? (params as { accountId?: string }).accountId
+    : undefined;
+}
+
+function resolveRequestedChannel(params: unknown): string | undefined {
+  return typeof (params as { channel?: unknown }).channel === "string"
+    ? (params as { channel?: string }).channel
     : undefined;
 }
 
@@ -53,8 +88,20 @@ export const webHandlers: GatewayRequestHandlers = {
     }
     try {
       const accountId = resolveAccountId(params);
-      const provider = resolveWebLoginProvider();
+      const requestedChannel = resolveRequestedChannel(params);
+      const provider = resolveWebLoginProvider("web.login.start", requestedChannel);
       if (!provider) {
+        if (requestedChannel) {
+          respond(
+            false,
+            undefined,
+            errorShape(
+              ErrorCodes.INVALID_REQUEST,
+              `web login provider is not available for channel ${requestedChannel}`,
+            ),
+          );
+          return;
+        }
         respondProviderUnavailable(respond);
         return;
       }
@@ -71,6 +118,10 @@ export const webHandlers: GatewayRequestHandlers = {
             : undefined,
         verbose: Boolean((params as { verbose?: boolean }).verbose),
         accountId,
+        loginType:
+          typeof (params as { loginType?: unknown }).loginType === "string"
+            ? ((params as { loginType?: "ipad" | "win" | "mac" | "car" }).loginType ?? "ipad")
+            : undefined,
       });
       respond(true, result, undefined);
     } catch (err) {
@@ -91,8 +142,20 @@ export const webHandlers: GatewayRequestHandlers = {
     }
     try {
       const accountId = resolveAccountId(params);
-      const provider = resolveWebLoginProvider();
+      const requestedChannel = resolveRequestedChannel(params);
+      const provider = resolveWebLoginProvider("web.login.wait", requestedChannel);
       if (!provider) {
+        if (requestedChannel) {
+          respond(
+            false,
+            undefined,
+            errorShape(
+              ErrorCodes.INVALID_REQUEST,
+              `web login provider is not available for channel ${requestedChannel}`,
+            ),
+          );
+          return;
+        }
         respondProviderUnavailable(respond);
         return;
       }

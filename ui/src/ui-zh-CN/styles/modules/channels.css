@@ -264,6 +264,136 @@
   gap: 24px;
 }
 
+.channel-detail__wechat-login {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-accent);
+}
+
+.channel-detail__wechat-login-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.channel-detail__wechat-login-status {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.channel-detail__wechat-login-device-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.channel-detail__wechat-login-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.channel-detail__wechat-login-countdown {
+  margin-left: 8px;
+  font-family: var(--font-mono);
+  color: var(--text-secondary);
+}
+
+.channel-detail__wechat-login-badge {
+  display: inline-flex;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.channel-detail__wechat-login-type-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.channel-detail__wechat-login-type-confirm-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.channel-detail__wechat-login-type-confirm-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.channel-detail__wechat-login-message {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  font-size: 12px;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.channel-detail__wechat-login-qr-wrap {
+  display: inline-flex;
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: #fff;
+  width: fit-content;
+}
+
+.channel-detail__wechat-login-qr {
+  width: 220px;
+  height: 220px;
+  display: block;
+}
+
+.channel-detail__wechat-verification {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+}
+
+.channel-detail__wechat-verification-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.channel-detail__wechat-verification-desc {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.channel-detail__wechat-verification-ticket {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+
 .channel-detail__section {
   display: flex;
   flex-direction: column;

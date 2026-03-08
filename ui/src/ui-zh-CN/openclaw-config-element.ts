@@ -13,7 +13,6 @@ import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { GatewayBrowserClient } from "../ui/gateway";
 import type { AgentsListResult, AgentIdentityResult, GatewayAgentRow } from "../ui/types";
-import type { AgentPanel, GlobalPanel } from "./types/agents-config";
 // 回调工厂
 import {
   createAgentCallbacks,
@@ -45,6 +44,7 @@ import {
   createInitialSkillsConfigState,
   type SkillsConfigState,
 } from "./controllers/skills-config";
+import type { AgentPanel, GlobalPanel } from "./types/agents-config";
 // 渲染
 import { renderAgentsConfig, type AgentsConfigProps } from "./views/agents-config";
 
@@ -203,6 +203,19 @@ export class OpenClawConfigElement extends LitElement {
         this._loadAgentIdentities(agentIds),
         this._loadChannelsStatus(),
       ]);
+
+      const wechatIpadRaw = this._state.modelConfigChannelsConfig?.["wechat-ipad"];
+      const wechatIpadLoginType =
+        wechatIpadRaw && typeof wechatIpadRaw === "object"
+          ? (wechatIpadRaw as { loginType?: unknown }).loginType
+          : undefined;
+      this._state.channelsWechatIpadLoginType =
+        wechatIpadLoginType === "win" ||
+        wechatIpadLoginType === "mac" ||
+        wechatIpadLoginType === "car"
+          ? wechatIpadLoginType
+          : "ipad";
+      this._state.channelsWechatIpadLoginTypeDraft = this._state.channelsWechatIpadLoginType;
 
       if (this._state.selectedAgentId) {
         await loadAgentSessions(this._state, this._state.selectedAgentId);

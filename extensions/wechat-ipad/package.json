@@ -1,0 +1,36 @@
+{
+  "name": "@openclaw/wechat-ipad",
+  "version": "2026.3.7",
+  "description": "OpenClaw WeChat iPad channel plugin (HTTP bridge)",
+  "type": "module",
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "openclaw": "workspace:*"
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.ts"
+    ],
+    "channel": {
+      "id": "wechat-ipad",
+      "label": "WeChat iPad",
+      "selectionLabel": "WeChat iPad (HTTP bridge)",
+      "docsPath": "/channels/wechat-ipad",
+      "docsLabel": "wechat-ipad",
+      "blurb": "Bridge WeChat iPad via an external HTTP service.",
+      "aliases": [
+        "wxipad",
+        "wechatipad"
+      ],
+      "order": 86,
+      "quickstartAllowFrom": true
+    },
+    "install": {
+      "npmSpec": "@openclaw/wechat-ipad",
+      "localPath": "extensions/wechat-ipad",
+      "defaultChoice": "npm"
+    }
+  }
+}

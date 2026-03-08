@@ -5,7 +5,11 @@ import type { CronJob } from "../../ui/types";
  */
 import type { AgentsConfigProps } from "../views/agents/types";
 import type { WorkspaceFileInfo } from "./model-config";
-import { buildEffectiveConfigSnapshot, getAvailableModels, hasModelConfigChanges } from "./model-config";
+import {
+  buildEffectiveConfigSnapshot,
+  getAvailableModels,
+  hasModelConfigChanges,
+} from "./model-config";
 import { hasSkillsConfigChanges } from "./skills-config";
 
 /** on* 回调键名 */
@@ -109,6 +113,14 @@ type DataProps = Omit<
   | "onNavigateToChannels"
   | "onAddChannel"
   | "onChannelsRefresh"
+  | "onWechatIpadStart"
+  | "onWechatIpadWait"
+  | "onWechatIpadLogout"
+  | "onWechatIpadLoginTypeChange"
+  | "onWechatIpadLoginTypeConfirmCancel"
+  | "onWechatIpadLoginTypeConfirmSubmit"
+  | "onWechatIpadVerificationCodeChange"
+  | "onWechatIpadSubmitVerificationCode"
   | "onCronFormChange"
   | "onCronRefresh"
   | "onCronAdd"
@@ -239,6 +251,24 @@ export function buildPropsData(s: Record<string, any>): DataProps {
     channelsSelectedChannel: s.modelConfigSelectedChannel,
     channelsLoading: s.modelConfigLoading,
     channelsError: null,
+    channelsWechatIpadLoginMessage: s.channelsWechatIpadLoginMessage,
+    channelsWechatIpadLoginQrDataUrl: s.channelsWechatIpadLoginQrDataUrl,
+    channelsWechatIpadLoginConnected: s.channelsWechatIpadLoginConnected,
+    channelsWechatIpadBusy: s.channelsWechatIpadBusy,
+    channelsWechatIpadLoginType: s.channelsWechatIpadLoginType,
+    channelsWechatIpadLoginTypeConfirmOpen: s.channelsWechatIpadLoginTypeConfirmOpen,
+    channelsWechatIpadLoginTypeDraft: s.channelsWechatIpadLoginTypeDraft,
+    channelsWechatIpadLoginTypeConfirmForce: s.channelsWechatIpadLoginTypeConfirmForce,
+    channelsWechatIpadPhase: s.channelsWechatIpadPhase,
+    channelsWechatIpadCountdownSeconds: s.channelsWechatIpadCountdownSeconds,
+    channelsWechatIpadCountdownDeadlineMs: s.channelsWechatIpadCountdownDeadlineMs,
+    channelsWechatIpadLastWaitAtMs: s.channelsWechatIpadLastWaitAtMs,
+    channelsWechatIpadAutoPolling: s.channelsWechatIpadAutoPolling,
+    channelsWechatIpadRequiresVerification: s.channelsWechatIpadRequiresVerification,
+    channelsWechatIpadTicket: s.channelsWechatIpadTicket,
+    channelsWechatIpadData62: s.channelsWechatIpadData62,
+    channelsWechatIpadVerificationCode: s.channelsWechatIpadVerificationCode,
+    channelsWechatIpadVerificationBusy: s.channelsWechatIpadVerificationBusy,
 
     // 定时任务
     cronLoading: s.cronLoading,
@@ -262,10 +292,13 @@ export function buildPropsData(s: Record<string, any>): DataProps {
     cronDefaultAgentId: s.agentsList?.defaultId ?? "",
     cronChannels: Object.keys(s.modelConfigChannelsConfig ?? {}),
     cronChannelLabels: Object.fromEntries(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      Object.entries(s.modelConfigChannelsConfig ?? {}).map(
-        ([k, v]: [string, Record<string, any>]) => [k, v?.label ?? k],
-      ),
+      Object.entries(s.modelConfigChannelsConfig ?? {}).map(([k, v]) => {
+        const label =
+          typeof v === "object" && v !== null && "label" in v && typeof v.label === "string"
+            ? v.label
+            : k;
+        return [k, label];
+      }),
     ),
     cronChannelMeta: s.cronChannelMeta,
     cronRunsJobId: s.cronRunsJobId,

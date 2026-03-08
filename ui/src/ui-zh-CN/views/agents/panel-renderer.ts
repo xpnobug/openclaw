@@ -3,21 +3,20 @@
  * Agent configuration page panel renderers
  */
 import { html, nothing } from "lit";
-import type { AgentsListResult } from "../../../ui/types";
-import type { GlobalPanel } from "../../types/agents-config";
-import type { AgentsConfigProps } from "./types";
+import type { AgentsListResult } from "../../../ui/types.js";
+import { renderAgentContent } from "../../components/agent-content.js";
 import {
   renderAgentOverview,
   renderAgentFiles,
   renderAgentTools,
   renderAgentSkills,
   renderAgentCron,
-} from "../../components/agent";
-import { renderAgentContent } from "../../components/agent-content";
-import { renderChannelsContent } from "../../components/channels-content";
-import { renderGatewayContent } from "../../components/gateway-content";
-import { renderProvidersContent } from "../../components/providers-content";
-import { LABELS } from "../../types/agents-config";
+} from "../../components/agent/index.js";
+import { renderChannelsContent } from "../../components/channels-content.js";
+import { renderGatewayContent } from "../../components/gateway-content.js";
+import { renderProvidersContent } from "../../components/providers-content.js";
+import { LABELS } from "../../types/agents-config.js";
+import type { AgentsConfigProps } from "./types.js";
 
 /**
  * 渲染当前激活的面板内容
@@ -29,7 +28,9 @@ export function renderActivePanel(
 ) {
   const { activePanel, selectedAgentId } = props;
 
-  if (!selectedAgentId) return nothing;
+  if (!selectedAgentId) {
+    return nothing;
+  }
 
   switch (activePanel) {
     case "overview":
@@ -220,7 +221,9 @@ export function renderActivePanel(
 export function renderGlobalPanel(props: AgentsConfigProps) {
   const { globalPanel } = props;
 
-  if (!globalPanel) return nothing;
+  if (!globalPanel) {
+    return nothing;
+  }
 
   switch (globalPanel) {
     case "channels":
@@ -234,9 +237,35 @@ export function renderGlobalPanel(props: AgentsConfigProps) {
             ${renderChannelsContent({
               channelsConfig: props.channelsConfig,
               selectedChannel: props.channelsSelectedChannel,
+              wechatIpadLoginMessage: props.channelsWechatIpadLoginMessage,
+              wechatIpadLoginQrDataUrl: props.channelsWechatIpadLoginQrDataUrl,
+              wechatIpadLoginConnected: props.channelsWechatIpadLoginConnected,
+              wechatIpadBusy: props.channelsWechatIpadBusy,
+              wechatIpadLoginType: props.channelsWechatIpadLoginType,
+              wechatIpadLoginTypeConfirmOpen: props.channelsWechatIpadLoginTypeConfirmOpen,
+              wechatIpadLoginTypeDraft: props.channelsWechatIpadLoginTypeDraft,
+              wechatIpadLoginTypeConfirmForce: props.channelsWechatIpadLoginTypeConfirmForce,
+              wechatIpadPhase: props.channelsWechatIpadPhase,
+              wechatIpadCountdownSeconds: props.channelsWechatIpadCountdownSeconds,
+              wechatIpadCountdownDeadlineMs: props.channelsWechatIpadCountdownDeadlineMs,
+              wechatIpadLastWaitAtMs: props.channelsWechatIpadLastWaitAtMs,
+              wechatIpadAutoPolling: props.channelsWechatIpadAutoPolling,
+              wechatIpadRequiresVerification: props.channelsWechatIpadRequiresVerification,
+              wechatIpadTicket: props.channelsWechatIpadTicket,
+              wechatIpadData62: props.channelsWechatIpadData62,
+              wechatIpadVerificationCode: props.channelsWechatIpadVerificationCode,
+              wechatIpadVerificationBusy: props.channelsWechatIpadVerificationBusy,
               onChannelSelect: props.onChannelSelect,
               onChannelConfigUpdate: props.onChannelConfigUpdate,
               onNavigateToChannels: props.onNavigateToChannels,
+              onWechatIpadStart: props.onWechatIpadStart,
+              onWechatIpadWait: props.onWechatIpadWait,
+              onWechatIpadLogout: props.onWechatIpadLogout,
+              onWechatIpadLoginTypeChange: props.onWechatIpadLoginTypeChange,
+              onWechatIpadLoginTypeConfirmCancel: props.onWechatIpadLoginTypeConfirmCancel,
+              onWechatIpadLoginTypeConfirmSubmit: props.onWechatIpadLoginTypeConfirmSubmit,
+              onWechatIpadVerificationCodeChange: props.onWechatIpadVerificationCodeChange,
+              onWechatIpadSubmitVerificationCode: props.onWechatIpadSubmitVerificationCode,
             })}
           </div>
         </div>

@@ -82,7 +82,7 @@ import { renderOverview } from "./views/overview.ts";
 import { renderSessions } from "./views/sessions.ts";
 import { renderSkills } from "./views/skills.ts";
 // 导入 ui-zh-CN 自包含组件
-import "../ui-zh-CN";
+import "../ui-zh-CN/index.ts";
 
 const AVATAR_DATA_RE = /^data:/i;
 const AVATAR_HTTP_RE = /^https?:\/\//i;

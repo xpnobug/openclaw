@@ -1,0 +1,9 @@
+{
+  "id": "wechat-ipad",
+  "channels": ["wechat-ipad"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
