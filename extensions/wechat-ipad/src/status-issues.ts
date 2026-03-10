@@ -20,7 +20,7 @@ export function collectWechatIpadStatusIssues(
         accountId,
         kind: "config",
         message: "WeChat iPad account is not fully configured.",
-        fix: "Set channels.wechat-ipad.baseUrl (or account-level fields). wxid can be obtained after QR login.",
+        fix: `Set channels.wechat-ipad.accounts.${accountId}.baseUrl and channels.wechat-ipad.accounts.${accountId}.apiToken. wxid can be obtained after QR login.`,
       });
     }
 

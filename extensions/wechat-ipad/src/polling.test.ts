@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resolveWechatIpadAccount } from "./accounts.js";
 
 const apiMocks = vi.hoisted(() => ({
   pollInboundMessages: vi.fn(),
@@ -26,6 +27,93 @@ describe("WechatIpadMessagePoller", () => {
     vi.useFakeTimers();
     apiMocks.pollInboundMessages.mockReset();
     apiMocks.listContactIdsViaApi.mockReset();
+  });
+
+  it("reads polling config only from the selected account", () => {
+    const account = resolveWechatIpadAccount({
+      cfg: {
+        channels: {
+          "wechat-ipad": {
+            accounts: {
+              main: {
+                apiToken: "token-main",
+                inbound: {
+                  mode: "polling",
+                  polling: {
+                    intervalMs: 1500,
+                    pollContactIds: ["wxid_main"],
+                  },
+                },
+              },
+              ops: {
+                apiToken: "token-ops",
+                inbound: {
+                  mode: "polling",
+                  polling: {
+                    intervalMs: 9000,
+                    pollContactIds: ["wxid_ops"],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      accountId: "main",
+    });
+
+    expect(account.inbound.polling.intervalMs).toBe(1500);
+    expect(account.inbound.polling.pollContactIds).toEqual(["wxid_main"]);
+  });
+
+  it("logs poller startup and sync counts", async () => {
+    const log = vi.fn();
+    const now = Date.now();
+    apiMocks.pollInboundMessages.mockResolvedValueOnce({
+      items: [
+        {
+          id: "wxid_a:100",
+          msgId: "100",
+          from: "wxid_a",
+          senderId: "wxid_a",
+          chatId: "wxid_a",
+          chatType: "direct",
+          body: "hello",
+          timestamp: now,
+          isAtMe: false,
+          contentType: "text",
+        },
+      ],
+      contactIds: ["wxid_a"],
+    });
+
+    const poller = new WechatIpadMessagePoller({
+      baseUrl: "http://localhost:9000",
+      apiToken: "token",
+      robotId: "default",
+      wxid: "wxid_bot",
+      accountId: "default",
+      pollingConfig: {
+        intervalMs: 1000,
+        lookbackSeconds: 120,
+        maxPagesPerPoll: 1,
+        pollAllContacts: false,
+        pollContactIds: ["wxid_a"],
+      },
+      log,
+      onMessage: async () => {},
+    });
+
+    await poller.start();
+    await vi.runOnlyPendingTimersAsync();
+    poller.stop();
+
+    expect(log).toHaveBeenCalledWith(
+      "wechat-ipad[default]: 轮询已启动（wxid=wxid_bot，pollContactIds=wxid_a，pollAllContacts=false）",
+    );
+    expect(log).toHaveBeenCalledWith(
+      "wechat-ipad[default]: /api/Msg/Sync 完成（contact=wxid_a，返回消息数=1，命中消息数=1）",
+    );
   });
 
   it("polls configured contacts and deduplicates messages", async () => {

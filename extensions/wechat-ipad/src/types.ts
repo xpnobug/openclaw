@@ -12,15 +12,35 @@ export type WechatIpadPollingConfig = {
   pollContactIds?: string[];
 };
 
+export type WechatIpadWebhookAuthMode = "header" | "query" | "none";
+
+export type WechatIpadWebhookConfig = {
+  path?: string;
+  secret?: string;
+  authMode?: WechatIpadWebhookAuthMode;
+  maxBodyBytes?: number;
+  dedupeWindowMs?: number;
+  rateLimitPerMinute?: number;
+};
+
 export type WechatIpadInboundConfig = {
   mode?: WechatIpadInboundMode;
   polling?: WechatIpadPollingConfig;
+  webhook?: WechatIpadWebhookConfig;
+};
+
+export type WechatIpadBotProfile = {
+  nickname: string;
+  headImgUrl: string;
+  fetchedAt: number;
 };
 
 export type WechatIpadAccountConfig = {
   name?: string;
   enabled?: boolean;
   markdown?: MarkdownConfig;
+  longTextThreshold?: number;
+  longTextTitle?: string;
   baseUrl?: string;
   apiToken?: string;
   tokenFile?: string;
@@ -37,9 +57,10 @@ export type WechatIpadAccountConfig = {
 };
 
 export type WechatIpadConfig = {
-  accounts?: Record<string, WechatIpadAccountConfig>;
+  enabled?: boolean;
   defaultAccount?: string;
-} & WechatIpadAccountConfig;
+  accounts?: Record<string, WechatIpadAccountConfig>;
+};
 
 export type WechatIpadTokenSource = "env" | "config" | "configFile" | "none";
 
@@ -54,6 +75,7 @@ export type ResolvedWechatIpadAccount = {
   inbound: {
     mode: WechatIpadInboundMode;
     polling: Required<WechatIpadPollingConfig>;
+    webhook: Required<WechatIpadWebhookConfig>;
   };
   config: WechatIpadAccountConfig;
 };
@@ -141,13 +163,30 @@ export type WechatIpadQuotedMessage = {
   quotedSenderWxid?: string;
   quotedChatId?: string;
   quotedMessageId?: string;
+  quotedMessageIdFull?: string;
   quotedMessageType?: number;
+  quotedMessageSequenceId?: string;
+  quotedMessageMsgSource?: string;
   rawXml: string;
+};
+
+export type WechatIpadLinkCard = {
+  title: string;
+  url: string;
+  desc?: string;
+  thumbUrl?: string;
+};
+
+export type WechatIpadChannelData = {
+  linkCard?: WechatIpadLinkCard;
 };
 
 export type WechatIpadInboundMessage = {
   id: string;
   msgId?: string;
+  msgIdFull?: string;
+  msgSeq?: string;
+  rawMsgSource?: string;
   from: string;
   senderId: string;
   senderName?: string;

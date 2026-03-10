@@ -210,16 +210,21 @@ export class OpenClawConfigElement extends LitElement {
         const record = wechatIpadRaw as {
           defaultAccount?: unknown;
           accounts?: Record<string, { loginType?: unknown }>;
-          loginType?: unknown;
         };
         const accountIds = Object.keys(record.accounts ?? {});
-        const selectedAccountId =
+        const defaultAccount =
           typeof record.defaultAccount === "string" && record.defaultAccount.trim()
             ? record.defaultAccount.trim()
-            : (accountIds[0] ?? "default");
-        const orderedAccountIds = accountIds.length > 0 ? accountIds : [selectedAccountId];
+            : "";
+        const fallbackAccountId = defaultAccount || accountIds[0] || "main";
+        const selectedAccountId =
+          (defaultAccount && (accountIds.length === 0 || accountIds.includes(defaultAccount))
+            ? defaultAccount
+            : undefined) ??
+          accountIds[0] ??
+          fallbackAccountId;
         const nextStateByAccount = { ...this._state.channelsWechatIpadStateByAccount };
-        for (const accountId of orderedAccountIds) {
+        for (const accountId of accountIds.length > 0 ? accountIds : [fallbackAccountId]) {
           if (nextStateByAccount[accountId]) {
             continue;
           }
@@ -228,11 +233,7 @@ export class OpenClawConfigElement extends LitElement {
             record.accounts?.[accountId]?.loginType === "mac" ||
             record.accounts?.[accountId]?.loginType === "car"
               ? record.accounts?.[accountId]?.loginType
-              : record.loginType === "win" ||
-                  record.loginType === "mac" ||
-                  record.loginType === "car"
-                ? record.loginType
-                : "ipad";
+              : "ipad";
           nextStateByAccount[accountId] = {
             ...createInitialWechatIpadAccountUiState(),
             loginType,
@@ -240,7 +241,8 @@ export class OpenClawConfigElement extends LitElement {
           };
         }
         this._state.channelsWechatIpadSelectedAccountId = selectedAccountId;
-        this._state.channelsWechatIpadAccountOrder = orderedAccountIds;
+        this._state.channelsWechatIpadAccountOrder =
+          accountIds.length > 0 ? accountIds : [fallbackAccountId];
         this._state.channelsWechatIpadStateByAccount = nextStateByAccount;
       }
 

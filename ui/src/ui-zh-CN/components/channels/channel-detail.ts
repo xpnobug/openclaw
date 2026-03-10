@@ -48,6 +48,7 @@ const WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS = new Set([
   "commandAllowFrom",
   "requireMention",
   "safetyPrefix",
+  "longTextThreshold",
 ]);
 
 function isWechatIpadAccountScopedField(fieldKey: string): boolean {
@@ -69,11 +70,62 @@ function resolveWechatIpadConfigFieldValue(
   if (!accountId || !isWechatIpadAccountScopedField(fieldKey)) {
     return resolveNestedValue(config, fieldKey);
   }
-  const accountValue = resolveNestedValue(
-    config,
-    resolveWechatIpadConfigFieldPath(fieldKey, accountId),
+  return resolveNestedValue(config, resolveWechatIpadConfigFieldPath(fieldKey, accountId));
+}
+
+function hasWechatIpadAccountConfig(
+  config: Record<string, unknown>,
+  accountId: string | null,
+): boolean {
+  if (!accountId) {
+    return false;
+  }
+  const accounts = config.accounts;
+  return Boolean(accounts && typeof accounts === "object" && accountId in accounts);
+}
+
+function renderChannelConfigSections(params: {
+  channel: ChannelMeta;
+  config: Record<string, unknown>;
+  fields: ChannelConfigField[];
+  accountId: string | null;
+  titleBySectionId?: Record<string, string>;
+  onChannelConfigUpdate: (channelId: string, field: string, value: unknown) => void;
+}) {
+  const { channel, config, fields, accountId, titleBySectionId, onChannelConfigUpdate } = params;
+  const fieldsBySection = new Map<string, ChannelConfigField[]>();
+  for (const field of fields) {
+    const section = field.section ?? "basic";
+    if (!fieldsBySection.has(section)) {
+      fieldsBySection.set(section, []);
+    }
+    fieldsBySection.get(section)!.push(field);
+  }
+
+  return CONFIG_SECTIONS.filter((section: { id: string; label: string }) =>
+    fieldsBySection.has(section.id),
+  ).map(
+    (section: { id: string; label: string }) => html`
+      <div class="channel-detail__section">
+        <h4 class="channel-detail__section-title">${titleBySectionId?.[section.id] ?? section.label}</h4>
+        <div class="channel-detail__fields">
+          ${fieldsBySection.get(section.id)!.map((field) => {
+            const actualFieldKey =
+              channel.id === "wechat-ipad"
+                ? resolveWechatIpadConfigFieldPath(field.key, accountId)
+                : field.key;
+            const actualField =
+              actualFieldKey === field.key ? field : { ...field, key: actualFieldKey };
+            const value =
+              channel.id === "wechat-ipad"
+                ? resolveWechatIpadConfigFieldValue(config, field.key, accountId)
+                : resolveNestedValue(config, field.key);
+            return renderConfigField(channel, actualField, value, onChannelConfigUpdate);
+          })}
+        </div>
+      </div>
+    `,
   );
-  return accountValue === undefined ? resolveNestedValue(config, fieldKey) : accountValue;
 }
 
 export function renderChannelDetail(props: ChannelDetailProps) {
@@ -94,18 +146,20 @@ export function renderChannelDetail(props: ChannelDetailProps) {
   const config = (props.channelsConfig[channel.id] ?? {}) as Record<string, unknown>;
   const wechatIpadCurrentAccountId =
     channel.id === "wechat-ipad"
-      ? (props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "default")
+      ? (props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "main")
       : null;
-
-  // 按 section 分组字段
-  const fieldsBySection = new Map<string, ChannelConfigField[]>();
-  for (const field of channel.configFields) {
-    const section = field.section ?? "basic";
-    if (!fieldsBySection.has(section)) {
-      fieldsBySection.set(section, []);
-    }
-    fieldsBySection.get(section)!.push(field);
-  }
+  const wechatIpadHasRealAccount =
+    channel.id === "wechat-ipad"
+      ? hasWechatIpadAccountConfig(config, wechatIpadCurrentAccountId)
+      : false;
+  const topLevelFields =
+    channel.id === "wechat-ipad"
+      ? channel.configFields.filter((field) => !isWechatIpadAccountScopedField(field.key))
+      : channel.configFields;
+  const accountFields =
+    channel.id === "wechat-ipad"
+      ? channel.configFields.filter((field) => isWechatIpadAccountScopedField(field.key))
+      : [];
 
   return html`
     <div class="channel-detail">
@@ -133,40 +187,52 @@ export function renderChannelDetail(props: ChannelDetailProps) {
       </div>
 
       <div class="channel-detail__body">
+        ${renderChannelConfigSections({
+          channel,
+          config,
+          fields: topLevelFields,
+          accountId: null,
+          titleBySectionId: channel.id === "wechat-ipad" ? { basic: "通道级设置" } : undefined,
+          onChannelConfigUpdate: props.onChannelConfigUpdate,
+        })}
         ${renderWechatIpadLoginSection(channel.id, props)}
-        ${CONFIG_SECTIONS.filter((section: { id: string; label: string }) =>
-          fieldsBySection.has(section.id),
-        ).map(
-          (section: { id: string; label: string }) => html`
-            <div class="channel-detail__section">
-              <h4 class="channel-detail__section-title">${section.label}</h4>
-              <div class="channel-detail__fields">
-                ${fieldsBySection.get(section.id)!.map((field) => {
-                  const actualFieldKey =
-                    channel.id === "wechat-ipad"
-                      ? resolveWechatIpadConfigFieldPath(field.key, wechatIpadCurrentAccountId)
-                      : field.key;
-                  const actualField =
-                    actualFieldKey === field.key ? field : { ...field, key: actualFieldKey };
-                  const value =
-                    channel.id === "wechat-ipad"
-                      ? resolveWechatIpadConfigFieldValue(
-                          config,
-                          field.key,
-                          wechatIpadCurrentAccountId,
-                        )
-                      : resolveNestedValue(config, field.key);
-                  return renderConfigField(
-                    channel,
-                    actualField,
-                    value,
-                    props.onChannelConfigUpdate,
-                  );
+        ${
+          channel.id === "wechat-ipad" && wechatIpadCurrentAccountId
+            ? html`
+                ${
+                  !wechatIpadHasRealAccount
+                    ? html`
+                        <div class="channel-detail__section">
+                          <h4 class="channel-detail__section-title">当前账户</h4>
+                          <div class="channel-detail__empty">
+                            <div class="channel-detail__empty-icon">${icons.channel}</div>
+                            <div class="channel-detail__empty-text">
+                              当前还没有已保存的 wechat-ipad 账户配置，已为你自动准备账户 ${wechatIpadCurrentAccountId}。
+                              直接填写下面字段即可创建并保存该账户。
+                            </div>
+                          </div>
+                        </div>
+                      `
+                    : nothing
+                }
+                ${renderChannelConfigSections({
+                  channel,
+                  config,
+                  fields: accountFields,
+                  accountId: wechatIpadCurrentAccountId,
+                  titleBySectionId: {
+                    api: "当前账户 API 配置",
+                    polling: "当前账户入站配置",
+                    access: "当前账户访问控制",
+                    messaging: "当前账户消息发送",
+                  },
+                  onChannelConfigUpdate: props.onChannelConfigUpdate,
                 })}
-              </div>
-            </div>
-          `,
-        )}
+              `
+            : channel.id !== "wechat-ipad"
+              ? nothing
+              : nothing
+        }
       </div>
     </div>
   `;
@@ -205,8 +271,9 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
         ? "已连接"
         : "未连接";
   const currentAccountId =
-    props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "default";
+    props.wechatIpadSelectedAccountId ?? props.wechatIpadAccountOrder[0] ?? "main";
   const channelConfig = (props.channelsConfig["wechat-ipad"] ?? {}) as Record<string, unknown>;
+  const hasRealAccount = hasWechatIpadAccountConfig(channelConfig, currentAccountId);
   const accountBaseUrl = resolveWechatIpadConfigFieldValue(
     channelConfig,
     "baseUrl",
@@ -217,7 +284,9 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
     "robotId",
     currentAccountId,
   );
-  const accountWxid = resolveWechatIpadConfigFieldValue(channelConfig, "wxid", currentAccountId);
+  const accountWxid =
+    props.wechatIpadCurrentState.runtimeWxid ??
+    resolveWechatIpadConfigFieldValue(channelConfig, "wxid", currentAccountId);
   const accountLoginType = resolveWechatIpadConfigFieldValue(
     channelConfig,
     "loginType",
@@ -316,21 +385,21 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
       <div class="channel-detail__wechat-login-actions">
         <button
           class="mc-btn mc-btn--primary"
-          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
+          ?disabled=${!hasRealAccount || currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${() => props.onWechatIpadStart(false)}
         >
           ${startButtonText}
         </button>
         <button
           class="mc-btn"
-          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
+          ?disabled=${!hasRealAccount || currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${() => props.onWechatIpadStart(true)}
         >
           重新生成二维码
         </button>
         <button
           class="mc-btn"
-          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
+          ?disabled=${!hasRealAccount || currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${props.onWechatIpadWait}
         >
           ${waitButtonText}
@@ -350,12 +419,21 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
         }
         <button
           class="mc-btn"
-          ?disabled=${currentState.busy || currentState.loginTypeConfirmOpen}
+          ?disabled=${!hasRealAccount || currentState.busy || currentState.loginTypeConfirmOpen}
           @click=${props.onWechatIpadLogout}
         >
           退出登录
         </button>
       </div>
+      ${
+        !hasRealAccount
+          ? html`
+              <div class="channel-detail__wechat-login-message">
+                先填写并保存当前账户的桥接地址、Token、机器人 ID 等字段，当前账户创建后即可扫码登录。
+              </div>
+            `
+          : nothing
+      }
       ${
         currentState.loginTypeConfirmOpen
           ? html`

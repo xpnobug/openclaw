@@ -123,6 +123,7 @@ export type WechatIpadAccountUiState = {
   loginMessage: string | null;
   loginQrDataUrl: string | null;
   loginConnected: boolean | null;
+  runtimeWxid: string | null;
   busy: boolean;
   loginType: "ipad" | "win" | "mac" | "car";
   loginTypeConfirmOpen: boolean;
@@ -147,6 +148,7 @@ export function createInitialWechatIpadAccountUiState(): WechatIpadAccountUiStat
     loginMessage: null,
     loginQrDataUrl: null,
     loginConnected: null,
+    runtimeWxid: null,
     busy: false,
     loginType: "ipad",
     loginTypeConfirmOpen: false,

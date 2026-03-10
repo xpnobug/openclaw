@@ -10,15 +10,27 @@ const pollingConfigSchema = z.object({
   pollContactIds: z.array(z.string()).optional(),
 });
 
+const webhookConfigSchema = z.object({
+  path: z.string().optional(),
+  secret: z.string().optional(),
+  authMode: z.enum(["header", "query", "none"]).optional(),
+  maxBodyBytes: z.number().int().positive().optional(),
+  dedupeWindowMs: z.number().int().positive().optional(),
+  rateLimitPerMinute: z.number().int().positive().optional(),
+});
+
 const inboundConfigSchema = z.object({
   mode: z.enum(["polling", "webhook"]).optional(),
   polling: pollingConfigSchema.optional(),
+  webhook: webhookConfigSchema.optional(),
 });
 
 const accountSchema = z.object({
   name: z.string().optional(),
   enabled: z.boolean().optional(),
   markdown: MarkdownConfigSchema,
+  longTextThreshold: z.number().int().positive().optional(),
+  longTextTitle: z.string().optional(),
   baseUrl: z.string().optional(),
   apiToken: z.string().optional(),
   tokenFile: z.string().optional(),
@@ -34,21 +46,54 @@ const accountSchema = z.object({
   safetyPrefix: z.string().optional(),
 });
 
-export const WechatIpadConfigSchema = accountSchema
-  .extend({
-    accounts: z.object({}).catchall(accountSchema).optional(),
+const forbiddenTopLevelAccountFields = [
+  "name",
+  "markdown",
+  "longTextThreshold",
+  "longTextTitle",
+  "baseUrl",
+  "apiToken",
+  "tokenFile",
+  "robotId",
+  "wxid",
+  "loginType",
+  "inbound",
+  "dmPolicy",
+  "groupPolicy",
+  "allowFrom",
+  "commandAllowFrom",
+  "requireMention",
+  "safetyPrefix",
+] as const;
+
+export const WechatIpadConfigSchema = z
+  .object({
+    enabled: z.boolean().optional(),
     defaultAccount: z.string().optional(),
+    accounts: z.object({}).catchall(accountSchema).optional(),
   })
   .superRefine((value, ctx) => {
     const accounts = value.accounts ?? {};
     const defaultAccount = value.defaultAccount?.trim();
-    if (defaultAccount && Object.keys(accounts).length > 0) {
+    if (defaultAccount) {
       const normalizedDefaultAccount = normalizeAccountId(defaultAccount);
       if (!Object.prototype.hasOwnProperty.call(accounts, normalizedDefaultAccount)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["defaultAccount"],
           message: `channels.wechat-ipad.defaultAccount="${defaultAccount}" does not match a configured account key`,
+        });
+      }
+    }
+  })
+  .catchall(z.unknown())
+  .superRefine((value, ctx) => {
+    for (const field of forbiddenTopLevelAccountFields) {
+      if (Object.prototype.hasOwnProperty.call(value, field)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field],
+          message: `channels.wechat-ipad.${field} has moved to channels.wechat-ipad.accounts.<accountId>.${field}; migrate to the account map model`,
         });
       }
     }

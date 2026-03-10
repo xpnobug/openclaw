@@ -13,6 +13,40 @@ import {
 } from "./model-config";
 import { hasSkillsConfigChanges } from "./skills-config";
 
+const DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID = "main";
+
+function resolveCurrentWechatIpadAccountId(s: Record<string, unknown>): string {
+  const selectedAccountId =
+    typeof s.channelsWechatIpadSelectedAccountId === "string"
+      ? s.channelsWechatIpadSelectedAccountId.trim()
+      : "";
+  if (selectedAccountId) {
+    return selectedAccountId;
+  }
+
+  const orderedAccountId =
+    Array.isArray(s.channelsWechatIpadAccountOrder) &&
+    typeof s.channelsWechatIpadAccountOrder[0] === "string"
+      ? s.channelsWechatIpadAccountOrder[0].trim()
+      : "";
+  if (orderedAccountId) {
+    return orderedAccountId;
+  }
+
+  const channelConfig = s.modelConfigChannelsConfig?.["wechat-ipad"];
+  const defaultAccountId =
+    channelConfig &&
+    typeof channelConfig === "object" &&
+    typeof channelConfig.defaultAccount === "string"
+      ? channelConfig.defaultAccount.trim()
+      : "";
+  if (defaultAccountId) {
+    return defaultAccountId;
+  }
+
+  return DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID;
+}
+
 /** on* 回调键名 */
 /** AgentsConfigProps 中去掉所有 on* 回调和 showAgentWizard 后的数据部分 */
 type DataProps = Omit<
@@ -139,6 +173,8 @@ type DataProps = Omit<
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildPropsData(s: Record<string, any>): DataProps {
+  const currentWechatIpadAccountId = resolveCurrentWechatIpadAccountId(s);
+
   return {
     loading: s.agentsLoading || s.modelConfigLoading,
     error: s.agentsError || s.lastError,
@@ -253,15 +289,17 @@ export function buildPropsData(s: Record<string, any>): DataProps {
     channelsSelectedChannel: s.modelConfigSelectedChannel,
     channelsLoading: s.modelConfigLoading,
     channelsError: null,
-    channelsWechatIpadSelectedAccountId: s.channelsWechatIpadSelectedAccountId,
-    channelsWechatIpadAccountOrder: s.channelsWechatIpadAccountOrder,
+    channelsWechatIpadSelectedAccountId: currentWechatIpadAccountId,
+    channelsWechatIpadAccountOrder:
+      Array.isArray(s.channelsWechatIpadAccountOrder) && s.channelsWechatIpadAccountOrder.length > 0
+        ? s.channelsWechatIpadAccountOrder
+        : [currentWechatIpadAccountId],
     channelsWechatIpadStateByAccount: s.channelsWechatIpadStateByAccount,
     channelsWechatIpadCurrentState:
-      s.channelsWechatIpadStateByAccount[s.channelsWechatIpadSelectedAccountId ?? ""] ??
+      s.channelsWechatIpadStateByAccount[currentWechatIpadAccountId] ??
       createInitialWechatIpadAccountUiState(),
     channelsWechatIpadCurrentPhase:
-      s.channelsWechatIpadStateByAccount[s.channelsWechatIpadSelectedAccountId ?? ""]?.phase ??
-      "idle",
+      s.channelsWechatIpadStateByAccount[currentWechatIpadAccountId]?.phase ?? "idle",
 
     // 定时任务
     cronLoading: s.cronLoading,

@@ -11,6 +11,7 @@ export type WechatIpadPollingOptions = {
   onMessage: (msg: WechatIpadInboundMessage) => Promise<void>;
   onError?: (error: Error) => void;
   abortSignal?: AbortSignal;
+  log?: (message: string) => void;
 };
 
 const MAX_GLOBAL_SEEN = 20000;
@@ -40,6 +41,10 @@ function normalizeMessageId(msg: WechatIpadInboundMessage): string {
   return `${msg.chatId}:${msg.timestamp}:${msg.senderId}`;
 }
 
+function buildLogPrefix(accountId: string): string {
+  return `wechat-ipad[${accountId}]`;
+}
+
 /**
  * wechat-ipad 轮询器（MVP）。
  */
@@ -57,9 +62,17 @@ export class WechatIpadMessagePoller {
     this.options = options;
   }
 
+  private log(message: string): void {
+    this.options.log?.(`${buildLogPrefix(this.options.accountId)}: ${message}`);
+  }
+
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
+
+    this.log(
+      `轮询已启动（wxid=${this.options.wxid}，pollContactIds=${this.options.pollingConfig.pollContactIds.join(",") || "无"}，pollAllContacts=${this.options.pollingConfig.pollAllContacts}）`,
+    );
 
     if (this.options.abortSignal?.aborted) {
       this.stop();
@@ -97,7 +110,9 @@ export class WechatIpadMessagePoller {
       try {
         await this.pollOnce();
       } catch (error) {
-        this.options.onError?.(error instanceof Error ? error : new Error(String(error)));
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        this.log(`轮询异常：${normalizedError.message}`);
+        this.options.onError?.(normalizedError);
       }
 
       this.schedule();
@@ -209,9 +224,6 @@ export class WechatIpadMessagePoller {
       });
 
       const items = response.items ?? [];
-      if (items.length === 0) {
-        break;
-      }
 
       const filteredItems = items.filter((item) => {
         if (item.chatType === "direct") {
@@ -219,6 +231,14 @@ export class WechatIpadMessagePoller {
         }
         return item.chatId === contactId;
       });
+
+      this.log(
+        `/api/Msg/Sync 完成（contact=${contactId}，返回消息数=${items.length}，命中消息数=${filteredItems.length}）`,
+      );
+
+      if (items.length === 0) {
+        break;
+      }
 
       if (filteredItems.length === 0) {
         break;

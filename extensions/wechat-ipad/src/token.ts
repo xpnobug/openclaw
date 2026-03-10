@@ -1,23 +1,12 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import { DEFAULT_ACCOUNT_ID } from "openclaw/plugin-sdk";
 import type { WechatIpadConfig, WechatIpadTokenSource } from "./types.js";
-
-const TOKEN_ENV = "WECHAT_IPAD_API_TOKEN";
 
 export function resolveWechatIpadToken(
   cfg: WechatIpadConfig | undefined,
   accountId: string,
 ): { token: string; source: WechatIpadTokenSource } {
-  if (accountId === DEFAULT_ACCOUNT_ID) {
-    const envToken = process.env[TOKEN_ENV]?.trim();
-    if (envToken) {
-      return { token: envToken, source: "env" };
-    }
-  }
-
-  const accountConfig = cfg?.accounts?.[accountId];
-  const candidateConfig = accountConfig ?? cfg;
+  const candidateConfig = cfg?.accounts?.[accountId];
 
   const fromConfig = candidateConfig?.apiToken?.trim();
   if (fromConfig) {

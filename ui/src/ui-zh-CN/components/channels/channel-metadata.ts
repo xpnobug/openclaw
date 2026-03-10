@@ -993,11 +993,18 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
     configFields: [
       { key: "enabled", label: "启用", type: "toggle", section: "basic" },
       {
+        key: "defaultAccount",
+        label: "默认账户",
+        type: "text",
+        placeholder: "main",
+        section: "basic",
+      },
+      {
         key: "name",
         label: "账户名称",
         type: "text",
         placeholder: "我的微信 iPad",
-        section: "basic",
+        section: "api",
       },
       {
         key: "baseUrl",
@@ -1026,7 +1033,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
       },
       {
         key: "loginType",
-        label: "默认扫码设备类型",
+        label: "扫码设备类型",
         type: "select",
         options: [
           { value: "ipad", label: "iPad" },
@@ -1035,15 +1042,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
           { value: "car", label: "Car" },
         ],
         section: "api",
-        description:
-          "作为新账户或未单独配置账户的默认值；当前登录面板中的设备类型切换会优先写入选中账户。",
-      },
-      {
-        key: "defaultAccount",
-        label: "默认账户",
-        type: "text",
-        placeholder: "default",
-        section: "basic",
+        description: "当前选中账户使用的扫码设备类型。",
       },
       {
         key: "inbound.mode",
@@ -1051,10 +1050,10 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         type: "select",
         options: [
           { value: "polling", label: "轮询 (polling)" },
-          { value: "webhook", label: "回调 (webhook，预留)" },
+          { value: "webhook", label: "回调 (webhook)" },
         ],
         section: "polling",
-        description: "MVP 建议使用 polling；webhook 为预留模式",
+        description: "当前选中账户的入站模式。",
       },
       {
         key: "inbound.polling.intervalMs",
@@ -1088,6 +1087,31 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         label: "轮询联系人 ID",
         type: "array",
         placeholder: "wxid_xxx 或 xxx@chatroom",
+        section: "polling",
+      },
+      {
+        key: "inbound.webhook.path",
+        label: "Webhook 路径",
+        type: "text",
+        placeholder: "/plugins/wechat-ipad/webhook/main",
+        section: "polling",
+      },
+      {
+        key: "inbound.webhook.secret",
+        label: "Webhook Secret",
+        type: "password",
+        placeholder: "secret-token",
+        section: "polling",
+      },
+      {
+        key: "inbound.webhook.authMode",
+        label: "Webhook 鉴权方式",
+        type: "select",
+        options: [
+          { value: "header", label: "Header" },
+          { value: "query", label: "Query" },
+          { value: "none", label: "None" },
+        ],
         section: "polling",
       },
       {
@@ -1130,6 +1154,22 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         type: "textarea",
         placeholder: "留空使用默认值",
         section: "access",
+      },
+      {
+        key: "longTextThreshold",
+        label: "长文本阈值 (字符)",
+        type: "number",
+        placeholder: "1800",
+        description: "文本长度超过该值时自动走长文本发送接口。",
+        section: "messaging",
+      },
+      {
+        key: "longTextTitle",
+        label: "长文本消息标题",
+        type: "text",
+        placeholder: "群聊的聊天记录",
+        description: "长文本消息卡片显示的标题，留空使用默认值。",
+        section: "messaging",
       },
     ],
   },

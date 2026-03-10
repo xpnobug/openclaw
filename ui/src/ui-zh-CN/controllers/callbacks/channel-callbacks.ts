@@ -10,6 +10,9 @@ import {
  */
 import type { CallbackContext } from "./types";
 
+const DEFAULT_WECHAT_IPAD_LOGIN_TYPE = "ipad" as const;
+const DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID = "main";
+
 type Pick_ = Pick<
   AgentsConfigProps,
   | "onChannelSelect"
@@ -96,12 +99,13 @@ function getWechatIpadAccountsConfig(
 }
 
 function resolveSelectedWechatIpadAccountId(s: CallbackContext["s"]): string {
+  const accountIds = Object.keys(getWechatIpadAccountsConfig(s));
   const selected = s.channelsWechatIpadSelectedAccountId?.trim();
-  if (selected) {
+  if (selected && (accountIds.length === 0 || accountIds.includes(selected))) {
     return selected;
   }
   const first = s.channelsWechatIpadAccountOrder[0]?.trim();
-  if (first) {
+  if (first && (accountIds.length === 0 || accountIds.includes(first))) {
     return first;
   }
   const channelConfig = getWechatIpadChannelConfig(s);
@@ -110,8 +114,7 @@ function resolveSelectedWechatIpadAccountId(s: CallbackContext["s"]): string {
   if (defaultAccount) {
     return defaultAccount;
   }
-  const firstAccount = Object.keys(getWechatIpadAccountsConfig(s))[0]?.trim();
-  return firstAccount || "default";
+  return accountIds[0] ?? DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID;
 }
 
 function getWechatIpadAccountState(
@@ -146,9 +149,10 @@ function resolveWechatIpadLoginTypeFromConfig(
   s: CallbackContext["s"],
   accountId: string,
 ): "ipad" | "win" | "mac" | "car" {
-  const channelConfig = getWechatIpadChannelConfig(s);
   const accounts = getWechatIpadAccountsConfig(s);
-  return resolveWechatIpadLoginType(accounts[accountId]?.loginType ?? channelConfig.loginType);
+  return resolveWechatIpadLoginType(
+    accounts[accountId]?.loginType ?? DEFAULT_WECHAT_IPAD_LOGIN_TYPE,
+  );
 }
 
 function ensureWechatIpadAccountState(
@@ -178,10 +182,16 @@ function syncWechatIpadAccountOrderFromConfig(s: CallbackContext["s"]): void {
   const defaultAccount =
     typeof channelConfig.defaultAccount === "string" ? channelConfig.defaultAccount.trim() : "";
   const selected = s.channelsWechatIpadSelectedAccountId?.trim();
-  const fallback = defaultAccount || accountIds[0] || "default";
+  const fallback =
+    defaultAccount || selected || accountIds[0] || DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID;
+
   s.channelsWechatIpadAccountOrder = accountIds.length > 0 ? accountIds : [fallback];
   s.channelsWechatIpadSelectedAccountId =
-    selected && s.channelsWechatIpadAccountOrder.includes(selected) ? selected : fallback;
+    accountIds.length > 0
+      ? selected && accountIds.includes(selected)
+        ? selected
+        : fallback
+      : fallback;
   ensureWechatIpadAccountState(s, s.channelsWechatIpadSelectedAccountId);
 }
 
@@ -279,10 +289,10 @@ function primeWechatIpadCountdown(
   scheduleCountdownTick(() => refreshWechatIpadCountdown(state, update, onTick));
 }
 
-function applyWechatIpadLoginTypeToConfig(
+function updateWechatIpadAccountConfig(
   s: CallbackContext["s"],
   accountId: string,
-  loginType: "ipad" | "win" | "mac" | "car",
+  updater: (accountConfig: Record<string, unknown>) => Record<string, unknown>,
 ): void {
   const current = s.modelConfigChannelsConfig ?? {};
   const channelConfig = JSON.parse(JSON.stringify(current["wechat-ipad"] ?? {})) as Record<
@@ -297,13 +307,36 @@ function applyWechatIpadLoginTypeToConfig(
     accounts[accountId] && typeof accounts[accountId] === "object" ? accounts[accountId] : {};
   channelConfig.accounts = {
     ...accounts,
-    [accountId]: {
-      ...accountConfig,
-      loginType,
-    },
+    [accountId]: updater(accountConfig),
   };
   s.modelConfigChannelsConfig = { ...current, ["wechat-ipad"]: channelConfig };
   invalidateModelConfigDerivedState(s);
+}
+
+function applyWechatIpadLoginTypeToConfig(
+  s: CallbackContext["s"],
+  accountId: string,
+  loginType: "ipad" | "win" | "mac" | "car",
+): void {
+  updateWechatIpadAccountConfig(s, accountId, (accountConfig) => ({
+    ...accountConfig,
+    loginType,
+  }));
+}
+
+function applyWechatIpadRuntimeWxidToConfig(
+  s: CallbackContext["s"],
+  accountId: string,
+  wxid: string,
+): void {
+  const normalizedWxid = wxid.trim();
+  if (!normalizedWxid) {
+    return;
+  }
+  updateWechatIpadAccountConfig(s, accountId, (accountConfig) => ({
+    ...accountConfig,
+    wxid: normalizedWxid,
+  }));
 }
 
 export function createChannelCallbacks(
@@ -399,6 +432,9 @@ export function createChannelCallbacks(
       if (res.data62) {
         state.data62 = res.data62;
       }
+      if (typeof res.wxid === "string" && res.wxid.trim()) {
+        state.runtimeWxid = res.wxid.trim();
+      }
 
       if (res.connected) {
         state.loginQrDataUrl = null;
@@ -408,6 +444,9 @@ export function createChannelCallbacks(
         state.phase = "connected";
         state.countdownDeadlineMs = null;
         state.countdownSeconds = null;
+        if (typeof res.wxid === "string" && res.wxid.trim()) {
+          applyWechatIpadRuntimeWxidToConfig(s, accountId, res.wxid);
+        }
         stopWechatIpadAutoPolling(state);
       } else if (res.requiresVerification) {
         state.phase = "verification";
@@ -561,6 +600,7 @@ export function createChannelCallbacks(
             loginType: resolveWechatIpadLoginTypeFromConfig(s, accountId),
             loginTypeDraft: resolveWechatIpadLoginTypeFromConfig(s, accountId),
             loginMessage: "已退出登录。",
+            runtimeWxid: null,
           });
         });
       } catch (err) {

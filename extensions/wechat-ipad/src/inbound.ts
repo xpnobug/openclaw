@@ -15,7 +15,22 @@ export type WechatIpadInboundContext = {
   commandAllowFrom?: string[];
   safetyPrefix?: string;
   requireMention?: boolean;
+  log?: (message: string) => void;
 };
+
+function emitWechatIpadLog(
+  deps: Pick<WechatIpadInboundContext, "runtime" | "log">,
+  message: string,
+): void {
+  if (typeof deps.log === "function") {
+    deps.log(message);
+    return;
+  }
+  const runtimeWithOptionalLog = deps.runtime as PluginRuntime & {
+    log?: (message: string) => void;
+  };
+  runtimeWithOptionalLog.log?.(message);
+}
 
 function normalizeIdentity(entry: string): string {
   return entry
@@ -36,6 +51,27 @@ function formatQuotedMessageFallbackPrefix(
   const body = quotedMessage.quotedBody.trim();
   const preview = body.length > 120 ? `${body.slice(0, 120)}…` : body;
   return `【引用 ${sender}】\n${preview}\n\n`;
+}
+
+function buildLogPrefix(accountId: string): string {
+  return `wechat-ipad[${accountId}]`;
+}
+
+function formatChatTypeLabel(chatType: WechatIpadInboundMessage["chatType"]): string {
+  return chatType === "group" ? "群聊" : "私聊";
+}
+
+function formatSenderLabel(msg: WechatIpadInboundMessage, senderId: string): string {
+  const senderName = msg.senderName?.trim();
+  return senderName ? `${senderName}(${senderId})` : senderId;
+}
+
+function formatMessagePreview(body: string): string {
+  const collapsed = body.replace(/\s+/g, " ").trim();
+  if (!collapsed) {
+    return "空消息";
+  }
+  return collapsed.length > 60 ? `${collapsed.slice(0, 60)}…` : collapsed;
 }
 
 /**
@@ -60,7 +96,13 @@ export async function handleWechatIpadInboundMessage(
     requireMention = true,
   } = deps;
 
+  const logPrefix = buildLogPrefix(accountId);
+
   if (msg.chatType === "group" && requireMention && !msg.isAtMe) {
+    emitWechatIpadLog(
+      deps,
+      `${logPrefix}: 忽略群消息：未 @ 当前账号，发送者=${msg.senderId || msg.from}，群=${msg.chatId}`,
+    );
     return;
   }
 
@@ -74,6 +116,10 @@ export async function handleWechatIpadInboundMessage(
   const isCommandAuthorized = cmdAllowList.includes(senderId);
 
   if (!isAllowed && effectivePolicy !== "pairing") {
+    emitWechatIpadLog(
+      deps,
+      `${logPrefix}: 忽略消息：策略=${effectivePolicy}，发送者=${senderId} 不在 allowFrom 中`,
+    );
     return;
   }
 
@@ -101,6 +147,15 @@ export async function handleWechatIpadInboundMessage(
     });
     return;
   }
+
+  const chatTypeLabel = formatChatTypeLabel(msg.chatType);
+  const senderLabel = formatSenderLabel(msg, senderId);
+  const chatLabel = msg.chatId || msg.from;
+
+  emitWechatIpadLog(
+    deps,
+    `${logPrefix}: 收到消息：来自 ${senderId}，在 ${chatLabel}（${chatTypeLabel}）`,
+  );
 
   runtime.channel.activity.record({
     channel: "wechat-ipad",
@@ -153,7 +208,8 @@ export async function handleWechatIpadInboundMessage(
     SenderId: senderId,
     Provider: "wechat-ipad",
     Surface: "wechat-ipad",
-    MessageSid: msg.id,
+    MessageSid: msg.msgId ?? msg.id,
+    MessageSidFull: msg.msgIdFull ?? msg.msgId ?? msg.id,
     Timestamp: msg.timestamp,
     WasMentioned: msg.isAtMe,
     CommandAuthorized: isCommandAuthorized,
@@ -162,7 +218,7 @@ export async function handleWechatIpadInboundMessage(
     UserTrustLevel: isTrusted ? "trusted" : "guest",
     AllowedCapabilities: isTrusted ? ["chat", "tools", "files", "commands"] : ["chat"],
     ReplyToId: msg.quotedMessage?.quotedMessageId,
-    ReplyToIdFull: msg.quotedMessage?.quotedMessageId,
+    ReplyToIdFull: msg.quotedMessage?.quotedMessageIdFull ?? msg.quotedMessage?.quotedMessageId,
     ReplyToBody: msg.quotedMessage?.quotedBody,
     ReplyToSender: msg.quotedMessage?.quotedSender ?? msg.quotedMessage?.quotedSenderWxid,
     ReplyToIsQuote: msg.quotedMessage ? true : undefined,
@@ -172,12 +228,22 @@ export async function handleWechatIpadInboundMessage(
     return;
   }
 
+  const messagePreview = formatMessagePreview(msg.body);
+  if (msg.chatType === "group") {
+    emitWechatIpadLog(
+      deps,
+      `${logPrefix}: 群聊消息：${senderLabel} @ ${chatLabel}：${messagePreview}`,
+    );
+  } else {
+    emitWechatIpadLog(deps, `${logPrefix}: 私聊消息：${senderLabel}：${messagePreview}`);
+  }
+
   let quoteFallbackPending = Boolean(msg.quotedMessage?.quotedBody?.trim());
   const quoteFallbackPrefix = formatQuotedMessageFallbackPrefix(msg.quotedMessage);
 
   const { dispatcher, replyOptions, markDispatchIdle } =
     runtime.channel.reply.createReplyDispatcherWithTyping({
-      deliver: async (payload: { text?: string; body?: string }) => {
+      deliver: async (payload: { text?: string; body?: string }, info: { kind: string }) => {
         let text = payload.text ?? payload.body ?? "";
         if (!text.trim()) {
           return;
@@ -186,24 +252,44 @@ export async function handleWechatIpadInboundMessage(
           text = `${quoteFallbackPrefix}${text}`;
           quoteFallbackPending = false;
         }
-        await sendWechatIpadText(target, text, {
+        const result = await sendWechatIpadText(target, text, {
+          cfg,
+          accountId,
           baseUrl,
           apiToken,
           robotId,
         });
+        if (result.endpoints?.length) {
+          emitWechatIpadLog(
+            deps,
+            `${logPrefix}: 回复发送接口：kind=${info.kind}，目标=${target}，接口=${result.endpoints.join(" -> ")}`,
+          );
+        }
+        if (!result.ok) {
+          emitWechatIpadLog(
+            deps,
+            `${logPrefix}: 回复发送失败：kind=${info.kind}，目标=${target}，错误=${result.error ?? "unknown error"}`,
+          );
+        }
       },
-      onError: () => {
-        // 错误由上层状态处理
+      onError: (error, info) => {
+        const message = error instanceof Error ? error.message : String(error);
+        emitWechatIpadLog(deps, `${logPrefix}: 回复发送异常：kind=${info.kind}，错误=${message}`);
       },
     });
 
   try {
-    await runtime.channel.reply.dispatchReplyFromConfig({
+    emitWechatIpadLog(deps, `${logPrefix}: 开始分发到 agent（session=${route.sessionKey}）`);
+    const result = await runtime.channel.reply.dispatchReplyFromConfig({
       ctx: ctxPayload,
       cfg,
       dispatcher,
       replyOptions,
     });
+    emitWechatIpadLog(
+      deps,
+      `${logPrefix}: 分发完成（已入队最终回复=${result.queuedFinal}，回复数=${result.counts.final}）`,
+    );
   } finally {
     markDispatchIdle();
   }

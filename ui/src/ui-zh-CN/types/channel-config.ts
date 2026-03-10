@@ -118,13 +118,24 @@ export type WechatIpadPollingConfig = {
   pollContactIds?: string[];
 };
 
+export type WechatIpadWebhookConfig = {
+  path?: string;
+  secret?: string;
+  authMode?: "header" | "query" | "none";
+  maxBodyBytes?: number;
+  dedupeWindowMs?: number;
+  rateLimitPerMinute?: number;
+};
+
 export type WechatIpadInboundConfig = {
   mode?: "polling" | "webhook";
   polling?: WechatIpadPollingConfig;
+  webhook?: WechatIpadWebhookConfig;
 };
 
 export type WechatIpadAccountConfig = BaseChannelConfig & {
   name?: string;
+  longTextThreshold?: number;
   baseUrl?: string;
   apiToken?: string;
   tokenFile?: string;
@@ -137,12 +148,9 @@ export type WechatIpadAccountConfig = BaseChannelConfig & {
   safetyPrefix?: string;
 };
 
-export type WechatIpadChannelConfig = WechatIpadAccountConfig & {
-  // 顶层 loginType 作为单账户/默认回退值保留；多账户 UI 优先使用 accounts[accountId].loginType。
-  loginType?: "ipad" | "win" | "mac" | "car";
-  // 多账户 UI 初始选中顺序：defaultAccount -> accounts 首项 -> default。
+export type WechatIpadChannelConfig = {
+  enabled?: boolean;
   defaultAccount?: string;
-  // 多账户配置；账户值不再递归包含 accounts/defaultAccount。
   accounts?: Record<string, WechatIpadAccountConfig>;
 };
 

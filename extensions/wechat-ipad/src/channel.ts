@@ -11,7 +11,6 @@ import {
   DEFAULT_ACCOUNT_ID,
   deleteAccountFromConfigSection,
   formatPairingApproveHint,
-  migrateBaseNameToDefaultAccount,
   normalizeAccountId,
   PAIRING_APPROVED_MESSAGE,
   setAccountEnabledInConfigSection,
@@ -24,6 +23,7 @@ import {
 import {
   checkLoginQr,
   enableAutoHeartbeat,
+  fetchBotProfileViaApi,
   requestLoginQr,
   submitVerificationCode,
 } from "./api.js";
@@ -34,18 +34,29 @@ import { probeWechatIpad } from "./probe.js";
 import {
   clearWechatIpadLoginSession,
   clearWechatIpadPoller,
+  clearWechatIpadWebhookRegistration,
   getWechatIpadLoginSession,
   getWechatIpadRuntime,
+  resolveWechatIpadRuntimeWxid,
+  setWechatIpadBotProfile,
   setWechatIpadLoginSession,
   setWechatIpadPoller,
+  setWechatIpadWebhookRegistration,
 } from "./runtime.js";
-import { normalizeWechatIpadTarget, sendWechatIpadMedia, sendWechatIpadText } from "./send.js";
+import {
+  normalizeWechatIpadTarget,
+  sendWechatIpadLinkCard,
+  sendWechatIpadMedia,
+  sendWechatIpadText,
+} from "./send.js";
 import { collectWechatIpadStatusIssues } from "./status-issues.js";
 import type {
   ResolvedWechatIpadAccount,
+  WechatIpadChannelData,
   WechatIpadLoginSession,
   WechatIpadLoginType,
 } from "./types.js";
+import { registerWechatIpadWebhookTarget } from "./webhook.js";
 
 const meta = {
   id: "wechat-ipad",
@@ -142,35 +153,22 @@ async function persistResolvedWxid(params: {
   const currentAccounts = channelCfg.accounts ?? {};
   let next: OpenClawConfig;
 
-  if (accountId === DEFAULT_ACCOUNT_ID) {
-    next = {
-      ...cfg,
-      channels: {
-        ...cfg.channels,
-        "wechat-ipad": {
-          ...channelCfg,
-          wxid: normalizedWxid,
-        },
-      },
-    };
-  } else {
-    next = {
-      ...cfg,
-      channels: {
-        ...cfg.channels,
-        "wechat-ipad": {
-          ...channelCfg,
-          accounts: {
-            ...currentAccounts,
-            [accountId]: {
-              ...(currentAccounts[accountId] ?? {}),
-              wxid: normalizedWxid,
-            },
+  next = {
+    ...cfg,
+    channels: {
+      ...cfg.channels,
+      "wechat-ipad": {
+        ...channelCfg,
+        accounts: {
+          ...currentAccounts,
+          [accountId]: {
+            ...(currentAccounts[accountId] ?? {}),
+            wxid: normalizedWxid,
           },
         },
       },
-    };
-  }
+    },
+  };
 
   await runtime.config.writeConfigFile(next);
 }
@@ -287,6 +285,18 @@ async function waitForLoginUntil(params: {
         wxid: resolvedWxid,
       }).catch(() => undefined);
 
+      // 登录成功后异步预热 bot profile 缓存
+      fetchBotProfileViaApi({
+        options: {
+          baseUrl: account.baseUrl,
+          apiToken: account.apiToken,
+          robotId: account.robotId,
+        },
+        wxid: resolvedWxid,
+      })
+        .then((profile) => setWechatIpadBotProfile(accountId, profile))
+        .catch(() => undefined);
+
       const nextSession: WechatIpadLoginSession = {
         uuid: expectedUuid,
         accountId,
@@ -375,7 +385,7 @@ export const wechatIpadDock: ChannelDock = {
     },
   },
   threading: {
-    resolveReplyToMode: () => "off",
+    resolveReplyToMode: () => "first",
   },
 };
 
@@ -401,29 +411,27 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     listAccountIds: (cfg) => listWechatIpadAccountIds(cfg as OpenClawConfig),
     resolveAccount: (cfg, accountId) =>
       resolveWechatIpadAccount({ cfg: cfg as OpenClawConfig, accountId }),
-    defaultAccountId: (cfg) => resolveDefaultWechatIpadAccountId(cfg as OpenClawConfig),
+    defaultAccountId: (cfg) =>
+      resolveDefaultWechatIpadAccountId(cfg as OpenClawConfig) ?? DEFAULT_ACCOUNT_ID,
     setAccountEnabled: ({ cfg, accountId, enabled }) =>
       setAccountEnabledInConfigSection({
         cfg: cfg as OpenClawConfig,
         sectionKey: "wechat-ipad",
         accountId,
         enabled,
-        allowTopLevel: true,
+        allowTopLevel: false,
       }),
     deleteAccount: ({ cfg, accountId }) =>
       deleteAccountFromConfigSection({
         cfg: cfg as OpenClawConfig,
         sectionKey: "wechat-ipad",
         accountId,
-        clearBaseFields: ["apiToken", "tokenFile", "name", "baseUrl", "robotId"],
       }),
     isConfigured: (account) => Boolean(account.baseUrl?.trim()),
     unconfiguredReason: (account) =>
       account.baseUrl?.trim()
-        ? account.accountId === DEFAULT_ACCOUNT_ID
-          ? "请先扫码登录获取 wxid，或手动填写 channels.wechat-ipad.wxid。"
-          : `请先为账户 ${account.accountId} 扫码登录获取 wxid，或手动填写 channels.wechat-ipad.accounts.${account.accountId}.wxid。`
-        : "缺少 baseUrl。",
+        ? `请先为账户 ${account.accountId} 扫码登录获取 wxid，或手动填写 channels.wechat-ipad.accounts.${account.accountId}.wxid。`
+        : `缺少 channels.wechat-ipad.accounts.${account.accountId}.baseUrl。`,
     describeAccount: (account): ChannelAccountSnapshot => ({
       accountId: account.accountId,
       name: account.name,
@@ -450,53 +458,17 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         channelKey: "wechat-ipad",
         accountId,
         name,
+        alwaysUseAccounts: true,
       }),
-    validateInput: ({ accountId, input }) => {
-      if (input.useEnv && accountId !== DEFAULT_ACCOUNT_ID) {
-        return "WECHAT_IPAD_API_TOKEN can only be used for the default account.";
-      }
-      return null;
-    },
+    validateInput: () => null,
     applyAccountConfig: ({ cfg, accountId, input }) => {
-      const namedConfig = applyAccountNameToChannelSection({
+      const next = applyAccountNameToChannelSection({
         cfg: cfg as OpenClawConfig,
         channelKey: "wechat-ipad",
         accountId,
         name: input.name,
+        alwaysUseAccounts: true,
       });
-      const next =
-        accountId !== DEFAULT_ACCOUNT_ID
-          ? migrateBaseNameToDefaultAccount({
-              cfg: namedConfig,
-              channelKey: "wechat-ipad",
-            })
-          : namedConfig;
-
-      if (accountId === DEFAULT_ACCOUNT_ID) {
-        return {
-          ...next,
-          channels: {
-            ...next.channels,
-            "wechat-ipad": {
-              ...next.channels?.["wechat-ipad"],
-              enabled: true,
-              ...(input.useEnv
-                ? {}
-                : input.tokenFile
-                  ? { tokenFile: input.tokenFile }
-                  : input.token
-                    ? { apiToken: input.token }
-                    : {}),
-              ...(readStringField(input, "baseUrl")
-                ? { baseUrl: readStringField(input, "baseUrl") }
-                : {}),
-              ...(readStringField(input, "robotId")
-                ? { robotId: readStringField(input, "robotId") }
-                : {}),
-            },
-          },
-        } as OpenClawConfig;
-      }
 
       return {
         ...next,
@@ -510,11 +482,13 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
               [accountId]: {
                 ...(next.channels?.["wechat-ipad"]?.accounts?.[accountId] ?? {}),
                 enabled: true,
-                ...(input.tokenFile
-                  ? { tokenFile: input.tokenFile }
-                  : input.token
-                    ? { apiToken: input.token }
-                    : {}),
+                ...(input.useEnv
+                  ? {}
+                  : input.tokenFile
+                    ? { tokenFile: input.tokenFile, apiToken: undefined }
+                    : input.token
+                      ? { apiToken: input.token, tokenFile: undefined }
+                      : {}),
                 ...(readStringField(input, "baseUrl")
                   ? { baseUrl: readStringField(input, "baseUrl") }
                   : {}),
@@ -529,19 +503,14 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     },
   },
   security: {
-    resolveDmPolicy: ({ cfg, accountId, account }) => {
+    resolveDmPolicy: ({ accountId, account }) => {
       const resolvedAccountId = accountId ?? account.accountId ?? DEFAULT_ACCOUNT_ID;
-      const useAccountPath = Boolean(
-        (cfg as OpenClawConfig).channels?.["wechat-ipad"]?.accounts?.[resolvedAccountId],
-      );
-      const basePath = useAccountPath
-        ? `channels.wechat-ipad.accounts.${resolvedAccountId}.`
-        : "channels.wechat-ipad.";
+      const basePath = `channels.wechat-ipad.accounts.${resolvedAccountId}.`;
       return {
         policy: account.config.dmPolicy ?? "pairing",
         allowFrom: account.config.allowFrom ?? [],
         policyPath: `${basePath}dmPolicy`,
-        allowFromPath: basePath,
+        allowFromPath: `${basePath}allowFrom`,
         approveHint: formatPairingApproveHint("wechat-ipad"),
         normalizeEntry: (raw) => raw.replace(/^(wechat-ipad|wechat|wx):/i, ""),
       };
@@ -554,7 +523,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     },
   },
   threading: {
-    resolveReplyToMode: () => "off",
+    resolveReplyToMode: () => "first",
   },
   pairing: {
     idLabel: "wechatIpadUserId",
@@ -593,12 +562,56 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
   },
   outbound: {
     deliveryMode: "direct",
-    chunkerMode: "text",
+    chunker: null,
     textChunkLimit: 1800,
-    sendText: async ({ to, text, accountId, cfg }) => {
+    sendPayload: async ({ to, payload, accountId, cfg, replyToId }) => {
+      const wechatIpadData =
+        (payload.channelData?.["wechat-ipad"] as WechatIpadChannelData | undefined) ?? {};
+      const linkCard = wechatIpadData.linkCard;
+      if (!linkCard) {
+        const text = payload.text ?? "";
+        const mediaUrl = payload.mediaUrl ?? payload.mediaUrls?.[0];
+        if (mediaUrl) {
+          const result = await sendWechatIpadMedia(to, mediaUrl, text, {
+            accountId: accountId ?? undefined,
+            cfg: cfg as OpenClawConfig,
+          });
+          return {
+            channel: "wechat-ipad",
+            ok: result.ok,
+            messageId: result.messageId ?? "",
+            error: result.error ? new Error(result.error) : undefined,
+          };
+        }
+        const result = await sendWechatIpadText(to, text, {
+          accountId: accountId ?? undefined,
+          cfg: cfg as OpenClawConfig,
+          replyToId: replyToId ?? payload.replyToId ?? undefined,
+        });
+        return {
+          channel: "wechat-ipad",
+          ok: result.ok,
+          messageId: result.messageId ?? "",
+          error: result.error ? new Error(result.error) : undefined,
+        };
+      }
+
+      const result = await sendWechatIpadLinkCard(to, linkCard, {
+        accountId: accountId ?? undefined,
+        cfg: cfg as OpenClawConfig,
+      });
+      return {
+        channel: "wechat-ipad",
+        ok: result.ok,
+        messageId: result.messageId ?? "",
+        error: result.error ? new Error(result.error) : undefined,
+      };
+    },
+    sendText: async ({ to, text, accountId, cfg, replyToId }) => {
       const result = await sendWechatIpadText(to, text, {
         accountId: accountId ?? undefined,
         cfg: cfg as OpenClawConfig,
+        replyToId: replyToId ?? undefined,
       });
       return {
         channel: "wechat-ipad",
@@ -701,10 +714,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     buildAccountSnapshot: ({ account, runtime }) => {
       const configured = Boolean(account.baseUrl?.trim());
       const loginReady = Boolean(account.config.wxid?.trim());
-      const wxidHint =
-        account.accountId === DEFAULT_ACCOUNT_ID
-          ? "wxid not ready; scan QR first or set channels.wechat-ipad.wxid"
-          : `wxid not ready; scan QR first or set channels.wechat-ipad.accounts.${account.accountId}.wxid`;
+      const wxidHint = `wxid not ready; scan QR first or set channels.wechat-ipad.accounts.${account.accountId}.wxid`;
       return {
         accountId: account.accountId,
         name: account.name,
@@ -825,18 +835,8 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         throw new Error("wechat-ipad account baseUrl not configured");
       }
 
-      if (account.inbound.mode !== "polling") {
-        setStatus({
-          ...getStatus(),
-          running: false,
-          lastStartAt: Date.now(),
-          lastError: "webhook mode is reserved; use polling mode in MVP",
-        });
-        return null;
-      }
-
       const pluginRuntime = getWechatIpadRuntime();
-      const wxid = account.config.wxid?.trim();
+      const wxid = resolveWechatIpadRuntimeWxid(accountId, account.config.wxid);
 
       if (!wxid) {
         setStatus({
@@ -849,6 +849,74 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       }
 
       clearWechatIpadPoller(accountId);
+      clearWechatIpadWebhookRegistration(accountId);
+
+      if (account.inbound.mode === "webhook") {
+        if (account.inbound.webhook.authMode !== "none" && !account.inbound.webhook.secret.trim()) {
+          setStatus({
+            ...getStatus(),
+            running: false,
+            lastStartAt: Date.now(),
+            lastError: "webhook secret not configured",
+          });
+          return null;
+        }
+
+        await enableAutoHeartbeat({
+          options: {
+            baseUrl: account.baseUrl,
+            apiToken: account.apiToken,
+            robotId: account.robotId,
+          },
+          wxid,
+        }).catch(() => undefined);
+
+        const unregister = registerWechatIpadWebhookTarget({
+          accountId,
+          account,
+          cfg: cfg as OpenClawConfig,
+          runtime: pluginRuntime,
+          path: account.inbound.webhook.path,
+          secret: account.inbound.webhook.secret,
+          authMode: account.inbound.webhook.authMode,
+          wxid,
+          statusSink: (patch) => {
+            setStatus({
+              ...getStatus(),
+              running: true,
+              ...(patch.lastInboundAt ? { lastInboundAt: patch.lastInboundAt } : {}),
+              ...(Object.prototype.hasOwnProperty.call(patch, "lastError")
+                ? { lastError: patch.lastError ?? null }
+                : {}),
+            });
+          },
+          log: (message) => {
+            ctx.log?.info(message);
+          },
+        });
+        setWechatIpadWebhookRegistration(accountId, { unregister });
+        setStatus({
+          ...getStatus(),
+          running: true,
+          lastStartAt: Date.now(),
+          lastError: null,
+        });
+
+        return new Promise<void>((resolve) => {
+          const cleanup = () => {
+            clearWechatIpadWebhookRegistration(accountId);
+            resolve();
+          };
+
+          if (abortSignal.aborted) {
+            cleanup();
+            return;
+          }
+
+          abortSignal.addEventListener("abort", cleanup, { once: true });
+        });
+      }
+
       const poller = createWechatIpadPoller({
         baseUrl: account.baseUrl,
         apiToken: account.apiToken,
@@ -857,6 +925,9 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         accountId,
         pollingConfig: account.inbound.polling,
         abortSignal,
+        log: (message) => {
+          ctx.log?.info(message);
+        },
         onMessage: async (msg) => {
           try {
             await handleWechatIpadInboundMessage(msg, {
@@ -872,6 +943,9 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
               commandAllowFrom: account.config.commandAllowFrom,
               safetyPrefix: account.config.safetyPrefix,
               requireMention: account.config.requireMention,
+              log: (message) => {
+                ctx.log?.info(message);
+              },
             });
 
             setStatus({
@@ -921,6 +995,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     stopAccount: async (ctx: ChannelGatewayContext<ResolvedWechatIpadAccount>) => {
       const { accountId, setStatus, getStatus } = ctx;
       clearWechatIpadPoller(accountId);
+      clearWechatIpadWebhookRegistration(accountId);
       setStatus({
         ...getStatus(),
         running: false,
@@ -930,6 +1005,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     logoutAccount: async ({ accountId }) => {
       const resolvedAccountId = normalizeAccountId(accountId);
       clearWechatIpadPoller(resolvedAccountId);
+      clearWechatIpadWebhookRegistration(resolvedAccountId);
       clearWechatIpadLoginSession(resolvedAccountId);
       return {
         loggedOut: true,

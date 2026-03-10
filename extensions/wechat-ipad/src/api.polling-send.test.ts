@@ -16,10 +16,12 @@ describe("wechat-ipad api polling/send compatibility", () => {
         {
           MsgId: 123,
           NewMsgId: 456,
+          MsgSeq: 4567,
           FromUserName: { string: "wxid_a" },
           ToUserName: { string: "wxid_bot" },
           MsgType: 1,
           Content: { string: "hi" },
+          MsgSource: "<msgsource><signature>sig-a</signature></msgsource>",
           CreateTime: 1700000000,
         },
         {
@@ -49,6 +51,12 @@ describe("wechat-ipad api polling/send compatibility", () => {
 
     expect(result.items).toHaveLength(2);
     expect(result.items[0]?.msgId).toBe("456");
+    expect(result.items[0]?.msgIdFull).toContain('"msgId":"456"');
+    expect(result.items[0]?.msgIdFull).toContain('"msgSeq":"4567"');
+    expect(result.items[0]?.msgSeq).toBe("4567");
+    expect(result.items[0]?.rawMsgSource).toBe(
+      "<msgsource><signature>sig-a</signature></msgsource>",
+    );
     expect(result.items[0]?.senderId).toBe("wxid_a");
     expect(result.items[0]?.chatType).toBe("direct");
     expect(result.items[1]?.msgId).toBe("457");

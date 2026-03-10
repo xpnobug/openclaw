@@ -1,5 +1,5 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk";
+import { normalizeAccountId } from "openclaw/plugin-sdk";
 import { resolveWechatIpadToken } from "./token.js";
 import type {
   ResolvedWechatIpadAccount,
@@ -8,6 +8,7 @@ import type {
   WechatIpadInboundConfig,
   WechatIpadInboundMode,
   WechatIpadPollingConfig,
+  WechatIpadWebhookConfig,
 } from "./types.js";
 
 const DEFAULT_BASE_URL = "http://localhost:9000";
@@ -18,6 +19,15 @@ const DEFAULT_POLLING: Required<WechatIpadPollingConfig> = {
   maxPagesPerPoll: 10,
   pollAllContacts: false,
   pollContactIds: [],
+};
+
+const DEFAULT_WEBHOOK: Required<WechatIpadWebhookConfig> = {
+  path: "/plugins/wechat-ipad/webhook",
+  secret: "",
+  authMode: "header",
+  maxBodyBytes: 1024 * 1024,
+  dedupeWindowMs: 5 * 60_000,
+  rateLimitPerMinute: 120,
 };
 
 function getWechatIpadConfig(cfg: OpenClawConfig): WechatIpadConfig | undefined {
@@ -34,28 +44,6 @@ function listConfiguredAccountIds(cfg: OpenClawConfig): string[] {
     .filter(Boolean);
 }
 
-function hasDefaultAccountSpecificConfig(cfg: OpenClawConfig): boolean {
-  const section = getWechatIpadConfig(cfg);
-  if (!section) {
-    return false;
-  }
-
-  if (
-    section.accounts &&
-    typeof section.accounts === "object" &&
-    section.accounts[DEFAULT_ACCOUNT_ID]
-  ) {
-    return true;
-  }
-
-  return Boolean(
-    section.name?.trim() ||
-    section.apiToken?.trim() ||
-    section.tokenFile?.trim() ||
-    section.wxid?.trim(),
-  );
-}
-
 function resolveAccountConfig(
   cfg: OpenClawConfig,
   accountId: string,
@@ -65,41 +53,6 @@ function resolveAccountConfig(
     return undefined;
   }
   return accounts[accountId] as WechatIpadAccountConfig | undefined;
-}
-
-function resolveSharedTopLevelDefaults(cfg: OpenClawConfig): WechatIpadAccountConfig {
-  const raw = getWechatIpadConfig(cfg) ?? {};
-  return {
-    markdown: raw.markdown,
-    baseUrl: raw.baseUrl,
-    robotId: raw.robotId,
-    loginType: raw.loginType,
-    inbound: raw.inbound,
-    dmPolicy: raw.dmPolicy,
-    groupPolicy: raw.groupPolicy,
-    allowFrom: raw.allowFrom,
-    commandAllowFrom: raw.commandAllowFrom,
-    requireMention: raw.requireMention,
-    safetyPrefix: raw.safetyPrefix,
-  };
-}
-
-function resolveDefaultTopLevelConfig(cfg: OpenClawConfig): WechatIpadAccountConfig {
-  const raw = getWechatIpadConfig(cfg) ?? {};
-  const { accounts: _ignored, defaultAccount: _ignoredDefaultAccount, ...base } = raw;
-  return base;
-}
-
-function resolveAccountsDefaultConfig(cfg: OpenClawConfig): WechatIpadAccountConfig {
-  const defaults = resolveAccountConfig(cfg, DEFAULT_ACCOUNT_ID) ?? {};
-  const {
-    enabled: _ignoredEnabled,
-    apiToken: _ignoredApiToken,
-    tokenFile: _ignoredTokenFile,
-    wxid: _ignoredWxid,
-    ...shared
-  } = defaults;
-  return shared;
 }
 
 function mergeInboundConfig(
@@ -117,39 +70,23 @@ function mergeInboundConfig(
       ...(base?.polling ?? {}),
       ...(account?.polling ?? {}),
     },
+    webhook: {
+      ...(base?.webhook ?? {}),
+      ...(account?.webhook ?? {}),
+    },
   };
 }
 
-function mergeWechatIpadConfigLayers(
-  ...layers: Array<WechatIpadAccountConfig | undefined>
+function normalizeAccountConfig(
+  config: WechatIpadAccountConfig | undefined,
 ): WechatIpadAccountConfig {
-  let merged: WechatIpadAccountConfig = {};
-  for (const layer of layers) {
-    if (!layer) {
-      continue;
-    }
-    merged = {
-      ...merged,
-      ...layer,
-      inbound: mergeInboundConfig(merged.inbound, layer.inbound),
-    };
+  if (!config) {
+    return {};
   }
-  return merged;
-}
-
-function mergeAccountConfig(cfg: OpenClawConfig, accountId: string): WechatIpadAccountConfig {
-  if (accountId === DEFAULT_ACCOUNT_ID) {
-    return mergeWechatIpadConfigLayers(
-      resolveDefaultTopLevelConfig(cfg),
-      resolveAccountConfig(cfg, accountId),
-    );
-  }
-
-  return mergeWechatIpadConfigLayers(
-    resolveAccountsDefaultConfig(cfg),
-    resolveSharedTopLevelDefaults(cfg),
-    resolveAccountConfig(cfg, accountId),
-  );
+  return {
+    ...config,
+    inbound: mergeInboundConfig(undefined, config.inbound),
+  };
 }
 
 function resolveInboundMode(config: WechatIpadAccountConfig): WechatIpadInboundMode {
@@ -167,35 +104,45 @@ function resolvePollingConfig(config: WechatIpadAccountConfig): Required<WechatI
   };
 }
 
-export function listWechatIpadAccountIds(cfg: OpenClawConfig): string[] {
-  const ids = new Set(listConfiguredAccountIds(cfg));
-  if (hasDefaultAccountSpecificConfig(cfg) || ids.size === 0) {
-    ids.add(DEFAULT_ACCOUNT_ID);
-  }
-  return Array.from(ids).sort((a, b) => a.localeCompare(b));
+function resolveWebhookConfig(config: WechatIpadAccountConfig): Required<WechatIpadWebhookConfig> {
+  const webhook = config.inbound?.webhook;
+  return {
+    path: webhook?.path?.trim() || DEFAULT_WEBHOOK.path,
+    secret: webhook?.secret?.trim() || DEFAULT_WEBHOOK.secret,
+    authMode: webhook?.authMode ?? DEFAULT_WEBHOOK.authMode,
+    maxBodyBytes: webhook?.maxBodyBytes ?? DEFAULT_WEBHOOK.maxBodyBytes,
+    dedupeWindowMs: webhook?.dedupeWindowMs ?? DEFAULT_WEBHOOK.dedupeWindowMs,
+    rateLimitPerMinute: webhook?.rateLimitPerMinute ?? DEFAULT_WEBHOOK.rateLimitPerMinute,
+  };
 }
 
-export function resolveDefaultWechatIpadAccountId(cfg: OpenClawConfig): string {
+export function listWechatIpadAccountIds(cfg: OpenClawConfig): string[] {
+  return Array.from(new Set(listConfiguredAccountIds(cfg))).sort((a, b) => a.localeCompare(b));
+}
+
+export function resolveDefaultWechatIpadAccountId(cfg: OpenClawConfig): string | null {
   const ids = listWechatIpadAccountIds(cfg);
   const preferred = getWechatIpadConfig(cfg)?.defaultAccount?.trim();
   if (preferred && ids.includes(preferred)) {
     return preferred;
   }
-  if (ids.includes(DEFAULT_ACCOUNT_ID)) {
-    return DEFAULT_ACCOUNT_ID;
-  }
-  return ids[0] ?? DEFAULT_ACCOUNT_ID;
+  return ids[0] ?? null;
 }
 
 export function resolveWechatIpadAccount(params: {
   cfg: OpenClawConfig;
   accountId?: string | null;
 }): ResolvedWechatIpadAccount {
-  const accountId = normalizeAccountId(params.accountId);
+  const ids = listWechatIpadAccountIds(params.cfg);
+  const resolvedAccountId = normalizeAccountId(
+    params.accountId && ids.includes(normalizeAccountId(params.accountId))
+      ? params.accountId
+      : (resolveDefaultWechatIpadAccountId(params.cfg) ?? params.accountId),
+  );
   const section = getWechatIpadConfig(params.cfg);
   const baseEnabled = section?.enabled !== false;
-  const merged = mergeAccountConfig(params.cfg, accountId);
-  const tokenResolution = resolveWechatIpadToken(section, accountId);
+  const merged = normalizeAccountConfig(resolveAccountConfig(params.cfg, resolvedAccountId));
+  const tokenResolution = resolveWechatIpadToken(section, resolvedAccountId);
   const enabled = baseEnabled && merged.enabled !== false;
 
   const normalizedConfig: WechatIpadAccountConfig = {
@@ -210,7 +157,7 @@ export function resolveWechatIpadAccount(params: {
   };
 
   return {
-    accountId,
+    accountId: resolvedAccountId,
     name: normalizedConfig.name,
     enabled,
     baseUrl: normalizedConfig.baseUrl || DEFAULT_BASE_URL,
@@ -220,6 +167,7 @@ export function resolveWechatIpadAccount(params: {
     inbound: {
       mode: resolveInboundMode(normalizedConfig),
       polling: resolvePollingConfig(normalizedConfig),
+      webhook: resolveWebhookConfig(normalizedConfig),
     },
     config: normalizedConfig,
   };

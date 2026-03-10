@@ -1,5 +1,7 @@
+import { createHash, randomInt, randomUUID } from "node:crypto";
 import type {
   WechatIpadApiCallOptions,
+  WechatIpadBotProfile,
   WechatIpadInboundContentType,
   WechatIpadInboundMessage,
   WechatIpadLoginCheckResponse,
@@ -209,7 +211,7 @@ async function request<T>(params: {
       throw error;
     }
     if (error instanceof Error && error.name === "AbortError") {
-      throw new WechatIpadApiError(`Request timeout after ${timeoutMs}ms`);
+      throw new WechatIpadApiError(`${method} ${endpoint} 请求超时（${timeoutMs}ms）`);
     }
     throw new WechatIpadApiError(error instanceof Error ? error.message : String(error));
   } finally {
@@ -227,7 +229,7 @@ export async function probeBackend(
   });
 }
 
-type WechatIpadSyncMessageRecord = {
+export type WechatIpadSyncMessageRecord = {
   MsgId?: number;
   FromUserName?: { string?: string } | null;
   ToUserName?: { string?: string } | null;
@@ -236,6 +238,7 @@ type WechatIpadSyncMessageRecord = {
   CreateTime?: number;
   MsgSource?: string;
   NewMsgId?: number;
+  MsgSeq?: number;
 };
 
 function extractGroupSender(content: string): { senderId: string; body: string } | null {
@@ -318,6 +321,146 @@ function extractMsgSourceTag(msgSource: string | undefined, tagName: string): st
   return normalized ?? null;
 }
 
+type WechatIpadMessageIdFullParts = {
+  msgId?: string;
+  msgSeq?: string;
+  createTime?: number;
+  msgSource?: string;
+  senderId?: string;
+  senderName?: string;
+  body?: string;
+};
+
+function encodeWechatIpadMessageIdFull(parts: WechatIpadMessageIdFullParts): string | undefined {
+  const payload = {
+    msgId: parts.msgId?.trim() || undefined,
+    msgSeq: parts.msgSeq?.trim() || undefined,
+    createTime:
+      typeof parts.createTime === "number" && Number.isFinite(parts.createTime)
+        ? Math.max(0, Math.trunc(parts.createTime))
+        : undefined,
+    msgSource: parts.msgSource?.trim() || undefined,
+    senderId: parts.senderId?.trim() || undefined,
+    senderName: parts.senderName?.trim() || undefined,
+    body: parts.body?.trim() || undefined,
+  };
+  if (
+    !payload.msgId &&
+    !payload.msgSeq &&
+    !payload.createTime &&
+    !payload.msgSource &&
+    !payload.senderId &&
+    !payload.senderName &&
+    !payload.body
+  ) {
+    return undefined;
+  }
+  return `wechat-ipad:${JSON.stringify(payload)}`;
+}
+
+function parseWechatIpadMessageIdFull(
+  value: string | undefined,
+): WechatIpadMessageIdFullParts | null {
+  const raw = value?.trim();
+  if (!raw?.startsWith("wechat-ipad:")) {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(raw.slice("wechat-ipad:".length)) as WechatIpadMessageIdFullParts;
+    if (!parsed || typeof parsed !== "object") {
+      return null;
+    }
+    return {
+      msgId:
+        typeof parsed.msgId === "string" && parsed.msgId.trim() ? parsed.msgId.trim() : undefined,
+      msgSeq:
+        typeof parsed.msgSeq === "string" && parsed.msgSeq.trim()
+          ? parsed.msgSeq.trim()
+          : undefined,
+      createTime:
+        typeof parsed.createTime === "number" && Number.isFinite(parsed.createTime)
+          ? Math.max(0, Math.trunc(parsed.createTime))
+          : undefined,
+      msgSource:
+        typeof parsed.msgSource === "string" && parsed.msgSource.trim()
+          ? parsed.msgSource.trim()
+          : undefined,
+      senderId:
+        typeof parsed.senderId === "string" && parsed.senderId.trim()
+          ? parsed.senderId.trim()
+          : undefined,
+      senderName:
+        typeof parsed.senderName === "string" && parsed.senderName.trim()
+          ? parsed.senderName.trim()
+          : undefined,
+      body: typeof parsed.body === "string" && parsed.body.trim() ? parsed.body.trim() : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function escapeXmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}
+
+function buildWechatIpadLinkCardXml(card: {
+  title: string;
+  url: string;
+  desc?: string;
+  thumbUrl?: string;
+}): string {
+  const title = card.title.trim();
+  const url = card.url.trim();
+  const desc = card.desc?.trim() ?? "";
+  const thumbUrl = card.thumbUrl?.trim() ?? "";
+  return `<appmsg appid="" sdkver="0"><title>${escapeXmlText(title)}</title><des>${escapeXmlText(desc)}</des><action></action><type>5</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url>${escapeXmlText(url)}</url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl>${escapeXmlText(thumbUrl)}</thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare></appmsg><fromusername></fromusername>`;
+}
+
+const WECHAT_IPAD_LONG_TEXT_TITLE = "群聊的聊天记录";
+const WECHAT_IPAD_LONG_TEXT_UNSUPPORTED_URL =
+  "https://support.weixin.qq.com/cgi-bin/mmsupport-bin/readtemplate?t=page/favorite_record__w_unsupport";
+
+function wrapXmlCdata(value: string): string {
+  return `<![CDATA[${value.replace(/\]\]>/g, "]]]]><![CDATA[>")}]]>`;
+}
+
+function formatWechatIpadSourceTime(timestampMs: number): string {
+  const date = new Date(timestampMs);
+  const hour = String(date.getHours()).padStart(2, "0");
+  const minute = String(date.getMinutes()).padStart(2, "0");
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${hour}:${minute}`;
+}
+
+function buildWechatIpadLongTextXml(params: {
+  wxid: string;
+  text: string;
+  senderName?: string;
+  sourceHeadUrl?: string;
+  title?: string;
+  nowMs?: number;
+}): string {
+  const wxid = params.wxid.trim();
+  const text = params.text.trim();
+  const senderName = params.senderName?.trim() || wxid || "OpenClaw";
+  const sourceHeadUrl = params.sourceHeadUrl?.trim() ?? "";
+  const resolvedTitle = params.title?.trim() || WECHAT_IPAD_LONG_TEXT_TITLE;
+  const nowMs = params.nowMs ?? Date.now();
+  const sourceTimeMs = nowMs - 5 * 60_000;
+  const summary = `${senderName}: ${text}`;
+  const dataId = randomUUID().replaceAll("-", "");
+  const srcMsgLocalId = randomInt(10_000, 100_000);
+  const fromNewMsgId = (BigInt(nowMs) * 10_000n).toString();
+  const hashUsername = createHash("sha256").update(wxid).digest("hex");
+  const recordInfoXml = `<recordinfo><info>${escapeXmlText(summary)}</info><isChatRoom>1</isChatRoom><datalist count="1"><dataitem datatype="1" dataid="${dataId}"><srcMsgLocalid>${srcMsgLocalId}</srcMsgLocalid><sourcetime>${escapeXmlText(formatWechatIpadSourceTime(sourceTimeMs))}</sourcetime><fromnewmsgid>${fromNewMsgId}</fromnewmsgid><srcMsgCreateTime>${Math.floor(sourceTimeMs / 1000)}</srcMsgCreateTime><sourcename>${escapeXmlText(senderName)}</sourcename><sourceheadurl>${escapeXmlText(sourceHeadUrl)}</sourceheadurl><datadesc>${escapeXmlText(text)}</datadesc><dataitemsource><hashusername>${hashUsername}</hashusername></dataitemsource></dataitem></datalist><desc>${escapeXmlText(summary)}</desc><fromscene>3</fromscene></recordinfo>`;
+  return `<appmsg appid="" sdkver="0"><title>${escapeXmlText(resolvedTitle)}</title><des>${escapeXmlText(summary)}</des><type>19</type><url>${escapeXmlText(WECHAT_IPAD_LONG_TEXT_UNSUPPORTED_URL)}</url><appattach><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><recorditem>${wrapXmlCdata(recordInfoXml)}</recorditem></appmsg>`;
+}
+
 function resolveIsAtMe(
   msgSource: string | undefined,
   currentWxid: string,
@@ -351,14 +494,32 @@ function parseQuotedMessage(content: string): WechatIpadQuotedMessage | null {
   if (!referSection) {
     return null;
   }
+  const quotedMessageId = extractXmlTagText(referSection, "svrid");
+  const quotedMessageMsgSource =
+    decodeXmlEntities(stripCdata(extractXmlSection(referSection, "msgsource") ?? "")).trim() ||
+    undefined;
+  const quotedMessageSequenceId = extractMsgSourceTag(quotedMessageMsgSource, "sequence_id");
   return {
     currentBody: extractXmlTagText(appmsgSection, "title") ?? "",
     quotedBody: extractXmlTagText(referSection, "content"),
     quotedSender: extractXmlTagText(referSection, "displayname"),
     quotedSenderWxid: extractXmlTagText(referSection, "fromusr"),
     quotedChatId: extractXmlTagText(referSection, "chatusr"),
-    quotedMessageId: extractXmlTagText(referSection, "svrid"),
+    quotedMessageId,
+    quotedMessageIdFull: encodeWechatIpadMessageIdFull({
+      msgId: quotedMessageId,
+      msgSeq: quotedMessageSequenceId ?? undefined,
+      msgSource: quotedMessageMsgSource ?? undefined,
+      senderId: extractXmlTagText(referSection, "fromusr") ?? undefined,
+      senderName:
+        extractXmlTagText(referSection, "displayname") ??
+        extractXmlTagText(referSection, "fromusr") ??
+        undefined,
+      body: extractXmlTagText(referSection, "content") ?? undefined,
+    }),
     quotedMessageType: extractXmlNumericTag(referSection, "type"),
+    quotedMessageSequenceId: quotedMessageSequenceId ?? undefined,
+    quotedMessageMsgSource: quotedMessageMsgSource ?? undefined,
     rawXml: xml,
   };
 }
@@ -412,7 +573,7 @@ function resolveInboundContentType(
   return "unknown";
 }
 
-function normalizeSyncAddMsg(
+export function normalizeWechatIpadSyncAddMsg(
   record: WechatIpadSyncMessageRecord,
   currentWxid: string,
 ): WechatIpadInboundMessage | null {
@@ -444,6 +605,10 @@ function normalizeSyncAddMsg(
       : typeof record.MsgId === "number" && Number.isFinite(record.MsgId)
         ? String(record.MsgId)
         : undefined;
+  const msgSeqRaw =
+    typeof record.MsgSeq === "number" && Number.isFinite(record.MsgSeq)
+      ? String(record.MsgSeq)
+      : undefined;
 
   const createTimeMs =
     typeof record.CreateTime === "number" && Number.isFinite(record.CreateTime)
@@ -457,6 +622,17 @@ function normalizeSyncAddMsg(
   return {
     id,
     msgId: msgIdRaw,
+    msgIdFull: encodeWechatIpadMessageIdFull({
+      msgId: msgIdRaw,
+      msgSeq: msgSeqRaw,
+      createTime: record.CreateTime,
+      msgSource: record.MsgSource,
+      senderId,
+      senderName: senderId,
+      body,
+    }),
+    msgSeq: msgSeqRaw,
+    rawMsgSource: record.MsgSource?.trim() || undefined,
     from: chatId,
     senderId,
     chatId,
@@ -530,6 +706,124 @@ export async function sendMediaViaApi(
   };
 }
 
+export async function sendLinkCardViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    title: string;
+    url: string;
+    desc?: string;
+    thumbUrl?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const title = params.title.trim();
+  const url = params.url.trim();
+  if (!title || !url) {
+    throw new WechatIpadApiError("wechat-ipad link card requires title and url");
+  }
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendApp",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Xml: buildWechatIpadLinkCardXml({
+        title,
+        url,
+        desc: params.desc,
+        thumbUrl: params.thumbUrl,
+      }),
+      Type: 5,
+    },
+  });
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+export async function sendQuoteTextViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    text: string;
+    replyToId: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const replyMeta = parseWechatIpadMessageIdFull(params.replyToId);
+  const replyMsgId = replyMeta?.msgId ?? params.replyToId.trim();
+  const replyMsgSeq = replyMeta?.msgSeq || extractMsgSourceTag(replyMeta?.msgSource, "sequence_id");
+  const replySenderWxid = replyMeta?.senderId?.trim();
+  const replySender = replyMeta?.senderName?.trim() || replySenderWxid || "unknown";
+  const replyBody = replyMeta?.body?.trim();
+  const text = params.text.trim();
+  if (!replyMsgId || !replyMsgSeq || !replySenderWxid || !replyBody || !text) {
+    throw new WechatIpadApiError(
+      "wechat-ipad quote reply requires msgId, msgSeq, sender wxid, quoted body, and text",
+    );
+  }
+  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>1</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(replyBody)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><frsername></fromusername>`;
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendApp",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Xml: xml,
+      Type: 57,
+    },
+  });
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+export async function sendLongTextViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    text: string;
+    senderName?: string;
+    sourceHeadUrl?: string;
+    title?: string;
+    nowMs?: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const text = params.text.trim();
+  if (!text) {
+    throw new WechatIpadApiError("wechat-ipad long text requires text");
+  }
+  const xml = buildWechatIpadLongTextXml({
+    wxid: params.wxid,
+    text,
+    senderName: params.senderName,
+    sourceHeadUrl: params.sourceHeadUrl,
+    title: params.title,
+    nowMs: params.nowMs,
+  });
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendApp",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Xml: xml,
+      Type: 19,
+    },
+  });
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
 export async function pollInboundMessages(
   params: {
     options: WechatIpadApiCallOptions;
@@ -557,7 +851,10 @@ export async function pollInboundMessages(
     if (!item || typeof item !== "object") {
       continue;
     }
-    const normalized = normalizeSyncAddMsg(item as WechatIpadSyncMessageRecord, params.wxid);
+    const normalized = normalizeWechatIpadSyncAddMsg(
+      item as WechatIpadSyncMessageRecord,
+      params.wxid,
+    );
     if (normalized) {
       items.push(normalized);
     }
@@ -793,6 +1090,38 @@ export async function submitVerificationCode(
   return {
     success: true,
     message,
+  };
+}
+
+export async function fetchBotProfileViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<WechatIpadBotProfile> {
+  const wxid = params.wxid.trim();
+  const endpoint = new URL("/api/User/GetContractProfile", params.options.baseUrl);
+  endpoint.searchParams.set("wxid", wxid);
+
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: `${endpoint.pathname}${endpoint.search}`,
+  });
+
+  const userInfo = asRecord(raw.userInfo) ?? asRecord(raw.UserInfo) ?? {};
+  const userInfoExt = asRecord(raw.userInfoExt) ?? asRecord(raw.UserInfoExt) ?? {};
+
+  const nickname = readStringField(userInfo, ["NickName", "nickName", "nickname"]) ?? wxid;
+  const bigHeadImgUrl = readStringField(userInfoExt, ["BigHeadImgUrl", "bigHeadImgUrl"]) ?? "";
+  const smallHeadImgUrl =
+    readStringField(userInfoExt, ["SmallHeadImgUrl", "smallHeadImgUrl"]) ?? "";
+
+  return {
+    nickname,
+    headImgUrl: bigHeadImgUrl || smallHeadImgUrl,
+    fetchedAt: Date.now(),
   };
 }
 
