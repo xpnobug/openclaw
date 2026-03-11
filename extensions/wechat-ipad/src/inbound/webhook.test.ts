@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from "node:http";
 import { Socket } from "node:net";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveWechatIpadAccount } from "./accounts.js";
-import { setWechatIpadLoginSession } from "./runtime.js";
+import { resolveWechatIpadAccount } from "../config/accounts.js";
+import { setWechatIpadLoginSession } from "../infra/runtime.js";
 import {
   clearWechatIpadWebhookSecurityStateForTest,
   handleWechatIpadWebhookRequest,

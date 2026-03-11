@@ -955,6 +955,14 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         section: "messaging",
       },
       {
+        key: "messageRetentionDays",
+        label: "消息保留天数",
+        type: "number",
+        placeholder: "0",
+        description: "本地 SQLite 消息存储保留天数，0 表示永久保留。",
+        section: "messaging",
+      },
+      {
         key: "polling.pollingIntervalMs",
         label: "轮询间隔 (ms)",
         type: "number",
@@ -1146,6 +1154,8 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         key: "requireMention",
         label: "群聊需要 @提及",
         type: "toggle",
+        description:
+          "开启后群聊消息必须 @ 机器人才会回复；关闭后所有群聊消息均会回复（仍受策略和白名单限制）。默认开启。",
         section: "access",
       },
       {
@@ -1169,6 +1179,14 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         type: "text",
         placeholder: "群聊的聊天记录",
         description: "长文本消息卡片显示的标题，留空使用默认值。",
+        section: "messaging",
+      },
+      {
+        key: "messageRetentionDays",
+        label: "消息保留天数",
+        type: "number",
+        placeholder: "0",
+        description: "本地 SQLite 消息存储保留天数，0 表示永久保留。",
         section: "messaging",
       },
     ],

@@ -1,5 +1,5 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { resolveWechatIpadAccount } from "./accounts.js";
+import { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk";
 import {
   fetchBotProfileViaApi,
   sendLinkCardViaApi,
@@ -7,18 +7,22 @@ import {
   sendMediaViaApi,
   sendQuoteTextViaApi,
   sendTextViaApi,
-} from "./api.js";
+  sendVideoViaApi,
+} from "../api/api.js";
+import { resolveWechatIpadAccount } from "../config/accounts.js";
 import {
   getWechatIpadBotProfile,
   getWechatIpadLoginSession,
+  getWechatIpadMessageStore,
   isWechatIpadBotProfileStale,
   isWechatIpadProfileFetching,
   markWechatIpadProfileFetching,
   resolveWechatIpadRuntimeWxid,
   setWechatIpadBotProfile,
   unmarkWechatIpadProfileFetching,
-} from "./runtime.js";
-import type { ResolvedWechatIpadAccount, WechatIpadLinkCard } from "./types.js";
+} from "../infra/runtime.js";
+import type { ResolvedWechatIpadAccount, WechatIpadLinkCard } from "../types.js";
+import { prepareVideoPayload } from "./video.js";
 
 const DEFAULT_TEXT_CHUNK_LIMIT = 1800;
 const DEFAULT_LONG_TEXT_THRESHOLD = 1800;
@@ -33,6 +37,7 @@ export type WechatIpadSendOptions = {
   mediaUrl?: string;
   replyToId?: string;
   forceLongText?: boolean;
+  log?: (message: string) => void;
 };
 
 function isValidHttpUrl(raw: string): boolean {
@@ -123,6 +128,38 @@ export function chunkWechatIpadText(text: string, limit = DEFAULT_TEXT_CHUNK_LIM
 }
 
 /**
+ * 尝试将出站消息存入 SQLite，失败不阻塞发送。
+ */
+function tryStoreOutboundMessage(params: {
+  accountId: string;
+  messageId: string | undefined;
+  wxid: string;
+  target: string;
+  text: string;
+  log?: (message: string) => void;
+}): void {
+  if (!params.messageId || !params.accountId) return;
+  const store = getWechatIpadMessageStore(params.accountId);
+  if (!store) return;
+  try {
+    store.store({
+      msgId: params.messageId,
+      senderId: params.wxid,
+      chatId: params.target,
+      chatType: params.target.includes("@chatroom") ? "group" : "direct",
+      msgType: 1,
+      contentType: "text",
+      body: params.text,
+    });
+    params.log?.(
+      `wechat-ipad[${params.accountId}]: 出站消息已入库：msgId=${params.messageId}，目标=${params.target}`,
+    );
+  } catch {
+    // 存储失败不阻塞发送
+  }
+}
+
+/**
  * 发送文本消息；当文本过长时自动分块串行发送。
  */
 export async function sendWechatIpadText(
@@ -154,6 +191,8 @@ export async function sendWechatIpadText(
   const endpoints: string[] = [];
 
   try {
+    const storeAccountId = ctx.account?.accountId ?? options.accountId ?? "";
+
     if (!options.replyToId && (options.forceLongText || payload.length > longTextThreshold)) {
       const accountId = ctx.account?.accountId ?? options.accountId ?? "";
       const profile = accountId ? getWechatIpadBotProfile(accountId) : null;
@@ -186,6 +225,14 @@ export async function sendWechatIpadText(
         sourceHeadUrl,
         title,
       });
+      tryStoreOutboundMessage({
+        accountId: storeAccountId,
+        messageId: result.messageId,
+        wxid,
+        target,
+        text: payload,
+        log: options.log,
+      });
       return { ok: true, messageId: result.messageId, endpoints };
     }
 
@@ -198,12 +245,14 @@ export async function sendWechatIpadText(
       if (index === 0 && options.replyToId?.trim().startsWith("wechat-ipad:")) {
         try {
           endpoints.push("/api/Msg/SendApp");
+          const messageStore = storeAccountId ? getWechatIpadMessageStore(storeAccountId) : null;
           result = await sendQuoteTextViaApi({
             options: ctx,
             wxid,
             toWxid: target,
             text: chunk,
             replyToId: options.replyToId,
+            messageStore,
           });
         } catch {
           endpoints.push("/api/Msg/SendTxt");
@@ -224,6 +273,14 @@ export async function sendWechatIpadText(
         });
       }
       messageId = result.messageId ?? messageId;
+      tryStoreOutboundMessage({
+        accountId: storeAccountId,
+        messageId: result.messageId,
+        wxid,
+        target,
+        text: chunk,
+        log: options.log,
+      });
     }
 
     return { ok: true, messageId, endpoints };
@@ -290,6 +347,66 @@ export async function sendWechatIpadLinkCard(
   }
 }
 
+type MediaKind = "image" | "video" | "other";
+
+function parseDataUrl(dataUrl: string): { mime: string; buffer: Buffer } | null {
+  const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/s);
+  if (!match?.[1] || !match[2]) {
+    return null;
+  }
+  return { mime: match[1], buffer: Buffer.from(match[2], "base64") };
+}
+
+function resolveMediaKind(mime: string): MediaKind {
+  if (mime.startsWith("video/")) {
+    return "video";
+  }
+  if (mime.startsWith("image/")) {
+    return "image";
+  }
+  return "other";
+}
+
+type ResolvedMedia =
+  | { kind: "video"; buffer: Buffer; dataUrl: string }
+  | { kind: "image" | "other"; dataUrl: string };
+
+async function resolveMediaContent(mediaUrl: string): Promise<ResolvedMedia> {
+  const trimmed = mediaUrl.trim();
+
+  // data: URL — 直接解析
+  if (trimmed.startsWith("data:")) {
+    const parsed = parseDataUrl(trimmed);
+    if (parsed && resolveMediaKind(parsed.mime) === "video") {
+      return { kind: "video", buffer: parsed.buffer, dataUrl: trimmed };
+    }
+    // 已经排除了 video，这里只可能是 image 或 other
+    const rawKind = parsed ? resolveMediaKind(parsed.mime) : ("image" as const);
+    const kind: "image" | "other" = rawKind === "video" ? "other" : rawKind;
+    return { kind, dataUrl: trimmed };
+  }
+
+  // http(s):// URL — 下载并检测类型
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    try {
+      const result = await loadOutboundMediaFromUrl(trimmed);
+      if (result.kind === "video") {
+        const base64 = `data:${result.contentType ?? "video/mp4"};base64,${result.buffer.toString("base64")}`;
+        return { kind: "video", buffer: result.buffer, dataUrl: base64 };
+      }
+      const contentType = result.contentType ?? "application/octet-stream";
+      const base64 = `data:${contentType};base64,${result.buffer.toString("base64")}`;
+      return { kind: result.kind === "image" ? "image" : "other", dataUrl: base64 };
+    } catch {
+      // 下载失败，按原始 URL 直传（向后兼容）
+      return { kind: "image", dataUrl: trimmed };
+    }
+  }
+
+  // 其他格式 — 当作 image 直传（向后兼容）
+  return { kind: "image", dataUrl: trimmed };
+}
+
 export async function sendWechatIpadMedia(
   to: string,
   mediaUrl: string,
@@ -316,12 +433,28 @@ export async function sendWechatIpadMedia(
   }
 
   try {
-    const result = await sendMediaViaApi({
-      options: ctx,
-      wxid,
-      toWxid: target,
-      base64: mediaUrl.trim(),
-    });
+    const media = await resolveMediaContent(mediaUrl);
+    let result: { messageId?: string };
+
+    if (media.kind === "video") {
+      const payload = await prepareVideoPayload(media.buffer, options.log);
+      result = await sendVideoViaApi({
+        options: ctx,
+        wxid,
+        toWxid: target,
+        base64: payload.videoBase64,
+        imageBase64: payload.thumbnailBase64,
+        playLength: payload.playLength,
+      });
+    } else {
+      result = await sendMediaViaApi({
+        options: ctx,
+        wxid,
+        toWxid: target,
+        base64: media.dataUrl,
+      });
+    }
+
     if (text.trim()) {
       const textResult = await sendWechatIpadText(to, text, options);
       if (!textResult.ok) {

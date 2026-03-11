@@ -1,6 +1,7 @@
 import type { PluginRuntime } from "openclaw/plugin-sdk";
-import type { WechatIpadMessagePoller } from "./polling.js";
-import type { WechatIpadBotProfile, WechatIpadLoginSession } from "./types.js";
+import type { WechatIpadMessagePoller } from "../inbound/polling.js";
+import type { WechatIpadBotProfile, WechatIpadLoginSession } from "../types.js";
+import type { WechatIpadMessageStore } from "./message-store.js";
 
 export type WechatIpadWebhookRegistration = {
   unregister: () => void;
@@ -13,6 +14,7 @@ const pollers = new Map<string, WechatIpadMessagePoller>();
 const webhookRegistrations = new Map<string, WechatIpadWebhookRegistration>();
 const botProfiles = new Map<string, WechatIpadBotProfile>();
 const pendingProfileFetches = new Set<string>();
+const messageStores = new Map<string, WechatIpadMessageStore>();
 
 export const BOT_PROFILE_TTL_MS = 30 * 60_000;
 
@@ -33,6 +35,15 @@ export function getWechatIpadRuntime(): PluginRuntime {
 
 export function setWechatIpadLoginSession(session: WechatIpadLoginSession): void {
   loginSessions.set(resolveSessionKey(session.accountId), session);
+  // 持久化到 SQLite
+  const store = messageStores.get(resolveSessionKey(session.accountId));
+  if (store) {
+    try {
+      store.setMeta("login_session", JSON.stringify(session));
+    } catch {
+      // 持久化失败不阻塞
+    }
+  }
 }
 
 export function getWechatIpadLoginSession(accountId: string): WechatIpadLoginSession | null {
@@ -96,6 +107,15 @@ export function getWechatIpadBotProfile(accountId: string): WechatIpadBotProfile
 
 export function setWechatIpadBotProfile(accountId: string, profile: WechatIpadBotProfile): void {
   botProfiles.set(resolveSessionKey(accountId), profile);
+  // 持久化到 SQLite
+  const store = messageStores.get(resolveSessionKey(accountId));
+  if (store) {
+    try {
+      store.setMeta("bot_profile", JSON.stringify(profile));
+    } catch {
+      // 持久化失败不阻塞
+    }
+  }
 }
 
 export function clearWechatIpadBotProfile(accountId: string): void {
@@ -116,4 +136,19 @@ export function unmarkWechatIpadProfileFetching(accountId: string): void {
 
 export function isWechatIpadProfileFetching(accountId: string): boolean {
   return pendingProfileFetches.has(resolveSessionKey(accountId));
+}
+
+export function getWechatIpadMessageStore(accountId: string): WechatIpadMessageStore | null {
+  return messageStores.get(resolveSessionKey(accountId)) ?? null;
+}
+
+export function setWechatIpadMessageStore(accountId: string, store: WechatIpadMessageStore): void {
+  messageStores.set(resolveSessionKey(accountId), store);
+}
+
+export function clearWechatIpadMessageStore(accountId: string): void {
+  const key = resolveSessionKey(accountId);
+  const store = messageStores.get(key);
+  store?.close();
+  messageStores.delete(key);
 }

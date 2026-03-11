@@ -11,7 +11,7 @@ import type {
   WechatIpadQuotedMessage,
   WechatIpadVerificationCodeRequest,
   WechatIpadVerificationCodeResponse,
-} from "./types.js";
+} from "../types.js";
 
 function resolveInboundContactId(item: WechatIpadInboundMessage): string {
   return item.chatType === "group" ? item.chatId : item.senderId;
@@ -65,6 +65,21 @@ function readStringField(input: Record<string, unknown>, keys: string[]): string
     const value = input[key];
     if (typeof value === "string" && value.trim()) {
       return value.trim();
+    }
+  }
+  return undefined;
+}
+
+/** 读取可能是 `"value"` 或 `{ string: "value" }` 嵌套格式的字段。 */
+function readWrappedStringField(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) {
+    return value.trim();
+  }
+  const record = asRecord(value);
+  if (record) {
+    const inner = record.string;
+    if (typeof inner === "string" && inner.trim()) {
+      return inner.trim();
     }
   }
   return undefined;
@@ -645,6 +660,7 @@ export function normalizeWechatIpadSyncAddMsg(
     appMessageType,
     contentType: resolveInboundContentType(messageType, appMessageType, parsedQuotedMessage),
     quotedMessage: parsedQuotedMessage,
+    rawContent,
   };
 }
 
@@ -706,6 +722,35 @@ export async function sendMediaViaApi(
   };
 }
 
+export async function sendVideoViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    base64: string;
+    imageBase64: string;
+    playLength: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendVideo",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Base64: params.base64,
+      ImageBase64: params.imageBase64,
+      PlayLength: params.playLength,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
 export async function sendLinkCardViaApi(
   params: {
     options: WechatIpadApiCallOptions;
@@ -751,6 +796,9 @@ export async function sendQuoteTextViaApi(
     toWxid: string;
     text: string;
     replyToId: string;
+    messageStore?: {
+      lookup(msgId: string): { msgType?: number; rawContent?: string; body?: string } | null;
+    } | null;
   },
   requestFn: typeof request<Record<string, unknown>> = request,
 ): Promise<{ messageId?: string }> {
@@ -766,7 +814,11 @@ export async function sendQuoteTextViaApi(
       "wechat-ipad quote reply requires msgId, msgSeq, sender wxid, quoted body, and text",
     );
   }
-  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>1</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(replyBody)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><frsername></fromusername>`;
+  // 查询持久化存储获取原始消息元数据
+  const storedMessage = params.messageStore?.lookup(replyMsgId) ?? null;
+  const referType = storedMessage?.msgType ?? 1;
+  const referContent = storedMessage?.rawContent ?? storedMessage?.body ?? replyBody;
+  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>${referType}</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(referContent)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><frsername></fromusername>`;
   const raw = await requestFn({
     options: params.options,
     method: "POST",
@@ -1110,10 +1162,14 @@ export async function fetchBotProfileViaApi(
     endpoint: `${endpoint.pathname}${endpoint.search}`,
   });
 
-  const userInfo = asRecord(raw.userInfo) ?? asRecord(raw.UserInfo) ?? {};
-  const userInfoExt = asRecord(raw.userInfoExt) ?? asRecord(raw.UserInfoExt) ?? {};
+  // 响应包裹在 Data 信封中
+  const data = asRecord(raw.Data) ?? asRecord(raw.data) ?? raw;
+  const userInfo = asRecord(data.userInfo) ?? asRecord(data.UserInfo) ?? {};
+  const userInfoExt = asRecord(data.userInfoExt) ?? asRecord(data.UserInfoExt) ?? {};
 
-  const nickname = readStringField(userInfo, ["NickName", "nickName", "nickname"]) ?? wxid;
+  // NickName 是 { string: "cc" } 嵌套格式
+  const nickname =
+    readWrappedStringField(userInfo.NickName ?? userInfo.nickName ?? userInfo.nickname) ?? wxid;
   const bigHeadImgUrl = readStringField(userInfoExt, ["BigHeadImgUrl", "bigHeadImgUrl"]) ?? "";
   const smallHeadImgUrl =
     readStringField(userInfoExt, ["SmallHeadImgUrl", "smallHeadImgUrl"]) ?? "";
@@ -1123,6 +1179,53 @@ export async function fetchBotProfileViaApi(
     headImgUrl: bigHeadImgUrl || smallHeadImgUrl,
     fetchedAt: Date.now(),
   };
+}
+
+/** 从 XML 标签的属性中提取值，如 `<img aeskey="xxx">` → `extractXmlAttr(xml, "img", "aeskey")` → `"xxx"`。 */
+export function extractXmlAttr(xml: string, tagName: string, attrName: string): string | undefined {
+  const pattern = new RegExp(`<${tagName}\\b[^>]*\\b${attrName}="([^"]*)"`, "i");
+  return xml.match(pattern)?.[1] || undefined;
+}
+
+/** 解析图片消息 XML，提取 CDN 下载所需的 aesKey 和 cdnMidImgUrl。 */
+export function parseImageXml(xml: string): { aesKey: string; cdnMidImgUrl: string } | null {
+  const aesKey = extractXmlAttr(xml, "img", "aeskey");
+  const cdnMidImgUrl = extractXmlAttr(xml, "img", "cdnmidimgurl");
+  if (!aesKey || !cdnMidImgUrl) return null;
+  return { aesKey, cdnMidImgUrl };
+}
+
+/** 调用桥接服务 CDN 下载 API 获取图片 buffer。 */
+export async function downloadImageViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    aesKey: string;
+    cdnMidImgUrl: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer; contentType: string; extension: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Tools/CdnDownloadImage",
+    body: {
+      Wxid: params.wxid,
+      FileAesKey: params.aesKey,
+      FileNo: params.cdnMidImgUrl,
+    },
+    timeoutMs: 30_000,
+  });
+
+  const base64 = readStringField(raw, ["Image", "image"]);
+  if (!base64) {
+    throw new WechatIpadApiError("CDN 图片下载响应缺少 Image 字段");
+  }
+
+  const buffer = Buffer.from(base64, "base64");
+
+  // 默认 image/jpeg，后续由调用方通过 detectMime 覆盖
+  return { buffer, contentType: "image/jpeg", extension: ".jpg" };
 }
 
 export async function enableAutoHeartbeat(params: {

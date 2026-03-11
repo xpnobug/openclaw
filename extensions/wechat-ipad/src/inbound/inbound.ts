@@ -1,6 +1,11 @@
-import type { OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
-import { sendWechatIpadText } from "./send.js";
-import type { WechatIpadInboundMessage } from "./types.js";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import type { AgentMediaPayload, OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
+import { buildAgentMediaPayload, detectMime, extensionForMime } from "openclaw/plugin-sdk";
+import { downloadImageViaApi, parseImageXml } from "../api/api.js";
+import { getWechatIpadLoginSession, getWechatIpadMessageStore } from "../infra/runtime.js";
+import { sendWechatIpadText } from "../outbound/send.js";
+import type { WechatIpadInboundMessage } from "../types.js";
 
 export type WechatIpadInboundContext = {
   cfg: OpenClawConfig;
@@ -9,6 +14,7 @@ export type WechatIpadInboundContext = {
   baseUrl: string;
   apiToken: string;
   robotId: string;
+  wxid?: string;
   allowFrom?: string[];
   dmPolicy?: "pairing" | "allowlist" | "open" | "disabled";
   groupPolicy?: "pairing" | "allowlist" | "open" | "disabled";
@@ -75,6 +81,58 @@ function formatMessagePreview(body: string): string {
 }
 
 /**
+ * 下载图片并保存到 agent 工作目录。
+ * 任何步骤失败均记日志并返回 null，不阻塞消息处理。
+ */
+async function downloadAndSaveInboundImage(params: {
+  msg: WechatIpadInboundMessage;
+  deps: WechatIpadInboundContext;
+  wxid: string;
+  imageDir: string;
+}): Promise<{ path: string; contentType: string } | null> {
+  const { msg, deps, wxid, imageDir } = params;
+  try {
+    const parsed = parseImageXml(msg.body);
+    if (!parsed) {
+      emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 图片 XML 解析失败，跳过下载`);
+      return null;
+    }
+
+    const { buffer, contentType: fallbackContentType } = await downloadImageViaApi({
+      options: {
+        baseUrl: deps.baseUrl,
+        apiToken: deps.apiToken,
+        robotId: deps.robotId,
+      },
+      wxid,
+      aesKey: parsed.aesKey,
+      cdnMidImgUrl: parsed.cdnMidImgUrl,
+    });
+
+    // 检测实际 MIME 类型
+    const detectedMime = await detectMime({ buffer });
+    const contentType = detectedMime ?? fallbackContentType;
+    const ext = extensionForMime(contentType) ?? ".jpg";
+
+    const contactId = msg.chatType === "group" ? msg.chatId : msg.senderId;
+    const timestamp = Math.floor((msg.timestamp || Date.now()) / 1000);
+    const msgId = msg.msgId ?? msg.id;
+    const fileName = `${timestamp}_${msgId}${ext}`;
+    const dir = join(imageDir, contactId);
+    const filePath = join(dir, fileName);
+
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, buffer);
+
+    return { path: filePath, contentType };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 图片下载/保存失败：${message}`);
+    return null;
+  }
+}
+
+/**
  * 统一处理 wechat-ipad 入站：策略校验 + 路由 + 回复派发。
  */
 export async function handleWechatIpadInboundMessage(
@@ -97,6 +155,34 @@ export async function handleWechatIpadInboundMessage(
   } = deps;
 
   const logPrefix = buildLogPrefix(accountId);
+
+  // 持久化消息到 SQLite，在策略检查之前执行（被过滤的消息也可能被引用）
+  const messageStore = getWechatIpadMessageStore(accountId);
+  if (messageStore && msg.msgId) {
+    try {
+      messageStore.store({
+        msgId: msg.msgId,
+        msgSeq: msg.msgSeq,
+        createTime: msg.timestamp ? Math.trunc(msg.timestamp / 1000) : undefined,
+        msgSource: msg.rawMsgSource,
+        senderId: msg.senderId || msg.from,
+        senderName: msg.senderName,
+        chatId: msg.chatId,
+        chatType: msg.chatType,
+        msgType: msg.messageType,
+        appMsgType: msg.appMessageType,
+        contentType: msg.contentType,
+        body: msg.body,
+        rawContent: msg.rawContent,
+      });
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 入站消息已入库：msgId=${msg.msgId}，发送者=${msg.senderId || msg.from}`,
+      );
+    } catch {
+      // 存储失败不阻塞消息处理
+    }
+  }
 
   if (msg.chatType === "group" && requireMention && !msg.isAtMe) {
     emitWechatIpadLog(
@@ -173,15 +259,41 @@ export async function handleWechatIpadInboundMessage(
     },
   });
 
+  // 图片下载
+  let mediaPayload: AgentMediaPayload = {};
+  if (msg.contentType === "image") {
+    const resolvedWxid =
+      deps.wxid?.trim() || getWechatIpadLoginSession(accountId)?.wxid?.trim() || robotId;
+    const stateDir = runtime.state.resolveStateDir();
+    const imageDir = join(stateDir, "workspace", "wechat-ipad-data", accountId, "images");
+    const saved = await downloadAndSaveInboundImage({
+      msg,
+      deps,
+      wxid: resolvedWxid,
+      imageDir,
+    });
+    if (saved) {
+      mediaPayload = buildAgentMediaPayload([saved]);
+      emitWechatIpadLog(deps, `${logPrefix}: 图片已保存至 ${saved.path}`);
+    }
+  }
+
   const envelopeOptions = runtime.channel.reply.resolveEnvelopeFormatOptions(cfg);
   const defaultSafetyPrefix =
     "[系统安全提示：此用户为访客(guest)，禁止执行系统命令、文件操作、代码执行或工具调用，仅允许普通对话]\n\n";
   const effectiveSafetyPrefix = isTrusted ? "" : (safetyPrefix ?? defaultSafetyPrefix);
+
+  // 图片消息：如果下载成功则使用描述性文本替代原始 XML
+  const effectiveBody =
+    msg.contentType === "image" && mediaPayload.MediaPath
+      ? "[图片]"
+      : `${effectiveSafetyPrefix}${msg.body}`;
+
   const body = runtime.channel.reply.formatInboundEnvelope({
     channel: "WeChat iPad",
     from: msg.senderName ?? senderId,
     timestamp: msg.timestamp,
-    body: `${effectiveSafetyPrefix}${msg.body}`,
+    body: effectiveBody,
     chatType: msg.chatType,
     sender: {
       name: msg.senderName ?? senderId,
@@ -222,6 +334,7 @@ export async function handleWechatIpadInboundMessage(
     ReplyToBody: msg.quotedMessage?.quotedBody,
     ReplyToSender: msg.quotedMessage?.quotedSender ?? msg.quotedMessage?.quotedSenderWxid,
     ReplyToIsQuote: msg.quotedMessage ? true : undefined,
+    ...mediaPayload,
   });
 
   if (!ctxPayload) {
@@ -258,6 +371,7 @@ export async function handleWechatIpadInboundMessage(
           baseUrl,
           apiToken,
           robotId,
+          log: (message: string) => emitWechatIpadLog(deps, message),
         });
         if (result.endpoints?.length) {
           emitWechatIpadLog(

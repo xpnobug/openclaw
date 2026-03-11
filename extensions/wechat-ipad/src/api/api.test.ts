@@ -1,11 +1,15 @@
 import type { RequestInit } from "undici";
 import { describe, expect, it, vi } from "vitest";
+import type { WechatIpadLoginType } from "../types.js";
 import {
   checkLoginQr,
   collectInboundContactIds,
+  downloadImageViaApi,
+  extractXmlAttr,
   fetchBotProfileViaApi,
   listContactIdsViaApi,
   normalizeWechatIpadSyncAddMsg,
+  parseImageXml,
   pollInboundMessages,
   requestLoginQr,
   sendLinkCardViaApi,
@@ -13,8 +17,8 @@ import {
   sendMediaViaApi,
   sendQuoteTextViaApi,
   sendTextViaApi,
+  sendVideoViaApi,
 } from "./api.js";
-import type { WechatIpadLoginType } from "./types.js";
 
 type RequestArg = {
   options: unknown;
@@ -438,6 +442,48 @@ describe("wechat-ipad api requestLoginQr", () => {
       contentType: "quote",
     });
     expect(result?.quotedMessage?.quotedMessageId).toBe("123456789");
+    // rawContent 应包含原始 XML 内容
+    expect(result?.rawContent).toContain("<appmsg>");
+    expect(result?.rawContent).toContain("<refermsg>");
+  });
+
+  it("normalizeWechatIpadSyncAddMsg includes rawContent for text messages", () => {
+    const result = normalizeWechatIpadSyncAddMsg(
+      {
+        MsgId: 100,
+        NewMsgId: 200,
+        FromUserName: { string: "wxid_a" },
+        ToUserName: { string: "wxid_bot" },
+        MsgType: 1,
+        Content: { string: "hello world" },
+        CreateTime: 1700000000,
+      },
+      "wxid_bot",
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.rawContent).toBe("hello world");
+    expect(result?.body).toBe("hello world");
+  });
+
+  it("normalizeWechatIpadSyncAddMsg includes rawContent for image XML", () => {
+    const imageXml = `<msg><img aeskey="abc123" cdnmidimgurl="cdn456" length="100"/></msg>`;
+    const result = normalizeWechatIpadSyncAddMsg(
+      {
+        MsgId: 300,
+        NewMsgId: 400,
+        FromUserName: { string: "wxid_a" },
+        ToUserName: { string: "wxid_bot" },
+        MsgType: 3,
+        Content: { string: imageXml },
+        CreateTime: 1700000200,
+      },
+      "wxid_bot",
+    );
+
+    expect(result).not.toBeNull();
+    expect(result?.rawContent).toBe(imageXml);
+    expect(result?.messageType).toBe(3);
   });
 
   it("uses /api/Msg contracts for text/media/sync", async () => {
@@ -667,10 +713,14 @@ describe("wechat-ipad api requestLoginQr", () => {
 
   it("fetchBotProfileViaApi parses NickName and BigHeadImgUrl", async () => {
     const requestFn = vi.fn(async (_arg: RequestArg) => ({
-      userInfo: { NickName: "测试机器人" },
-      userInfoExt: {
-        BigHeadImgUrl: "https://wx.qlogo.cn/big.png",
-        SmallHeadImgUrl: "https://wx.qlogo.cn/small.png",
+      Code: 0,
+      Success: true,
+      Data: {
+        userInfo: { NickName: { string: "测试机器人" } },
+        userInfoExt: {
+          BigHeadImgUrl: "https://wx.qlogo.cn/big.png",
+          SmallHeadImgUrl: "https://wx.qlogo.cn/small.png",
+        },
       },
     }));
 
@@ -697,10 +747,14 @@ describe("wechat-ipad api requestLoginQr", () => {
 
   it("fetchBotProfileViaApi falls back to SmallHeadImgUrl when BigHeadImgUrl is empty", async () => {
     const requestFn = vi.fn(async (_arg: RequestArg) => ({
-      userInfo: { NickName: "机器人" },
-      userInfoExt: {
-        BigHeadImgUrl: "",
-        SmallHeadImgUrl: "https://wx.qlogo.cn/small.png",
+      Code: 0,
+      Success: true,
+      Data: {
+        userInfo: { NickName: { string: "机器人" } },
+        userInfoExt: {
+          BigHeadImgUrl: "",
+          SmallHeadImgUrl: "https://wx.qlogo.cn/small.png",
+        },
       },
     }));
 
@@ -721,8 +775,12 @@ describe("wechat-ipad api requestLoginQr", () => {
 
   it("fetchBotProfileViaApi falls back to wxid when NickName is missing", async () => {
     const requestFn = vi.fn(async (_arg: RequestArg) => ({
-      userInfo: {},
-      userInfoExt: {},
+      Code: 0,
+      Success: true,
+      Data: {
+        userInfo: {},
+        userInfoExt: {},
+      },
     }));
 
     const profile = await fetchBotProfileViaApi(
@@ -794,5 +852,287 @@ describe("wechat-ipad api requestLoginQr", () => {
       body?: Record<string, unknown>;
     };
     expect(String(arg.body?.Xml)).toContain("<title>群聊的聊天记录</title>");
+  });
+  it("sendQuoteTextViaApi uses messageStore msgType and rawContent", async () => {
+    const quoteRequestFn = vi.fn(async (_arg: RequestArg) => ({
+      NewMsgId: 900,
+    }));
+    const mockStore = {
+      lookup: vi.fn((msgId: string) => {
+        if (msgId === "123456789") {
+          return {
+            msgType: 3,
+            rawContent: '<msg><img aeskey="abc" cdnmidimgurl="cdn"/></msg>',
+            body: "[图片]",
+          };
+        }
+        return null;
+      }),
+    };
+
+    const result = await sendQuoteTextViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        toWxid: "wxid_a",
+        text: "收到图片了",
+        replyToId:
+          'wechat-ipad:{"msgId":"123456789","msgSeq":"778899","senderId":"wxid_sender","senderName":"张三","body":"[图片]"}',
+        messageStore: mockStore,
+      },
+      quoteRequestFn,
+    );
+
+    expect(result.messageId).toBe("900");
+    expect(mockStore.lookup).toHaveBeenCalledWith("123456789");
+
+    const callArg = quoteRequestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    const xml = String(callArg.body?.Xml);
+    // 应使用 store 中的 msgType=3 而非硬编码 1
+    expect(xml).toContain("<refermsg><type>3</type>");
+    // 应使用 store 中的 rawContent
+    expect(xml).toContain("&lt;msg&gt;&lt;img aeskey=&quot;abc&quot;");
+  });
+
+  it("sendQuoteTextViaApi falls back to type=1 when store is null", async () => {
+    const quoteRequestFn = vi.fn(async (_arg: RequestArg) => ({
+      NewMsgId: 901,
+    }));
+
+    await sendQuoteTextViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        toWxid: "wxid_a",
+        text: "回复内容",
+        replyToId:
+          'wechat-ipad:{"msgId":"123456789","msgSeq":"778899","senderId":"wxid_sender","senderName":"张三","body":"原消息内容"}',
+        messageStore: null,
+      },
+      quoteRequestFn,
+    );
+
+    const callArg = quoteRequestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    const xml = String(callArg.body?.Xml);
+    // 无 store 时回退到 type=1 和 replyBody
+    expect(xml).toContain("<refermsg><type>1</type>");
+    expect(xml).toContain("原消息内容");
+  });
+
+  it("sendQuoteTextViaApi falls back to type=1 when store lookup misses", async () => {
+    const quoteRequestFn = vi.fn(async (_arg: RequestArg) => ({
+      NewMsgId: 902,
+    }));
+    const mockStore = {
+      lookup: vi.fn(() => null),
+    };
+
+    await sendQuoteTextViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        toWxid: "wxid_a",
+        text: "回复内容",
+        replyToId:
+          'wechat-ipad:{"msgId":"999","msgSeq":"778899","senderId":"wxid_sender","senderName":"张三","body":"fallback body"}',
+        messageStore: mockStore,
+      },
+      quoteRequestFn,
+    );
+
+    const callArg = quoteRequestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    const xml = String(callArg.body?.Xml);
+    expect(xml).toContain("<refermsg><type>1</type>");
+    expect(xml).toContain("fallback body");
+  });
+});
+
+describe("sendVideoViaApi", () => {
+  it("sends video to /api/Msg/SendVideo with correct body", async () => {
+    const requestFn = vi.fn(async (_arg: RequestArg) => ({
+      NewMsgId: 800,
+    }));
+
+    const result = await sendVideoViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        toWxid: "wxid_a",
+        base64: "data:video/mp4;base64,AAAA",
+        imageBase64: "data:image/jpeg;base64,BBBB",
+        playLength: 15,
+      },
+      requestFn,
+    );
+
+    expect(result.messageId).toBe("800");
+    expect(requestFn).toHaveBeenCalledOnce();
+
+    const callArg = requestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    expect(callArg.endpoint).toBe("/api/Msg/SendVideo");
+    expect(callArg.method).toBe("POST");
+    expect(callArg.body).toEqual({
+      Wxid: "wxid_bot",
+      ToWxid: "wxid_a",
+      Base64: "data:video/mp4;base64,AAAA",
+      ImageBase64: "data:image/jpeg;base64,BBBB",
+      PlayLength: 15,
+    });
+  });
+});
+
+describe("extractXmlAttr", () => {
+  it("extracts attribute from self-closing tag", () => {
+    const xml = `<msg><img aeskey="abc123" cdnmidimgurl="cdn456" length="100"/></msg>`;
+    expect(extractXmlAttr(xml, "img", "aeskey")).toBe("abc123");
+    expect(extractXmlAttr(xml, "img", "cdnmidimgurl")).toBe("cdn456");
+    expect(extractXmlAttr(xml, "img", "length")).toBe("100");
+  });
+
+  it("returns undefined for missing attribute", () => {
+    const xml = `<msg><img aeskey="abc123"/></msg>`;
+    expect(extractXmlAttr(xml, "img", "missing")).toBeUndefined();
+  });
+
+  it("returns undefined for missing tag", () => {
+    const xml = `<msg><video src="test"/></msg>`;
+    expect(extractXmlAttr(xml, "img", "src")).toBeUndefined();
+  });
+
+  it("is case insensitive for tag and attribute names", () => {
+    const xml = `<MSG><IMG AesKey="key123" CdnMidImgUrl="url456"/></MSG>`;
+    expect(extractXmlAttr(xml, "img", "aeskey")).toBe("key123");
+    expect(extractXmlAttr(xml, "IMG", "CdnMidImgUrl")).toBe("url456");
+  });
+});
+
+describe("parseImageXml", () => {
+  it("parses a standard image message XML", () => {
+    const xml = `<msg><img aeskey="7095152ac144fc994f5f3e8fb54dbec3" cdnmidimgurl="3057020100044b3049" length="53619" md5="66421f296804ad22531a5188f21a44d1"/></msg>`;
+    const result = parseImageXml(xml);
+    expect(result).toEqual({
+      aesKey: "7095152ac144fc994f5f3e8fb54dbec3",
+      cdnMidImgUrl: "3057020100044b3049",
+    });
+  });
+
+  it("returns null when aeskey is missing", () => {
+    const xml = `<msg><img cdnmidimgurl="3057020100044b3049"/></msg>`;
+    expect(parseImageXml(xml)).toBeNull();
+  });
+
+  it("returns null when cdnmidimgurl is missing", () => {
+    const xml = `<msg><img aeskey="abc123"/></msg>`;
+    expect(parseImageXml(xml)).toBeNull();
+  });
+
+  it("returns null for non-image XML", () => {
+    const xml = `<msg><voicemsg length="1234"/></msg>`;
+    expect(parseImageXml(xml)).toBeNull();
+  });
+});
+
+describe("downloadImageViaApi", () => {
+  it("sends correct request and returns buffer from base64 response", async () => {
+    const imageBase64 = Buffer.from("fake-image-data").toString("base64");
+    const requestFn = vi.fn(async (_arg: RequestArg) => ({
+      Image: imageBase64,
+    }));
+
+    const result = await downloadImageViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        aesKey: "aes123",
+        cdnMidImgUrl: "cdn456",
+      },
+      requestFn,
+    );
+
+    expect(result.buffer).toEqual(Buffer.from("fake-image-data"));
+    expect(result.contentType).toBe("image/jpeg");
+    expect(result.extension).toBe(".jpg");
+
+    const callArg = requestFn.mock.calls[0]?.[0] as RequestArg & {
+      body?: Record<string, unknown>;
+    };
+    expect(callArg.endpoint).toBe("/api/Tools/CdnDownloadImage");
+    expect(callArg.body).toEqual({
+      Wxid: "wxid_bot",
+      FileAesKey: "aes123",
+      FileNo: "cdn456",
+    });
+    expect(callArg.timeoutMs).toBe(30_000);
+  });
+
+  it("throws when Image field is missing from response", async () => {
+    const requestFn = vi.fn(async (_arg: RequestArg) => ({}));
+
+    await expect(
+      downloadImageViaApi(
+        {
+          options: {
+            baseUrl: "http://localhost:9000",
+            apiToken: "token",
+            robotId: "default",
+          },
+          wxid: "wxid_bot",
+          aesKey: "aes123",
+          cdnMidImgUrl: "cdn456",
+        },
+        requestFn,
+      ),
+    ).rejects.toThrow("CDN 图片下载响应缺少 Image 字段");
+  });
+
+  it("reads lowercase image field as fallback", async () => {
+    const imageBase64 = Buffer.from("data").toString("base64");
+    const requestFn = vi.fn(async (_arg: RequestArg) => ({
+      image: imageBase64,
+    }));
+
+    const result = await downloadImageViaApi(
+      {
+        options: {
+          baseUrl: "http://localhost:9000",
+          apiToken: "token",
+          robotId: "default",
+        },
+        wxid: "wxid_bot",
+        aesKey: "k",
+        cdnMidImgUrl: "u",
+      },
+      requestFn,
+    );
+
+    expect(result.buffer).toEqual(Buffer.from("data"));
   });
 });

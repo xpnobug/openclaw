@@ -1,6 +1,5 @@
 import type { OpenClawConfig } from "openclaw/plugin-sdk";
 import { normalizeAccountId } from "openclaw/plugin-sdk";
-import { resolveWechatIpadToken } from "./token.js";
 import type {
   ResolvedWechatIpadAccount,
   WechatIpadAccountConfig,
@@ -9,7 +8,8 @@ import type {
   WechatIpadInboundMode,
   WechatIpadPollingConfig,
   WechatIpadWebhookConfig,
-} from "./types.js";
+} from "../types.js";
+import { resolveWechatIpadToken } from "./token.js";
 
 const DEFAULT_BASE_URL = "http://localhost:9000";
 const DEFAULT_ROBOT_ID = "default";

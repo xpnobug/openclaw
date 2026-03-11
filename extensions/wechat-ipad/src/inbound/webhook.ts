@@ -10,14 +10,14 @@ import {
   type OpenClawConfig,
   type PluginRuntime,
 } from "openclaw/plugin-sdk";
-import { normalizeWechatIpadSyncAddMsg, type WechatIpadSyncMessageRecord } from "./api.js";
-import { handleWechatIpadInboundMessage } from "./inbound.js";
-import { getWechatIpadLoginSession } from "./runtime.js";
+import { normalizeWechatIpadSyncAddMsg, type WechatIpadSyncMessageRecord } from "../api/api.js";
+import { getWechatIpadLoginSession } from "../infra/runtime.js";
 import type {
   ResolvedWechatIpadAccount,
   WechatIpadInboundMessage,
   WechatIpadWebhookAuthMode,
-} from "./types.js";
+} from "../types.js";
+import { handleWechatIpadInboundMessage } from "./inbound.js";
 
 export type WechatIpadWebhookTarget = {
   accountId: string;
@@ -217,6 +217,7 @@ async function processWechatIpadWebhookMessages(params: {
       baseUrl: target.account.baseUrl,
       apiToken: target.account.apiToken,
       robotId: target.account.robotId,
+      wxid: target.wxid,
       allowFrom: target.account.config.allowFrom,
       dmPolicy: target.account.config.dmPolicy,
       groupPolicy: target.account.config.groupPolicy,

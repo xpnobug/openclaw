@@ -9,7 +9,7 @@ import {
   wechatIpadDock,
   wechatIpadPlugin,
 } from "./src/channel.js";
-import { setWechatIpadRuntime } from "./src/runtime.js";
+import { setWechatIpadRuntime } from "./src/infra/runtime.js";
 
 const plugin = {
   id: "wechat-ipad",

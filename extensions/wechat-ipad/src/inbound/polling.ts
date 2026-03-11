@@ -1,5 +1,5 @@
-import { collectInboundContactIds, listContactIdsViaApi, pollInboundMessages } from "./api.js";
-import type { WechatIpadInboundMessage, WechatIpadPollingConfig } from "./types.js";
+import { collectInboundContactIds, listContactIdsViaApi, pollInboundMessages } from "../api/api.js";
+import type { WechatIpadInboundMessage, WechatIpadPollingConfig } from "../types.js";
 
 export type WechatIpadPollingOptions = {
   baseUrl: string;

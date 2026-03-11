@@ -1,6 +1,6 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { WechatIpadConfig, WechatIpadTokenSource } from "./types.js";
+import type { WechatIpadConfig, WechatIpadTokenSource } from "../types.js";
 
 export function resolveWechatIpadToken(
   cfg: WechatIpadConfig | undefined,

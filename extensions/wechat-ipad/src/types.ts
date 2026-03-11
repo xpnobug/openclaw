@@ -54,6 +54,8 @@ export type WechatIpadAccountConfig = {
   commandAllowFrom?: string[];
   requireMention?: boolean;
   safetyPrefix?: string;
+  /** 消息保留天数，0 表示永久保留，默认 0 */
+  messageRetentionDays?: number;
 };
 
 export type WechatIpadConfig = {
@@ -199,6 +201,7 @@ export type WechatIpadInboundMessage = {
   messageType?: number;
   appMessageType?: number;
   contentType?: WechatIpadInboundContentType;
+  rawContent?: string;
   quotedMessage?: WechatIpadQuotedMessage | null;
 };
 

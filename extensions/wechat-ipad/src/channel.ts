@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import type {
   ChannelAccountSnapshot,
   ChannelDock,
@@ -13,50 +14,56 @@ import {
   formatPairingApproveHint,
   normalizeAccountId,
   PAIRING_APPROVED_MESSAGE,
+  requireNodeSqlite,
   setAccountEnabledInConfigSection,
 } from "openclaw/plugin-sdk";
-import {
-  listWechatIpadAccountIds,
-  resolveDefaultWechatIpadAccountId,
-  resolveWechatIpadAccount,
-} from "./accounts.js";
 import {
   checkLoginQr,
   enableAutoHeartbeat,
   fetchBotProfileViaApi,
   requestLoginQr,
   submitVerificationCode,
-} from "./api.js";
-import { WechatIpadConfigSchema } from "./config-schema.js";
-import { handleWechatIpadInboundMessage } from "./inbound.js";
-import { createWechatIpadPoller } from "./polling.js";
-import { probeWechatIpad } from "./probe.js";
+} from "./api/api.js";
+import {
+  listWechatIpadAccountIds,
+  resolveDefaultWechatIpadAccountId,
+  resolveWechatIpadAccount,
+} from "./config/accounts.js";
+import { WechatIpadConfigSchema } from "./config/config-schema.js";
+import { handleWechatIpadInboundMessage } from "./inbound/inbound.js";
+import { createWechatIpadPoller } from "./inbound/polling.js";
+import { registerWechatIpadWebhookTarget } from "./inbound/webhook.js";
+import { createWechatIpadMessageStore } from "./infra/message-store.js";
+import { probeWechatIpad } from "./infra/probe.js";
 import {
   clearWechatIpadLoginSession,
+  clearWechatIpadMessageStore,
   clearWechatIpadPoller,
   clearWechatIpadWebhookRegistration,
+  getWechatIpadBotProfile,
   getWechatIpadLoginSession,
   getWechatIpadRuntime,
   resolveWechatIpadRuntimeWxid,
   setWechatIpadBotProfile,
   setWechatIpadLoginSession,
+  setWechatIpadMessageStore,
   setWechatIpadPoller,
   setWechatIpadWebhookRegistration,
-} from "./runtime.js";
+} from "./infra/runtime.js";
+import { collectWechatIpadStatusIssues } from "./infra/status-issues.js";
 import {
   normalizeWechatIpadTarget,
   sendWechatIpadLinkCard,
   sendWechatIpadMedia,
   sendWechatIpadText,
-} from "./send.js";
-import { collectWechatIpadStatusIssues } from "./status-issues.js";
+} from "./outbound/send.js";
 import type {
   ResolvedWechatIpadAccount,
+  WechatIpadBotProfile,
   WechatIpadChannelData,
   WechatIpadLoginSession,
   WechatIpadLoginType,
 } from "./types.js";
-import { registerWechatIpadWebhookTarget } from "./webhook.js";
 
 const meta = {
   id: "wechat-ipad",
@@ -850,6 +857,51 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
 
       clearWechatIpadPoller(accountId);
       clearWechatIpadWebhookRegistration(accountId);
+      clearWechatIpadMessageStore(accountId);
+
+      // 初始化消息持久化存储
+      const stateDir = pluginRuntime.state.resolveStateDir();
+      const dbPath = join(stateDir, "workspace", "wechat-ipad-data", accountId, "messages.db");
+      const retentionDays = account.config.messageRetentionDays ?? 0;
+      const messageStore = createWechatIpadMessageStore({
+        dbPath,
+        requireNodeSqlite,
+        retentionMs: retentionDays > 0 ? retentionDays * 24 * 60 * 60 * 1000 : 0,
+        log: (message) => ctx.log?.info(message),
+      });
+      if (messageStore) {
+        setWechatIpadMessageStore(accountId, messageStore);
+
+        // 从 DB 恢复 bot profile 缓存
+        try {
+          const profileJson = messageStore.getMeta("bot_profile");
+          if (profileJson && !getWechatIpadBotProfile(accountId)) {
+            const profile = JSON.parse(profileJson) as WechatIpadBotProfile;
+            setWechatIpadBotProfile(accountId, profile);
+            ctx.log?.info(
+              `wechat-ipad[${accountId}]: 已从数据库恢复 bot profile（${profile.nickname}）`,
+            );
+          }
+        } catch {
+          // 恢复失败不阻塞
+        }
+
+        // 从 DB 恢复 login session
+        try {
+          const sessionJson = messageStore.getMeta("login_session");
+          if (sessionJson && !getWechatIpadLoginSession(accountId)) {
+            const session = JSON.parse(sessionJson) as WechatIpadLoginSession;
+            if (session.wxid) {
+              setWechatIpadLoginSession(session);
+              ctx.log?.info(
+                `wechat-ipad[${accountId}]: 已从数据库恢复登录会话（wxid=${session.wxid}）`,
+              );
+            }
+          }
+        } catch {
+          // 恢复失败不阻塞
+        }
+      }
 
       if (account.inbound.mode === "webhook") {
         if (account.inbound.webhook.authMode !== "none" && !account.inbound.webhook.secret.trim()) {
@@ -937,6 +989,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
               baseUrl: account.baseUrl,
               apiToken: account.apiToken,
               robotId: account.robotId,
+              wxid,
               allowFrom: account.config.allowFrom,
               dmPolicy: account.config.dmPolicy,
               groupPolicy: account.config.groupPolicy,
@@ -996,6 +1049,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       const { accountId, setStatus, getStatus } = ctx;
       clearWechatIpadPoller(accountId);
       clearWechatIpadWebhookRegistration(accountId);
+      clearWechatIpadMessageStore(accountId);
       setStatus({
         ...getStatus(),
         running: false,
@@ -1006,6 +1060,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       const resolvedAccountId = normalizeAccountId(accountId);
       clearWechatIpadPoller(resolvedAccountId);
       clearWechatIpadWebhookRegistration(resolvedAccountId);
+      clearWechatIpadMessageStore(resolvedAccountId);
       clearWechatIpadLoginSession(resolvedAccountId);
       return {
         loggedOut: true,

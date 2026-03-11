@@ -1,5 +1,5 @@
-import { probeBackend, WechatIpadApiError } from "./api.js";
-import type { WechatIpadProbeResult } from "./types.js";
+import { probeBackend, WechatIpadApiError } from "../api/api.js";
+import type { WechatIpadProbeResult } from "../types.js";
 
 /**
  * 探活后端服务与鉴权状态。

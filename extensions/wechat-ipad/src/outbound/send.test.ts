@@ -44,7 +44,7 @@ const accountMocks = vi.hoisted(() => ({
   })),
 }));
 
-vi.mock("./api.js", () => ({
+vi.mock("../api/api.js", () => ({
   sendTextViaApi: apiMocks.sendTextViaApi,
   sendQuoteTextViaApi: apiMocks.sendQuoteTextViaApi,
   sendLinkCardViaApi: apiMocks.sendLinkCardViaApi,
@@ -53,11 +53,11 @@ vi.mock("./api.js", () => ({
   fetchBotProfileViaApi: apiMocks.fetchBotProfileViaApi,
 }));
 
-vi.mock("./accounts.js", () => ({
+vi.mock("../config/accounts.js", () => ({
   resolveWechatIpadAccount: accountMocks.resolveWechatIpadAccount,
 }));
 
-vi.mock("./runtime.js", () => ({
+vi.mock("../infra/runtime.js", () => ({
   resolveWechatIpadRuntimeWxid: runtimeMocks.resolveWechatIpadRuntimeWxid,
   getWechatIpadLoginSession: runtimeMocks.getWechatIpadLoginSession,
   getWechatIpadBotProfile: runtimeMocks.getWechatIpadBotProfile,

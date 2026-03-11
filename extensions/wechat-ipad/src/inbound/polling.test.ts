@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { resolveWechatIpadAccount } from "./accounts.js";
+import { resolveWechatIpadAccount } from "../config/accounts.js";
 
 const apiMocks = vi.hoisted(() => ({
   pollInboundMessages: vi.fn(),
   listContactIdsViaApi: vi.fn(),
 }));
 
-vi.mock("./api.js", () => ({
+vi.mock("../api/api.js", () => ({
   pollInboundMessages: apiMocks.pollInboundMessages,
   listContactIdsViaApi: apiMocks.listContactIdsViaApi,
   collectInboundContactIds: (

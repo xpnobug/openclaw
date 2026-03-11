@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
-import { resolveDefaultWechatIpadAccountId, resolveWechatIpadAccount } from "./accounts.js";
-import * as apiModule from "./api.js";
+import * as apiModule from "./api/api.js";
 import { submitWechatIpadVerificationGatewayMethod, wechatIpadPlugin } from "./channel.js";
-import { WechatIpadConfigSchema } from "./config-schema.js";
-import * as runtimeModule from "./runtime.js";
-import * as webhookModule from "./webhook.js";
+import { resolveDefaultWechatIpadAccountId, resolveWechatIpadAccount } from "./config/accounts.js";
+import { WechatIpadConfigSchema } from "./config/config-schema.js";
+import * as webhookModule from "./inbound/webhook.js";
+import * as runtimeModule from "./infra/runtime.js";
 
 describe("wechatIpadPlugin", () => {
   it("exposes required adapters", () => {

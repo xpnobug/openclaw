@@ -5,7 +5,7 @@
 import { html } from "lit";
 import type { WechatIpadAccountUiState, WechatIpadUiLoginPhase } from "../controllers/state.js";
 import type { ChannelsConfigData } from "../types/channel-config.js";
-import { icons, renderChannelList, renderChannelDetail } from "./channels";
+import { renderChannelList, renderChannelDetail } from "./channels";
 
 // 重新导出元数据供外部使用
 export { CHANNEL_METADATA } from "./channels";
@@ -37,19 +37,6 @@ export type ChannelsContentProps = {
  */
 export function renderChannelsContent(props: ChannelsContentProps) {
   return html`
-    <div class="config-content config-content--channels">
-      <div class="config-content__header">
-        <div class="config-content__icon">${icons.channel}</div>
-        <div class="config-content__titles">
-          <h2 class="config-content__title">通道配置</h2>
-          <p class="config-content__desc">配置消息通道（Telegram、Discord、WhatsApp 等）</p>
-        </div>
-        <button class="mc-btn" @click=${props.onNavigateToChannels}>
-          ${icons.externalLink}
-          <span>通道管理</span>
-        </button>
-      </div>
-
       <div class="channels-layout">
         <div class="channels-layout__sidebar">
           ${renderChannelList({

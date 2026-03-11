@@ -1,9 +1,12 @@
+import { existsSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { normalizeWechatIpadSyncAddMsg } from "./api.js";
+import { normalizeWechatIpadSyncAddMsg } from "../api/api.js";
+import * as sendModule from "../outbound/send.js";
 import { handleWechatIpadInboundMessage } from "./inbound.js";
-import * as sendModule from "./send.js";
 
-function createRuntimeMocks() {
+function createRuntimeMocks(stateDir?: string) {
   const dispatchReplyFromConfig = vi.fn().mockResolvedValue({
     queuedFinal: true,
     counts: { final: 1 },
@@ -18,6 +21,9 @@ function createRuntimeMocks() {
   return {
     runtime: {
       log,
+      state: {
+        resolveStateDir: vi.fn(() => stateDir ?? "/tmp/mock-state"),
+      },
       channel: {
         pairing: {
           buildPairingReply: vi.fn(() => "请先配对"),
@@ -529,5 +535,239 @@ describe("wechat-ipad inbound", () => {
     );
 
     expect(runtime.channel.pairing.upsertPairingRequest).toHaveBeenCalled();
+  });
+
+  it("downloads image and injects media payload for image messages", async () => {
+    const { downloadImageViaApi } = await import("../api/api.js");
+
+    const testDir = join(tmpdir(), `wechat-ipad-img-test-${Date.now()}`);
+    vi.mocked(downloadImageViaApi).mockResolvedValue({
+      buffer: Buffer.from("fake-png-bytes"),
+      contentType: "image/png",
+      extension: ".png",
+    });
+
+    const { runtime, dispatchReplyFromConfig, log } = createRuntimeMocks(testDir);
+
+    const imageXml = `<msg><img aeskey="abc123" cdnmidimgurl="cdn456" length="100" md5="md5hash"/></msg>`;
+    await handleWechatIpadInboundMessage(
+      {
+        id: "wxid_a:501",
+        msgId: "501",
+        from: "wxid_a",
+        senderId: "wxid_a",
+        chatId: "wxid_a",
+        chatType: "direct",
+        body: imageXml,
+        timestamp: 1700000100000,
+        isAtMe: false,
+        contentType: "image",
+        messageType: 3,
+      },
+      {
+        cfg: { channels: {} },
+        runtime: runtime as never,
+        accountId: "default",
+        baseUrl: "http://localhost:9000",
+        apiToken: "token",
+        robotId: "default",
+        wxid: "wxid_bot",
+        dmPolicy: "open",
+      },
+    );
+
+    // 验证 downloadImageViaApi 被调用
+    expect(downloadImageViaApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        wxid: "wxid_bot",
+        aesKey: "abc123",
+        cdnMidImgUrl: "cdn456",
+      }),
+    );
+
+    // 验证图片保存到磁盘（统一路径）
+    const expectedDir = join(
+      testDir,
+      "workspace",
+      "wechat-ipad-data",
+      "default",
+      "images",
+      "wxid_a",
+    );
+    const expectedFile = join(expectedDir, "1700000100_501.png");
+    expect(existsSync(expectedFile)).toBe(true);
+    expect(readFileSync(expectedFile).toString()).toBe("fake-png-bytes");
+
+    // 验证 ctxPayload 包含 MediaPath
+    expect(runtime.channel.reply.finalizeInboundContext).toHaveBeenCalledWith(
+      expect.objectContaining({
+        MediaPath: expectedFile,
+        MediaType: "image/png",
+      }),
+    );
+
+    // 验证日志包含图片保存信息
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("图片已保存至"));
+
+    // 验证 dispatch 被调用
+    expect(dispatchReplyFromConfig).toHaveBeenCalled();
+
+    // 清理
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("uses chatId for group image storage directory", async () => {
+    const { downloadImageViaApi } = await import("../api/api.js");
+
+    const testDir = join(tmpdir(), `wechat-ipad-grp-img-test-${Date.now()}`);
+    vi.mocked(downloadImageViaApi).mockResolvedValue({
+      buffer: Buffer.from("group-img"),
+      contentType: "image/jpeg",
+      extension: ".jpg",
+    });
+
+    const { runtime } = createRuntimeMocks(testDir);
+
+    const imageXml = `<msg><img aeskey="grp123" cdnmidimgurl="grpcdn" length="200"/></msg>`;
+    await handleWechatIpadInboundMessage(
+      {
+        id: "room@chatroom:502",
+        msgId: "502",
+        from: "room@chatroom",
+        senderId: "wxid_member",
+        chatId: "room@chatroom",
+        chatType: "group",
+        body: imageXml,
+        timestamp: 1700000200000,
+        isAtMe: true,
+        contentType: "image",
+        messageType: 3,
+      },
+      {
+        cfg: { channels: {} },
+        runtime: runtime as never,
+        accountId: "default",
+        baseUrl: "http://localhost:9000",
+        apiToken: "token",
+        robotId: "default",
+        wxid: "wxid_bot",
+        groupPolicy: "open",
+        requireMention: true,
+      },
+    );
+
+    // 群聊使用 chatId 作为目录名
+    const expectedFile = join(
+      testDir,
+      "workspace",
+      "wechat-ipad-data",
+      "default",
+      "images",
+      "room@chatroom",
+      "1700000200_502.jpg",
+    );
+    expect(existsSync(expectedFile)).toBe(true);
+
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("gracefully handles image download failure without blocking message", async () => {
+    const { downloadImageViaApi } = await import("../api/api.js");
+
+    const testDir = join(tmpdir(), `wechat-ipad-fail-test-${Date.now()}`);
+    vi.mocked(downloadImageViaApi).mockRejectedValue(new Error("CDN 下载超时"));
+
+    const { runtime, dispatchReplyFromConfig, log } = createRuntimeMocks(testDir);
+
+    const imageXml = `<msg><img aeskey="fail123" cdnmidimgurl="failcdn" length="100"/></msg>`;
+    await handleWechatIpadInboundMessage(
+      {
+        id: "wxid_a:503",
+        msgId: "503",
+        from: "wxid_a",
+        senderId: "wxid_a",
+        chatId: "wxid_a",
+        chatType: "direct",
+        body: imageXml,
+        timestamp: 1700000300000,
+        isAtMe: false,
+        contentType: "image",
+        messageType: 3,
+      },
+      {
+        cfg: { channels: {} },
+        runtime: runtime as never,
+        accountId: "default",
+        baseUrl: "http://localhost:9000",
+        apiToken: "token",
+        robotId: "default",
+        wxid: "wxid_bot",
+        dmPolicy: "open",
+      },
+    );
+
+    // 下载失败不阻塞消息处理
+    expect(dispatchReplyFromConfig).toHaveBeenCalled();
+
+    // 记录错误日志
+    expect(log).toHaveBeenCalledWith(expect.stringContaining("图片下载/保存失败"));
+
+    // ctxPayload 不包含 MediaPath（因为下载失败）
+    expect(runtime.channel.reply.finalizeInboundContext).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        MediaPath: expect.anything(),
+      }),
+    );
+
+    rmSync(testDir, { recursive: true, force: true });
+  });
+
+  it("falls back to robotId when wxid is not available", async () => {
+    const { downloadImageViaApi } = await import("../api/api.js");
+
+    const testDir = join(tmpdir(), `wechat-ipad-noid-test-${Date.now()}`);
+    vi.mocked(downloadImageViaApi).mockResolvedValue({
+      buffer: Buffer.from("data"),
+      contentType: "image/jpeg",
+      extension: ".jpg",
+    });
+
+    const { runtime } = createRuntimeMocks(testDir);
+
+    const imageXml = `<msg><img aeskey="k" cdnmidimgurl="u" length="1"/></msg>`;
+    await handleWechatIpadInboundMessage(
+      {
+        id: "wxid_a:504",
+        msgId: "504",
+        from: "wxid_a",
+        senderId: "wxid_a",
+        chatId: "wxid_a",
+        chatType: "direct",
+        body: imageXml,
+        timestamp: 1700000400000,
+        isAtMe: false,
+        contentType: "image",
+        messageType: 3,
+      },
+      {
+        cfg: { channels: {} },
+        runtime: runtime as never,
+        accountId: "default",
+        baseUrl: "http://localhost:9000",
+        apiToken: "token",
+        robotId: "my-robot-id",
+        // 不传 wxid
+        dmPolicy: "open",
+      },
+    );
+
+    // 回退到 robotId
+    expect(downloadImageViaApi).toHaveBeenCalledWith(
+      expect.objectContaining({
+        wxid: "my-robot-id",
+      }),
+    );
+
+    rmSync(testDir, { recursive: true, force: true });
   });
 });

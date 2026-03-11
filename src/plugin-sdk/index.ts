@@ -176,6 +176,7 @@ export type { WebhookBodyReadProfile, WebhookInFlightLimiter } from "./webhook-r
 export { keepHttpServerTaskAlive, waitUntilAbort } from "./channel-lifecycle.js";
 export type { AgentMediaPayload } from "./agent-media-payload.js";
 export { buildAgentMediaPayload } from "./agent-media-payload.js";
+export { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 export {
   buildBaseAccountStatusSnapshot,
   buildBaseChannelStatusSummary,
@@ -809,3 +810,4 @@ export type { ResolvedProviderAuth } from "../agents/model-auth.js";
 
 // Security utilities
 export { redactSensitiveText } from "../logging/redact.js";
+export { requireNodeSqlite } from "../memory/sqlite.js";
