@@ -4,7 +4,7 @@
  */
 
 // 主组件
-export { renderCronContent } from "./cron-content";
+export { renderCronContent, renderDeleteConfirmModal } from "./cron-content";
 
 // 子组件
 export { renderStatusCard } from "./status-card";

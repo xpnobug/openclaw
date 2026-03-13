@@ -5,22 +5,26 @@
 import { html, nothing } from "lit";
 import type { CronContentProps } from "../../types/cron-config";
 import { LABELS, icons } from "./constants";
-import { getSafeCallbacks } from "./utils";
-import { renderStatusCard } from "./status-card";
 import { renderCreateModal } from "./form-fields";
 import { renderJobsList } from "./job-card";
 import { renderRunHistory } from "./run-history";
+import { renderStatusCard } from "./status-card";
+import { getSafeCallbacks } from "./utils";
 
 /**
  * 渲染删除确认弹窗
  * Render delete confirmation modal
  */
-function renderDeleteConfirmModal(props: CronContentProps) {
-  if (!props.deleteConfirmJobId) return nothing;
+export function renderDeleteConfirmModal(props: CronContentProps) {
+  if (!props.deleteConfirmJobId) {
+    return nothing;
+  }
 
   const jobs = props.jobs ?? [];
   const job = jobs.find((j) => j.id === props.deleteConfirmJobId);
-  if (!job) return nothing;
+  if (!job) {
+    return nothing;
+  }
 
   const { onDeleteConfirm, onRemove } = getSafeCallbacks(props);
 
