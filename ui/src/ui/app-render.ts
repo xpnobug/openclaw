@@ -1,4 +1,6 @@
 import { html, nothing } from "lit";
+// ui-zh-CN 模块入口（副作用导入：注册 <openclaw-config-zh> 等自定义元素）
+import "../ui-zh-CN";
 import {
   buildAgentMainSessionKey,
   parseAgentSessionKey,
