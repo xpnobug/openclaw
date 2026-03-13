@@ -771,6 +771,14 @@ export function renderApp(state: AppViewState) {
         ${renderUsageTab(state)}
 
         ${
+          state.tab === "modelConfig"
+            ? html`
+                <openclaw-config-zh></openclaw-config-zh>
+              `
+            : nothing
+        }
+
+        ${
           state.tab === "cron"
             ? lazyRender(lazyCron, (m) =>
                 m.renderCron({
