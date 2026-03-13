@@ -31,6 +31,17 @@ export type ChannelDetailProps = {
   onWechatIpadLoginTypeConfirmSubmit: () => void;
   onWechatIpadVerificationCodeChange: (code: string) => void;
   onWechatIpadSubmitVerificationCode: () => void;
+  // 多账号管理
+  onWechatIpadAccountAdd: () => void;
+  onWechatIpadAccountAddDraftChange: (value: string) => void;
+  onWechatIpadAccountAddConfirm: () => void;
+  onWechatIpadAccountAddCancel: () => void;
+  onWechatIpadAccountDeleteRequest: (accountId: string) => void;
+  onWechatIpadAccountDeleteConfirm: () => void;
+  onWechatIpadAccountDeleteCancel: () => void;
+  wechatIpadAddAccountOpen: boolean;
+  wechatIpadAddAccountDraft: string;
+  wechatIpadDeleteConfirmId: string | null;
 };
 
 /**
@@ -310,16 +321,52 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
         props.wechatIpadAccountOrder.length > 0
           ? html`
               <div class="channel-detail__wechat-login-device-tabs">
-                ${props.wechatIpadAccountOrder.map(
-                  (accountId) => html`
+                ${props.wechatIpadAccountOrder.map((accountId) => {
+                  const accountState = props.wechatIpadStateByAccount[accountId];
+                  const isConnected = accountState?.loginConnected === true;
+                  const phase = accountState?.phase ?? "idle";
+                  const isSelected = props.wechatIpadSelectedAccountId === accountId;
+                  const channelConfig = (props.channelsConfig["wechat-ipad"] ?? {}) as Record<
+                    string,
+                    unknown
+                  >;
+                  const accounts = (channelConfig.accounts ?? {}) as Record<
+                    string,
+                    Record<string, unknown>
+                  >;
+                  const accountName =
+                    typeof accounts[accountId]?.name === "string" ? accounts[accountId].name : "";
+                  const displayLabel = accountName || accountId;
+                  const statusClass = isConnected
+                    ? "status--connected"
+                    : phase === "expired"
+                      ? "status--expired"
+                      : "";
+                  return html`
                     <button
-                      class=${`mc-btn ${props.wechatIpadSelectedAccountId === accountId ? "mc-btn--primary" : ""}`}
+                      class=${`mc-btn ${isSelected ? "mc-btn--primary" : ""} wechat-account-tab`}
                       @click=${() => props.onWechatIpadAccountSelect(accountId)}
                     >
-                      ${accountId}
+                      <span class="wechat-account-tab__dot ${statusClass}"></span>
+                      <span class="wechat-account-tab__label">${displayLabel}</span>
+                      ${
+                        props.wechatIpadAccountOrder.length > 1
+                          ? html`<span
+                            class="wechat-account-tab__delete"
+                            @click=${(e: Event) => {
+                              e.stopPropagation();
+                              props.onWechatIpadAccountDeleteRequest(accountId);
+                            }}
+                          >✕</span>`
+                          : nothing
+                      }
                     </button>
-                  `,
-                )}
+                  `;
+                })}
+                <button
+                  class="mc-btn wechat-account-tab wechat-account-tab--add"
+                  @click=${() => props.onWechatIpadAccountAdd()}
+                >＋</button>
               </div>
             `
           : nothing
@@ -545,6 +592,53 @@ function renderWechatIpadLoginSection(channelId: string, props: ChannelDetailPro
               </button>
             </div>
           `
+          : nothing
+      }
+      ${
+        props.wechatIpadAddAccountOpen
+          ? html`
+              <div class="channel-detail__modal-overlay">
+                <div class="channel-detail__modal">
+                  <h4>添加新账号</h4>
+                  <p class="channel-detail__modal-hint">请输入账号 ID（英文字母、数字、连字符）</p>
+                  <input
+                    class="mc-input"
+                    type="text"
+                    placeholder="例如：work、personal"
+                    .value=${props.wechatIpadAddAccountDraft}
+                    @input=${(e: Event) =>
+                      props.onWechatIpadAccountAddDraftChange((e.target as HTMLInputElement).value)}
+                  />
+                  <div class="channel-detail__modal-actions">
+                    <button class="mc-btn" @click=${props.onWechatIpadAccountAddCancel}>取消</button>
+                    <button
+                      class="mc-btn mc-btn--primary"
+                      ?disabled=${!props.wechatIpadAddAccountDraft.trim()}
+                      @click=${props.onWechatIpadAccountAddConfirm}
+                    >确认添加</button>
+                  </div>
+                </div>
+              </div>
+            `
+          : nothing
+      }
+      ${
+        props.wechatIpadDeleteConfirmId
+          ? html`
+              <div class="channel-detail__modal-overlay">
+                <div class="channel-detail__modal">
+                  <h4>确认删除账号</h4>
+                  <p>确定要删除账号 <strong>${props.wechatIpadDeleteConfirmId}</strong> 吗？该操作将移除该账号的所有配置。</p>
+                  <div class="channel-detail__modal-actions">
+                    <button class="mc-btn" @click=${props.onWechatIpadAccountDeleteCancel}>取消</button>
+                    <button
+                      class="mc-btn mc-btn--danger"
+                      @click=${props.onWechatIpadAccountDeleteConfirm}
+                    >确认删除</button>
+                  </div>
+                </div>
+              </div>
+            `
           : nothing
       }
     </div>

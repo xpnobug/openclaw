@@ -197,6 +197,10 @@ export type ModelConfigState = {
   channelsWechatIpadSelectedAccountId: string | null;
   channelsWechatIpadAccountOrder: string[];
   channelsWechatIpadStateByAccount: Record<string, WechatIpadAccountUiState>;
+  // 多账号管理
+  channelsWechatIpadAddAccountOpen: boolean;
+  channelsWechatIpadAddAccountDraft: string;
+  channelsWechatIpadDeleteConfirmId: string | null;
   modelConfigVersion: number;
   modelConfigSnapshotCacheVersion: number | null;
   modelConfigSnapshotCache: Record<string, unknown> | null;
@@ -289,6 +293,9 @@ export function createInitialModelConfigState(): ModelConfigState {
     channelsWechatIpadSelectedAccountId: null,
     channelsWechatIpadAccountOrder: [],
     channelsWechatIpadStateByAccount: {},
+    channelsWechatIpadAddAccountOpen: false,
+    channelsWechatIpadAddAccountDraft: "",
+    channelsWechatIpadDeleteConfirmId: null,
     modelConfigVersion: 0,
     modelConfigSnapshotCacheVersion: null,
     modelConfigSnapshotCache: null,

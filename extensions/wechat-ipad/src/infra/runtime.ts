@@ -1,6 +1,10 @@
 import type { PluginRuntime } from "openclaw/plugin-sdk";
 import type { WechatIpadMessagePoller } from "../inbound/polling.js";
-import type { WechatIpadBotProfile, WechatIpadLoginSession } from "../types.js";
+import type {
+  WechatIpadBotProfile,
+  WechatIpadContactInfo,
+  WechatIpadLoginSession,
+} from "../types.js";
 import type { WechatIpadMessageStore } from "./message-store.js";
 
 export type WechatIpadWebhookRegistration = {
@@ -15,6 +19,7 @@ const webhookRegistrations = new Map<string, WechatIpadWebhookRegistration>();
 const botProfiles = new Map<string, WechatIpadBotProfile>();
 const pendingProfileFetches = new Set<string>();
 const messageStores = new Map<string, WechatIpadMessageStore>();
+const contactCaches = new Map<string, Map<string, WechatIpadContactInfo>>();
 
 export const BOT_PROFILE_TTL_MS = 30 * 60_000;
 
@@ -151,4 +156,32 @@ export function clearWechatIpadMessageStore(accountId: string): void {
   const store = messageStores.get(key);
   store?.close();
   messageStores.delete(key);
+}
+
+export const CONTACT_CACHE_TTL_MS = 60 * 60_000; // 1 小时
+
+export function getWechatIpadContact(
+  accountId: string,
+  wxid: string,
+): WechatIpadContactInfo | null {
+  const key = resolveSessionKey(accountId);
+  return contactCaches.get(key)?.get(wxid) ?? null;
+}
+
+export function setWechatIpadContact(accountId: string, info: WechatIpadContactInfo): void {
+  const key = resolveSessionKey(accountId);
+  let cache = contactCaches.get(key);
+  if (!cache) {
+    cache = new Map();
+    contactCaches.set(key, cache);
+  }
+  cache.set(info.wxid, info);
+}
+
+export function isWechatIpadContactStale(info: WechatIpadContactInfo): boolean {
+  return Date.now() - info.fetchedAt > CONTACT_CACHE_TTL_MS;
+}
+
+export function clearWechatIpadContactCache(accountId: string): void {
+  contactCaches.delete(resolveSessionKey(accountId));
 }

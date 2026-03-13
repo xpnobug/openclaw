@@ -731,6 +731,8 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         baseUrl: account.baseUrl,
         mode: account.inbound.mode,
         running: runtime?.running ?? false,
+        connected: runtime?.connected ?? false,
+        lastConnectedAt: runtime?.lastConnectedAt ?? null,
         lastStartAt: runtime?.lastStartAt ?? null,
         lastStopAt: runtime?.lastStopAt ?? null,
         lastError: runtime?.lastError ?? (loginReady ? null : wxidHint),
@@ -950,6 +952,8 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         setStatus({
           ...getStatus(),
           running: true,
+          connected: true,
+          lastConnectedAt: Date.now(),
           lastStartAt: Date.now(),
           lastError: null,
         });
@@ -1027,6 +1031,8 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       setStatus({
         ...getStatus(),
         running: true,
+        connected: true,
+        lastConnectedAt: Date.now(),
         lastStartAt: Date.now(),
         lastError: null,
       });
@@ -1053,6 +1059,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       setStatus({
         ...getStatus(),
         running: false,
+        connected: false,
         lastStopAt: Date.now(),
       });
     },

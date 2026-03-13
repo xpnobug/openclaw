@@ -2,6 +2,7 @@ import { createHash, randomInt, randomUUID } from "node:crypto";
 import type {
   WechatIpadApiCallOptions,
   WechatIpadBotProfile,
+  WechatIpadContactInfo,
   WechatIpadInboundContentType,
   WechatIpadInboundMessage,
   WechatIpadLoginCheckResponse,
@@ -1242,4 +1243,75 @@ export async function enableAutoHeartbeat(params: {
     method: "POST",
     endpoint: `${endpoint.pathname}${endpoint.search}`,
   });
+}
+
+/**
+ * 批量查询联系人详情（昵称、备注、微信号），最多 20 个。
+ * 查询失败时返回空数组，不阻塞消息处理。
+ */
+export async function fetchContactDetailViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    targetWxids: string[];
+    chatRoom?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<WechatIpadContactInfo[]> {
+  const wxid = params.wxid.trim();
+  const targets = params.targetWxids.map((id) => id.trim()).filter(Boolean);
+  if (!wxid || targets.length === 0) {
+    return [];
+  }
+
+  try {
+    const raw = await requestFn({
+      options: params.options,
+      method: "POST",
+      endpoint: "/api/Friend/GetContractDetail",
+      body: {
+        Wxid: wxid,
+        Towxids: targets.join(","),
+        ChatRoom: params.chatRoom?.trim() ?? "",
+      },
+    });
+
+    const contactList = Array.isArray(raw.ContactList)
+      ? raw.ContactList
+      : Array.isArray(raw.contactList)
+        ? raw.contactList
+        : [];
+
+    const results: WechatIpadContactInfo[] = [];
+    const now = Date.now();
+
+    for (const item of contactList) {
+      const record = asRecord(item);
+      if (!record) continue;
+
+      const contactWxid =
+        readWrappedStringField(record.UserName ?? record.userName) ??
+        readStringField(record, ["UserName", "userName", "Wxid", "wxid"]);
+      if (!contactWxid) continue;
+
+      const nickname = readWrappedStringField(record.NickName ?? record.nickName) ?? "";
+      const remark = readWrappedStringField(record.Remark ?? record.remark) ?? "";
+      const alias =
+        readWrappedStringField(record.Alias ?? record.alias) ??
+        readStringField(record, ["Alias", "alias"]) ??
+        "";
+
+      results.push({
+        wxid: contactWxid,
+        nickname,
+        remark,
+        alias,
+        fetchedAt: now,
+      });
+    }
+
+    return results;
+  } catch {
+    return [];
+  }
 }

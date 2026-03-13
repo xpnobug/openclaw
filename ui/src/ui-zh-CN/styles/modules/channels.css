@@ -512,3 +512,108 @@
   }
 }
 
+/* 账号 Tab 状态指示 */
+.wechat-account-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+}
+
+.wechat-account-tab__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+
+.wechat-account-tab__dot.status--connected {
+  background: var(--success, #22c55e);
+}
+
+.wechat-account-tab__dot.status--expired {
+  background: var(--danger, #ef4444);
+}
+
+.wechat-account-tab__label {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wechat-account-tab__delete {
+  font-size: 11px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.wechat-account-tab__delete:hover {
+  color: var(--danger, #ef4444);
+}
+
+.wechat-account-tab--add {
+  font-size: 16px;
+  padding: 4px 10px;
+  color: var(--muted);
+}
+
+.wechat-account-tab--add:hover {
+  color: var(--text);
+}
+
+/* 添加/删除账号弹窗 */
+.channel-detail__modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: channel-modal-in 0.15s ease-out;
+}
+
+@keyframes channel-modal-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.channel-detail__modal {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+.channel-detail__modal h4 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.channel-detail__modal-hint {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.channel-detail__modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+

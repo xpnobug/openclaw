@@ -30,6 +30,17 @@ export type ChannelsContentProps = {
   onWechatIpadLoginTypeConfirmSubmit: () => void;
   onWechatIpadVerificationCodeChange: (code: string) => void;
   onWechatIpadSubmitVerificationCode: () => void;
+  // 多账号管理
+  onWechatIpadAccountAdd: () => void;
+  onWechatIpadAccountAddDraftChange: (value: string) => void;
+  onWechatIpadAccountAddConfirm: () => void;
+  onWechatIpadAccountAddCancel: () => void;
+  onWechatIpadAccountDeleteRequest: (accountId: string) => void;
+  onWechatIpadAccountDeleteConfirm: () => void;
+  onWechatIpadAccountDeleteCancel: () => void;
+  wechatIpadAddAccountOpen: boolean;
+  wechatIpadAddAccountDraft: string;
+  wechatIpadDeleteConfirmId: string | null;
 };
 
 /**
@@ -64,6 +75,16 @@ export function renderChannelsContent(props: ChannelsContentProps) {
             onWechatIpadLoginTypeConfirmSubmit: props.onWechatIpadLoginTypeConfirmSubmit,
             onWechatIpadVerificationCodeChange: props.onWechatIpadVerificationCodeChange,
             onWechatIpadSubmitVerificationCode: props.onWechatIpadSubmitVerificationCode,
+            onWechatIpadAccountAdd: props.onWechatIpadAccountAdd,
+            onWechatIpadAccountAddDraftChange: props.onWechatIpadAccountAddDraftChange,
+            onWechatIpadAccountAddConfirm: props.onWechatIpadAccountAddConfirm,
+            onWechatIpadAccountAddCancel: props.onWechatIpadAccountAddCancel,
+            onWechatIpadAccountDeleteRequest: props.onWechatIpadAccountDeleteRequest,
+            onWechatIpadAccountDeleteConfirm: props.onWechatIpadAccountDeleteConfirm,
+            onWechatIpadAccountDeleteCancel: props.onWechatIpadAccountDeleteCancel,
+            wechatIpadAddAccountOpen: props.wechatIpadAddAccountOpen,
+            wechatIpadAddAccountDraft: props.wechatIpadAddAccountDraft,
+            wechatIpadDeleteConfirmId: props.wechatIpadDeleteConfirmId,
           })}
         </div>
       </div>

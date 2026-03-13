@@ -29,6 +29,13 @@ type Pick_ = Pick<
   | "onWechatIpadLoginTypeConfirmSubmit"
   | "onWechatIpadVerificationCodeChange"
   | "onWechatIpadSubmitVerificationCode"
+  | "onWechatIpadAccountAdd"
+  | "onWechatIpadAccountAddDraftChange"
+  | "onWechatIpadAccountAddConfirm"
+  | "onWechatIpadAccountAddCancel"
+  | "onWechatIpadAccountDeleteRequest"
+  | "onWechatIpadAccountDeleteConfirm"
+  | "onWechatIpadAccountDeleteCancel"
 >;
 
 function resolveWechatIpadLoginType(value: unknown): "ipad" | "win" | "mac" | "car" {
@@ -345,6 +352,23 @@ export function createChannelCallbacks(
 ): Pick_ {
   const { s, update } = ctx;
 
+  // wechat-ipad 在线状态轮询（选中时每 10s 刷新一次）
+  let statusPollTimer: ReturnType<typeof setTimeout> | null = null;
+  function stopStatusPolling(): void {
+    if (statusPollTimer != null) {
+      clearTimeout(statusPollTimer);
+      statusPollTimer = null;
+    }
+  }
+  function startStatusPolling(): void {
+    stopStatusPolling();
+    const tick = () => {
+      void extra.loadChannelsStatus().then(() => update());
+      statusPollTimer = setTimeout(tick, 10_000);
+    };
+    statusPollTimer = setTimeout(tick, 10_000);
+  }
+
   const touchWechatIpadState = (accountId: string): WechatIpadAccountUiState => {
     const state = getWechatIpadAccountState(s, accountId);
     selectWechatIpadAccount(s, accountId);
@@ -500,6 +524,11 @@ export function createChannelCallbacks(
       if (channelId === "wechat-ipad") {
         syncWechatIpadAccountOrderFromConfig(s);
         selectWechatIpadAccount(s, resolveSelectedWechatIpadAccountId(s));
+        // 立即加载一次状态，然后启动定期轮询
+        void extra.loadChannelsStatus().then(() => update());
+        startStatusPolling();
+      } else {
+        stopStatusPolling();
       }
       update();
     },
@@ -579,7 +608,80 @@ export function createChannelCallbacks(
       update();
     },
     onWechatIpadWait: async () => {
-      await runWechatIpadWait(resolveSelectedWechatIpadAccountId(s), false);
+      const accountId = resolveSelectedWechatIpadAccountId(s);
+      const state = getCurrentWechatIpadState(s);
+
+      // 有活跃的 QR 登录会话 → 走原有的 loginCheckQR 流程
+      if (state.loginQrDataUrl && !isWechatIpadTerminalPhase(state.phase)) {
+        await runWechatIpadWait(accountId, false);
+        return;
+      }
+
+      // 没有活跃 QR 会话 → 调用桥接 probe 检测实际连接状态
+      if (!s.client || !s.connected || state.busy) {
+        return;
+      }
+
+      updateCurrentWechatIpadState(s, (cs) => {
+        cs.busy = true;
+        cs.waitInFlight = true;
+        cs.lastWaitAtMs = Date.now();
+      });
+      selectWechatIpadAccount(s, accountId);
+      update();
+
+      try {
+        const res = await s.client.request<{
+          channelAccounts?: Record<
+            string,
+            Array<{
+              accountId: string;
+              connected?: boolean;
+              running?: boolean;
+              probe?: { ok?: boolean; message?: string; elapsedMs?: number };
+              lastProbeAt?: number;
+            }>
+          >;
+        }>("channels.status", { probe: true, timeoutMs: 8000 });
+
+        const accounts = res?.channelAccounts?.["wechat-ipad"];
+        const match = Array.isArray(accounts)
+          ? accounts.find((a) => a.accountId === accountId)
+          : undefined;
+
+        updateCurrentWechatIpadState(s, (cs) => {
+          if (match) {
+            cs.loginConnected = match.connected ?? null;
+            const probeOk = match.probe?.ok;
+            if (probeOk === true) {
+              cs.loginMessage = `桥接正常（${match.probe?.elapsedMs ?? 0}ms）`;
+              if (match.connected) {
+                cs.phase = "connected";
+              }
+            } else if (probeOk === false) {
+              cs.loginMessage = `桥接异常: ${match.probe?.message ?? "未知错误"}`;
+              cs.loginConnected = false;
+            } else {
+              cs.loginMessage = match.connected ? "已连接" : "未连接";
+            }
+          } else {
+            cs.loginMessage = "未找到该账号的状态信息";
+            cs.loginConnected = null;
+          }
+        });
+      } catch (err) {
+        updateCurrentWechatIpadState(s, (cs) => {
+          cs.loginMessage = `检测失败: ${err instanceof Error ? err.message : String(err)}`;
+          cs.loginConnected = null;
+        });
+      } finally {
+        updateCurrentWechatIpadState(s, (cs) => {
+          cs.busy = false;
+          cs.waitInFlight = false;
+        });
+        selectWechatIpadAccount(s, accountId);
+        update();
+      }
     },
     onWechatIpadLogout: async () => {
       const accountId = resolveSelectedWechatIpadAccountId(s);
@@ -767,6 +869,68 @@ export function createChannelCallbacks(
         selectWechatIpadAccount(s, accountId);
         update();
       }
+    },
+    // 多账号管理回调
+    onWechatIpadAccountAdd: () => {
+      s.channelsWechatIpadAddAccountOpen = true;
+      s.channelsWechatIpadAddAccountDraft = "";
+      update();
+    },
+    onWechatIpadAccountAddDraftChange: (value: string) => {
+      s.channelsWechatIpadAddAccountDraft = value;
+      update();
+    },
+    onWechatIpadAccountAddConfirm: () => {
+      const draft = s.channelsWechatIpadAddAccountDraft.trim();
+      if (!draft) {
+        return;
+      }
+      const accounts = getWechatIpadAccountsConfig(s);
+      if (accounts[draft]) {
+        return;
+      }
+      updateWechatIpadAccountConfig(s, draft, (c) => ({ ...c }));
+      syncWechatIpadAccountOrderFromConfig(s);
+      selectWechatIpadAccount(s, draft);
+      s.channelsWechatIpadAddAccountOpen = false;
+      s.channelsWechatIpadAddAccountDraft = "";
+      update();
+    },
+    onWechatIpadAccountAddCancel: () => {
+      s.channelsWechatIpadAddAccountOpen = false;
+      s.channelsWechatIpadAddAccountDraft = "";
+      update();
+    },
+    onWechatIpadAccountDeleteRequest: (accountId: string) => {
+      s.channelsWechatIpadDeleteConfirmId = accountId;
+      update();
+    },
+    onWechatIpadAccountDeleteConfirm: () => {
+      const accountId = s.channelsWechatIpadDeleteConfirmId;
+      if (!accountId) {
+        return;
+      }
+      const current = s.modelConfigChannelsConfig ?? {};
+      const channelConfig = JSON.parse(JSON.stringify(current["wechat-ipad"] ?? {})) as Record<
+        string,
+        unknown
+      >;
+      const accounts =
+        channelConfig.accounts && typeof channelConfig.accounts === "object"
+          ? (channelConfig.accounts as Record<string, unknown>)
+          : {};
+      delete accounts[accountId];
+      channelConfig.accounts = accounts;
+      s.modelConfigChannelsConfig = { ...current, ["wechat-ipad"]: channelConfig };
+      delete s.channelsWechatIpadStateByAccount[accountId];
+      invalidateModelConfigDerivedState(s);
+      syncWechatIpadAccountOrderFromConfig(s);
+      s.channelsWechatIpadDeleteConfirmId = null;
+      update();
+    },
+    onWechatIpadAccountDeleteCancel: () => {
+      s.channelsWechatIpadDeleteConfirmId = null;
+      update();
     },
   };
 }

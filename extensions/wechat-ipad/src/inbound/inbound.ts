@@ -2,8 +2,14 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentMediaPayload, OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
 import { buildAgentMediaPayload, detectMime, extensionForMime } from "openclaw/plugin-sdk";
-import { downloadImageViaApi, parseImageXml } from "../api/api.js";
-import { getWechatIpadLoginSession, getWechatIpadMessageStore } from "../infra/runtime.js";
+import { downloadImageViaApi, fetchContactDetailViaApi, parseImageXml } from "../api/api.js";
+import {
+  getWechatIpadContact,
+  getWechatIpadLoginSession,
+  getWechatIpadMessageStore,
+  isWechatIpadContactStale,
+  setWechatIpadContact,
+} from "../infra/runtime.js";
 import { sendWechatIpadText } from "../outbound/send.js";
 import type { WechatIpadInboundMessage } from "../types.js";
 
@@ -61,6 +67,40 @@ function formatQuotedMessageFallbackPrefix(
 
 function buildLogPrefix(accountId: string): string {
   return `wechat-ipad[${accountId}]`;
+}
+
+/**
+ * 将 wxid 解析为 `备注名(wxid)` 或 `昵称(wxid)` 或 `wxid` 格式。
+ * 优先读缓存，缓存未命中或过期时触发一次 API 查询；查询失败不阻塞。
+ */
+async function resolveContactLabel(wxid: string, deps: WechatIpadInboundContext): Promise<string> {
+  // 1. 查缓存
+  const cached = getWechatIpadContact(deps.accountId, wxid);
+  if (cached && !isWechatIpadContactStale(cached)) {
+    const label = cached.remark || cached.nickname;
+    return label ? `${label}(${wxid})` : wxid;
+  }
+
+  // 2. 异步获取（失败返回 wxid）
+  try {
+    const resolvedWxid =
+      deps.wxid?.trim() || getWechatIpadLoginSession(deps.accountId)?.wxid?.trim() || deps.robotId;
+    const chatRoom = wxid.endsWith("@chatroom") ? wxid : undefined;
+    const contacts = await fetchContactDetailViaApi({
+      options: { baseUrl: deps.baseUrl, apiToken: deps.apiToken, robotId: deps.robotId },
+      wxid: resolvedWxid,
+      targetWxids: [wxid],
+      chatRoom,
+    });
+    if (contacts.length > 0) {
+      setWechatIpadContact(deps.accountId, contacts[0]!);
+      const label = contacts[0]!.remark || contacts[0]!.nickname;
+      return label ? `${label}(${wxid})` : wxid;
+    }
+  } catch {
+    // 查询失败不阻塞
+  }
+  return wxid;
 }
 
 function formatChatTypeLabel(chatType: WechatIpadInboundMessage["chatType"]): string {
@@ -156,6 +196,10 @@ export async function handleWechatIpadInboundMessage(
 
   const logPrefix = buildLogPrefix(accountId);
 
+  // 解析发送者昵称标签（优先读缓存，缓存未命中时触发 API 查询）
+  const rawSenderId = msg.senderId || msg.from;
+  const senderLabel = await resolveContactLabel(rawSenderId, deps);
+
   // 持久化消息到 SQLite，在策略检查之前执行（被过滤的消息也可能被引用）
   const messageStore = getWechatIpadMessageStore(accountId);
   if (messageStore && msg.msgId) {
@@ -165,7 +209,7 @@ export async function handleWechatIpadInboundMessage(
         msgSeq: msg.msgSeq,
         createTime: msg.timestamp ? Math.trunc(msg.timestamp / 1000) : undefined,
         msgSource: msg.rawMsgSource,
-        senderId: msg.senderId || msg.from,
+        senderId: rawSenderId,
         senderName: msg.senderName,
         chatId: msg.chatId,
         chatType: msg.chatType,
@@ -177,7 +221,7 @@ export async function handleWechatIpadInboundMessage(
       });
       emitWechatIpadLog(
         deps,
-        `${logPrefix}: 入站消息已入库：msgId=${msg.msgId}，发送者=${msg.senderId || msg.from}`,
+        `${logPrefix}: 入站消息已入库：msgId=${msg.msgId}，发送者=${senderLabel}`,
       );
     } catch {
       // 存储失败不阻塞消息处理
@@ -187,7 +231,7 @@ export async function handleWechatIpadInboundMessage(
   if (msg.chatType === "group" && requireMention && !msg.isAtMe) {
     emitWechatIpadLog(
       deps,
-      `${logPrefix}: 忽略群消息：未 @ 当前账号，发送者=${msg.senderId || msg.from}，群=${msg.chatId}`,
+      `${logPrefix}: 忽略群消息：未 @ 当前账号，发送者=${senderLabel}，群=${msg.chatId}`,
     );
     return;
   }
@@ -235,12 +279,13 @@ export async function handleWechatIpadInboundMessage(
   }
 
   const chatTypeLabel = formatChatTypeLabel(msg.chatType);
-  const senderLabel = formatSenderLabel(msg, senderId);
-  const chatLabel = msg.chatId || msg.from;
+  // 群聊时解析群名称，私聊时复用发送者标签
+  const chatLabel =
+    msg.chatType === "group" ? await resolveContactLabel(msg.chatId, deps) : senderLabel;
 
   emitWechatIpadLog(
     deps,
-    `${logPrefix}: 收到消息：来自 ${senderId}，在 ${chatLabel}（${chatTypeLabel}）`,
+    `${logPrefix}: 收到消息：来自 ${senderLabel}，在 ${chatLabel}（${chatTypeLabel}）`,
   );
 
   runtime.channel.activity.record({
@@ -304,6 +349,8 @@ export async function handleWechatIpadInboundMessage(
 
   const target = msg.from;
   const transportTo = msg.chatType === "group" ? `group:${msg.chatId}` : `wechat-ipad:${senderId}`;
+  // 回复日志中使用可读的目标标签
+  const targetLabel = msg.chatType === "group" ? chatLabel : senderLabel;
 
   const ctxPayload = runtime.channel.reply.finalizeInboundContext({
     Body: body,
@@ -376,13 +423,13 @@ export async function handleWechatIpadInboundMessage(
         if (result.endpoints?.length) {
           emitWechatIpadLog(
             deps,
-            `${logPrefix}: 回复发送接口：kind=${info.kind}，目标=${target}，接口=${result.endpoints.join(" -> ")}`,
+            `${logPrefix}: 回复发送接口：kind=${info.kind}，目标=${targetLabel}，接口=${result.endpoints.join(" -> ")}`,
           );
         }
         if (!result.ok) {
           emitWechatIpadLog(
             deps,
-            `${logPrefix}: 回复发送失败：kind=${info.kind}，目标=${target}，错误=${result.error ?? "unknown error"}`,
+            `${logPrefix}: 回复发送失败：kind=${info.kind}，目标=${targetLabel}，错误=${result.error ?? "unknown error"}`,
           );
         }
       },

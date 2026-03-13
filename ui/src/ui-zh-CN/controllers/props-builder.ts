@@ -300,6 +300,9 @@ export function buildPropsData(s: Record<string, any>): DataProps {
       createInitialWechatIpadAccountUiState(),
     channelsWechatIpadCurrentPhase:
       s.channelsWechatIpadStateByAccount[currentWechatIpadAccountId]?.phase ?? "idle",
+    channelsWechatIpadAddAccountOpen: s.channelsWechatIpadAddAccountOpen,
+    channelsWechatIpadAddAccountDraft: s.channelsWechatIpadAddAccountDraft,
+    channelsWechatIpadDeleteConfirmId: s.channelsWechatIpadDeleteConfirmId,
 
     // 定时任务
     cronLoading: s.cronLoading,

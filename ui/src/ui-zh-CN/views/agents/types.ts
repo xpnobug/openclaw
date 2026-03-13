@@ -173,6 +173,9 @@ export type AgentsConfigProps = {
   channelsWechatIpadStateByAccount: Record<string, WechatIpadAccountUiState>;
   channelsWechatIpadCurrentState: WechatIpadAccountUiState;
   channelsWechatIpadCurrentPhase: WechatIpadUiLoginPhase;
+  channelsWechatIpadAddAccountOpen: boolean;
+  channelsWechatIpadAddAccountDraft: string;
+  channelsWechatIpadDeleteConfirmId: string | null;
 
   // 定时任务面板数据 / Cron panel data
   cronLoading: boolean;
@@ -321,6 +324,14 @@ export type AgentsConfigProps = {
   onWechatIpadLoginTypeConfirmSubmit: () => void;
   onWechatIpadVerificationCodeChange: (code: string) => void;
   onWechatIpadSubmitVerificationCode: () => void;
+  // 多账号管理回调
+  onWechatIpadAccountAdd: () => void;
+  onWechatIpadAccountAddDraftChange: (value: string) => void;
+  onWechatIpadAccountAddConfirm: () => void;
+  onWechatIpadAccountAddCancel: () => void;
+  onWechatIpadAccountDeleteRequest: (accountId: string) => void;
+  onWechatIpadAccountDeleteConfirm: () => void;
+  onWechatIpadAccountDeleteCancel: () => void;
 
   // 定时任务回调 / Cron callbacks
   onCronFormChange: (patch: Partial<CronFormState>) => void;

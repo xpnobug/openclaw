@@ -327,6 +327,14 @@ export class OpenClawConfigElement extends LitElement {
           detailLabel: string;
           systemImage?: string;
         }>;
+        channelAccounts?: Record<
+          string,
+          Array<{
+            accountId: string;
+            connected?: boolean;
+            running?: boolean;
+          }>
+        >;
       }>("channels.status", { probe: false, timeoutMs: 8000 });
 
       if (res) {
@@ -334,6 +342,20 @@ export class OpenClawConfigElement extends LitElement {
         if (!this._state.modelConfigChannelsConfig && res.channelOrder) {
           this._state.cronChannels = res.channelOrder;
           this._state.cronChannelLabels = res.channelLabels ?? {};
+        }
+        // 将 wechat-ipad 账号的在线状态同步到 UI 状态
+        const wechatIpadAccounts = res.channelAccounts?.["wechat-ipad"];
+        if (Array.isArray(wechatIpadAccounts)) {
+          for (const account of wechatIpadAccounts) {
+            if (!account.accountId) {
+              continue;
+            }
+            const state =
+              this._state.channelsWechatIpadStateByAccount[account.accountId] ??
+              createInitialWechatIpadAccountUiState();
+            state.loginConnected = account.connected ?? null;
+            this._state.channelsWechatIpadStateByAccount[account.accountId] = state;
+          }
         }
       }
     } catch (err) {

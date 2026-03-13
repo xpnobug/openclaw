@@ -12,6 +12,7 @@ import {
 import { resolveWechatIpadAccount } from "../config/accounts.js";
 import {
   getWechatIpadBotProfile,
+  getWechatIpadContact,
   getWechatIpadLoginSession,
   getWechatIpadMessageStore,
   isWechatIpadBotProfileStale,
@@ -128,6 +129,18 @@ export function chunkWechatIpadText(text: string, limit = DEFAULT_TEXT_CHUNK_LIM
 }
 
 /**
+ * 格式化出站目标标签：从联系人缓存中读取昵称，仅读缓存不触发网络请求。
+ */
+function formatTargetLabel(accountId: string, wxid: string): string {
+  const cached = getWechatIpadContact(accountId, wxid);
+  if (cached) {
+    const label = cached.remark || cached.nickname;
+    if (label) return `${label}(${wxid})`;
+  }
+  return wxid;
+}
+
+/**
  * 尝试将出站消息存入 SQLite，失败不阻塞发送。
  */
 function tryStoreOutboundMessage(params: {
@@ -152,7 +165,7 @@ function tryStoreOutboundMessage(params: {
       body: params.text,
     });
     params.log?.(
-      `wechat-ipad[${params.accountId}]: 出站消息已入库：msgId=${params.messageId}，目标=${params.target}`,
+      `wechat-ipad[${params.accountId}]: 出站消息已入库：msgId=${params.messageId}，目标=${formatTargetLabel(params.accountId, params.target)}`,
     );
   } catch {
     // 存储失败不阻塞发送

@@ -35,6 +35,14 @@ export type WechatIpadBotProfile = {
   fetchedAt: number;
 };
 
+export type WechatIpadContactInfo = {
+  wxid: string;
+  nickname: string; // 微信昵称
+  remark: string; // 好友备注名
+  alias: string; // 微信号
+  fetchedAt: number; // 缓存时间戳
+};
+
 export type WechatIpadAccountConfig = {
   name?: string;
   enabled?: boolean;

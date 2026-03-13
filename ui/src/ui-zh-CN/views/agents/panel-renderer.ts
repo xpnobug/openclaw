@@ -243,6 +243,9 @@ export function renderGlobalPanel(props: AgentsConfigProps) {
               wechatIpadStateByAccount: props.channelsWechatIpadStateByAccount,
               wechatIpadCurrentState: props.channelsWechatIpadCurrentState,
               wechatIpadCurrentPhase: props.channelsWechatIpadCurrentPhase,
+              wechatIpadAddAccountOpen: props.channelsWechatIpadAddAccountOpen,
+              wechatIpadAddAccountDraft: props.channelsWechatIpadAddAccountDraft,
+              wechatIpadDeleteConfirmId: props.channelsWechatIpadDeleteConfirmId,
               onChannelSelect: props.onChannelSelect,
               onChannelConfigUpdate: props.onChannelConfigUpdate,
               onNavigateToChannels: props.onNavigateToChannels,
@@ -255,6 +258,13 @@ export function renderGlobalPanel(props: AgentsConfigProps) {
               onWechatIpadLoginTypeConfirmSubmit: props.onWechatIpadLoginTypeConfirmSubmit,
               onWechatIpadVerificationCodeChange: props.onWechatIpadVerificationCodeChange,
               onWechatIpadSubmitVerificationCode: props.onWechatIpadSubmitVerificationCode,
+              onWechatIpadAccountAdd: props.onWechatIpadAccountAdd,
+              onWechatIpadAccountAddDraftChange: props.onWechatIpadAccountAddDraftChange,
+              onWechatIpadAccountAddConfirm: props.onWechatIpadAccountAddConfirm,
+              onWechatIpadAccountAddCancel: props.onWechatIpadAccountAddCancel,
+              onWechatIpadAccountDeleteRequest: props.onWechatIpadAccountDeleteRequest,
+              onWechatIpadAccountDeleteConfirm: props.onWechatIpadAccountDeleteConfirm,
+              onWechatIpadAccountDeleteCancel: props.onWechatIpadAccountDeleteCancel,
             })}
           </div>
         </div>
