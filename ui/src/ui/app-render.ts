@@ -773,7 +773,25 @@ export function renderApp(state: AppViewState) {
         ${
           state.tab === "modelConfig"
             ? html`
-                <openclaw-config-zh></openclaw-config-zh>
+                <openclaw-config-zh
+                  .client=${state.client}
+                  .connected=${state.connected}
+                  @session-navigate=${(e: CustomEvent<{ sessionKey: string }>) => {
+                    state.sessionKey = e.detail.sessionKey;
+                    state.chatMessage = "";
+                    state.resetToolStream();
+                    state.applySettings({
+                      ...state.settings,
+                      sessionKey: e.detail.sessionKey,
+                      lastActiveSessionKey: e.detail.sessionKey,
+                    });
+                    void state.loadAssistantIdentity();
+                    state.setTab("chat" as import("./navigation.ts").Tab);
+                  }}
+                  @navigate-channels=${() => {
+                    state.setTab("channels" as import("./navigation.ts").Tab);
+                  }}
+                ></openclaw-config-zh>
               `
             : nothing
         }
