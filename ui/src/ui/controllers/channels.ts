@@ -35,7 +35,6 @@ export async function startWhatsAppLogin(state: ChannelsState, force: boolean) {
     const res = await state.client.request<{ message?: string; qrDataUrl?: string }>(
       "web.login.start",
       {
-        channel: "whatsapp",
         force,
         timeoutMs: 30000,
       },
@@ -61,7 +60,6 @@ export async function waitWhatsAppLogin(state: ChannelsState) {
     const res = await state.client.request<{ message?: string; connected?: boolean }>(
       "web.login.wait",
       {
-        channel: "whatsapp",
         timeoutMs: 120000,
       },
     );

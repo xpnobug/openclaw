@@ -3,13 +3,10 @@ import { fileURLToPath } from "node:url";
 import { resolveOpenClawPackageRoot } from "../infra/openclaw-root.js";
 import { pathExists } from "../utils.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// 基于当前模块位置的 fallback（适用于全局安装）
-const FALLBACK_TEMPLATE_DIR = path.resolve(__dirname, "../../docs/reference/templates");
-
-// dist 目录下的相对路径 fallback
-const DIST_FALLBACK_TEMPLATE_DIR = path.resolve(__dirname, "../docs/reference/templates");
+const FALLBACK_TEMPLATE_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../docs/reference/templates",
+);
 
 let cachedTemplateDir: string | undefined;
 let resolvingTemplateDir: Promise<string> | undefined;
@@ -36,7 +33,6 @@ export async function resolveWorkspaceTemplateDir(opts?: {
       packageRoot ? path.join(packageRoot, "docs", "reference", "templates") : null,
       cwd ? path.resolve(cwd, "docs", "reference", "templates") : null,
       FALLBACK_TEMPLATE_DIR,
-      DIST_FALLBACK_TEMPLATE_DIR,
     ].filter(Boolean) as string[];
 
     for (const candidate of candidates) {

@@ -96,35 +96,6 @@ describe("resolveEffectiveEnableState", () => {
     });
   }
 
-  it("enables workspace-editor by default for bundled plugins", () => {
-    const normalized = normalizePluginsConfig({ enabled: true });
-    const state = resolveEffectiveEnableState({
-      id: "workspace-editor",
-      origin: "bundled",
-      config: normalized,
-      rootConfig: {},
-    });
-    expect(state).toEqual({ enabled: true });
-  });
-
-  it("keeps explicit plugin-level disable authoritative for workspace-editor", () => {
-    const normalized = normalizePluginsConfig({
-      enabled: true,
-      entries: {
-        "workspace-editor": {
-          enabled: false,
-        },
-      },
-    });
-    const state = resolveEffectiveEnableState({
-      id: "workspace-editor",
-      origin: "bundled",
-      config: normalized,
-      rootConfig: {},
-    });
-    expect(state).toEqual({ enabled: false, reason: "disabled in config" });
-  });
-
   it("enables bundled channels when channels.<id>.enabled=true", () => {
     const state = resolveBundledTelegramState({
       enabled: true,
