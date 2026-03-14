@@ -45,7 +45,7 @@ export function renderExecTargetSection(props: PermissionsContentProps) {
                 @change=${() => {
                   if (props.dirty) {
                     const confirmed = confirm("有未保存的更改，切换目标将丢失这些更改。是否继续？");
-                    if (!confirmed) return;
+                    if (!confirmed) {return;}
                   }
                   props.onExecTargetChange("gateway", null);
                 }}
@@ -63,7 +63,7 @@ export function renderExecTargetSection(props: PermissionsContentProps) {
                 @change=${() => {
                   if (props.dirty) {
                     const confirmed = confirm("有未保存的更改，切换目标将丢失这些更改。是否继续？");
-                    if (!confirmed) return;
+                    if (!confirmed) {return;}
                   }
                   const firstNode = props.execTargetNodes[0]?.id ?? null;
                   props.onExecTargetChange("node", firstNode);
@@ -540,7 +540,7 @@ function renderAllowlistSection(
   form: ExecApprovalsFile | null,
   selectedScope: string,
 ) {
-  const agent = (form?.agents ?? {})[selectedScope] as ExecApprovalsAgent | undefined;
+  const agent = (form?.agents ?? {})[selectedScope];
   const allowlist = Array.isArray(agent?.allowlist) ? agent.allowlist : [];
 
   return html`

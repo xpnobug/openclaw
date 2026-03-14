@@ -120,7 +120,7 @@ export function renderScheduleFields(props: CronContentProps) {
  * Render create/edit job modal
  */
 export function renderCreateModal(props: CronContentProps) {
-  if (!props.showCreateModal) return nothing;
+  if (!props.showCreateModal) {return nothing;}
 
   const isEditMode = !!props.editJobId;
   const form = props.form ?? DEFAULT_FORM;

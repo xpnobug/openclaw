@@ -18,12 +18,12 @@ export function renderHeadersEditor(
   const entries = Object.entries(headers ?? {});
 
   const handleAddHeader = () => {
-    const newHeaders = { ...(headers ?? {}), "": "" };
+    const newHeaders = { ...headers, "": "" };
     props.onProviderUpdate(providerKey, "headers", newHeaders);
   };
 
   const handleRemoveHeader = (key: string) => {
-    const newHeaders = { ...(headers ?? {}) };
+    const newHeaders = { ...headers };
     delete newHeaders[key];
     props.onProviderUpdate(
       providerKey,
@@ -36,7 +36,7 @@ export function renderHeadersEditor(
     const newHeaders: Record<string, string> = {};
     for (const [k, v] of Object.entries(headers ?? {})) {
       if (k === oldKey) {
-        if (newKey) newHeaders[newKey] = value;
+        if (newKey) {newHeaders[newKey] = value;}
       } else {
         newHeaders[k] = v;
       }

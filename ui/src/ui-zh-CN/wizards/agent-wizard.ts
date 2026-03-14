@@ -306,7 +306,7 @@ export class AgentWizard {
       if (!result.valid) {
         const errors: Record<string, string[]> = {};
         result.errors.forEach((e) => {
-          if (!errors[e.path]) errors[e.path] = [];
+          if (!errors[e.path]) {errors[e.path] = [];}
           errors[e.path].push(e.message);
         });
         this.state = { ...this.state, errors };

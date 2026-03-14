@@ -12,7 +12,7 @@ import type {
 
 /** 获取嵌套路径的值 */
 function getPath(obj: Record<string, unknown>, path: string): unknown {
-  return path.split(".").reduce((o, k) => (o as Record<string, unknown>)?.[k], obj);
+  return path.split(".").reduce((o, k) => (o)?.[k], obj);
 }
 
 /** 运行单个规则 */
@@ -22,7 +22,7 @@ function runRule<T>(
   path: string,
   context?: ValidationContext,
 ): ValidationError | ValidationWarning | null {
-  if (rule.validate(value, context)) return null;
+  if (rule.validate(value, context)) {return null;}
 
   const message = typeof rule.message === "function" ? rule.message(value) : rule.message;
   const base = { path, code: rule.code, message };
@@ -62,8 +62,8 @@ function validateObject(
     for (const rule of ruleList) {
       const result = runRule(rule, value, path, context);
       if (result) {
-        if ("value" in result) errors.push(result as ValidationError);
-        else warnings.push(result as ValidationWarning);
+        if ("value" in result) {errors.push(result);}
+        else {warnings.push(result as ValidationWarning);}
       }
     }
   }
@@ -109,7 +109,7 @@ export class ConfigValidator {
       const result = this.validateAgent(agent, agentIds);
       errors.push(...result.errors.map((e) => ({ ...e, path: `agents.${i}.${e.path}` })));
       warnings.push(...result.warnings.map((w) => ({ ...w, path: `agents.${i}.${w.path}` })));
-      if (agent.id) agentIds.push(agent.id as string);
+      if (agent.id) {agentIds.push(agent.id as string);}
     });
 
     // 验证 channels

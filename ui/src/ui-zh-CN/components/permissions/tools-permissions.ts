@@ -32,7 +32,7 @@ export function renderToolsPermissionsSection(props: PermissionsContentProps) {
   const profileProps = {
     profileValue: isGlobal
       ? currentConfig.profile
-      : ((currentConfig.profile ?? "__default__") as ToolProfileId | "__default__"),
+      : ((currentConfig.profile ?? "__default__")),
     isGlobal,
     globalProfile: globalConfig.profile,
     saving: props.saving,

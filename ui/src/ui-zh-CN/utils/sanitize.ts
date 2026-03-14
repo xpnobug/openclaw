@@ -11,7 +11,7 @@
  * @returns 数字或 undefined
  */
 export function toNumberOrUndefined(value: unknown): number | undefined {
-  if (value === undefined || value === null || value === "") return undefined;
+  if (value === undefined || value === null || value === "") {return undefined;}
   const num = typeof value === "number" ? value : Number(value);
   return Number.isFinite(num) ? num : undefined;
 }
@@ -36,7 +36,7 @@ export function sanitizeCompat(
 
   for (const [key, value] of Object.entries(compat)) {
     // 跳过空字符串和 undefined
-    if (value === "" || value === undefined || value === null) continue;
+    if (value === "" || value === undefined || value === null) {continue;}
 
     // 特殊处理 maxTokensField - 必须是有效的枚举值
     if (key === "maxTokensField") {
@@ -67,13 +67,13 @@ export function sanitizeCompat(
 export function sanitizeCost(
   cost: Record<string, unknown> | undefined,
 ): { input: number; output: number; cacheRead?: number; cacheWrite?: number } | undefined {
-  if (!cost) return undefined;
+  if (!cost) {return undefined;}
 
   const input = toNumberOrUndefined(cost.input);
   const output = toNumberOrUndefined(cost.output);
 
   // 如果 input 和 output 都无效，返回 undefined
-  if (input === undefined && output === undefined) return undefined;
+  if (input === undefined && output === undefined) {return undefined;}
 
   return {
     input: input ?? 0,
@@ -103,7 +103,7 @@ export function sanitizeEmptyObject<T extends Record<string, unknown>>(obj: T): 
  * @returns 清理后的数组或 undefined
  */
 export function sanitizeStringArray(arr: unknown[] | undefined): string[] | undefined {
-  if (!arr || !Array.isArray(arr)) return undefined;
+  if (!arr || !Array.isArray(arr)) {return undefined;}
   const filtered = arr.filter((v) => typeof v === "string" && v.trim() !== "") as string[];
   return filtered.length > 0 ? filtered : undefined;
 }

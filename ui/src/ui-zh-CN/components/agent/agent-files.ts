@@ -59,7 +59,7 @@ export type AgentFilesProps = {
  * Convert AgentsFilesListResult to WorkspaceFileInfo[]
  */
 function convertToWorkspaceFiles(filesList: AgentsFilesListResult | null): WorkspaceFileInfo[] {
-  if (!filesList?.files) return [];
+  if (!filesList?.files) {return [];}
 
   return filesList.files.map((file) => ({
     name: file.name,

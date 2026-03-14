@@ -12,7 +12,7 @@ import type { ProvidersContentProps } from "./types";
  * Render add provider modal
  */
 export function renderAddProviderModal(props: ProvidersContentProps) {
-  if (!props.showAddModal) return nothing;
+  if (!props.showAddModal) {return nothing;}
 
   const form = props.addForm ?? DEFAULT_PROVIDER_FORM;
   const onFormChange = props.onAddFormChange ?? (() => {});
