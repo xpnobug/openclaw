@@ -10,17 +10,11 @@ export function updateSkillsFilter(state: SkillsConfigState, filter: string) {
   state.skillsConfigFilter = filter;
 }
 
-export function updateSkillsSourceFilter(
-  state: SkillsConfigState,
-  source: SkillSourceFilter,
-) {
+export function updateSkillsSourceFilter(state: SkillsConfigState, source: SkillSourceFilter) {
   state.skillsConfigSourceFilter = source;
 }
 
-export function updateSkillsStatusFilter(
-  state: SkillsConfigState,
-  status: SkillStatusFilter,
-) {
+export function updateSkillsStatusFilter(state: SkillsConfigState, status: SkillStatusFilter) {
   state.skillsConfigStatusFilter = status;
 }
 
@@ -41,11 +35,7 @@ export function selectSkill(state: SkillsConfigState, skillKey: string | null) {
 
 // ─── 编辑状态管理 / Edit state management ───────────────────────────────────
 
-export function updateSkillApiKeyEdit(
-  state: SkillsConfigState,
-  skillKey: string,
-  apiKey: string,
-) {
+export function updateSkillApiKeyEdit(state: SkillsConfigState, skillKey: string, apiKey: string) {
   const edits = { ...state.skillsConfigEdits };
   if (!edits[skillKey]) edits[skillKey] = {};
   edits[skillKey].apiKey = apiKey;
@@ -78,11 +68,7 @@ export function updateSkillEnv(
   state.skillsConfigEdits = edits;
 }
 
-export function removeSkillEnv(
-  state: SkillsConfigState,
-  skillKey: string,
-  envKey: string,
-) {
+export function removeSkillEnv(state: SkillsConfigState, skillKey: string, envKey: string) {
   const edits = { ...state.skillsConfigEdits };
   if (edits[skillKey]?.env) {
     delete edits[skillKey].env![envKey];
@@ -113,10 +99,7 @@ export function updateSkillConfig(
 
 // ─── 白名单管理 / Allowlist management ──────────────────────────────────────
 
-export function setAllowlistMode(
-  state: SkillsConfigState,
-  mode: "all" | "whitelist",
-) {
+export function setAllowlistMode(state: SkillsConfigState, mode: "all" | "whitelist") {
   state.skillsConfigAllowlistMode = mode;
 
   // 如果切换到白名单模式，初始化草稿（如果为空）
@@ -126,11 +109,7 @@ export function setAllowlistMode(
   }
 }
 
-export function toggleAllowlistEntry(
-  state: SkillsConfigState,
-  skillKey: string,
-  inList: boolean,
-) {
+export function toggleAllowlistEntry(state: SkillsConfigState, skillKey: string, inList: boolean) {
   const draft = new Set(state.skillsConfigAllowlistDraft);
   if (inList) {
     draft.add(skillKey);

@@ -3,11 +3,13 @@
 ## 当前实现分析
 
 ### 文件位置
+
 - 组件: `components/agent/agent-sidebar.ts`
 - 样式: `styles/agents-config.css` (第 120-390 行)
 - 类型: `AgentSidebarProps` (第 33-47 行)
 
 ### 现有功能
+
 - Agent 列表展示 (名称、ID、emoji 头像)
 - 默认 Agent 标记
 - 设为默认操作
@@ -51,13 +53,22 @@ function renderStatusDot(status: AgentStatus) {
   border: 2px solid var(--bg-accent);
 }
 
-.agents-sidebar__status-indicator--online { background: var(--ok); }
-.agents-sidebar__status-indicator--offline { background: var(--muted); }
-.agents-sidebar__status-indicator--error { background: var(--danger); }
-.agents-sidebar__status-indicator--idle { background: var(--warning); }
+.agents-sidebar__status-indicator--online {
+  background: var(--ok);
+}
+.agents-sidebar__status-indicator--offline {
+  background: var(--muted);
+}
+.agents-sidebar__status-indicator--error {
+  background: var(--danger);
+}
+.agents-sidebar__status-indicator--idle {
+  background: var(--warning);
+}
 ```
 
 **Props 变更**:
+
 ```typescript
 type AgentSidebarProps = {
   // ... existing
@@ -95,6 +106,7 @@ function renderAgentActions(agentId: string, isDefault: boolean) {
 ```
 
 **交互**:
+
 - 点击三点图标显示菜单
 - 菜单外点击关闭
 - 删除操作需二次确认
@@ -127,11 +139,13 @@ function renderSearchBar(props: AgentSidebarProps) {
         .value=${props.searchQuery ?? ""}
         @input=${(e) => props.onSearchChange?.(e.target.value)}
       />
-      ${props.searchQuery ? html`
-        <button class="agents-sidebar__search-clear" @click=${() => props.onSearchChange?.("")}>
-          ×
-        </button>
-      ` : nothing}
+      ${props.searchQuery
+        ? html`
+            <button class="agents-sidebar__search-clear" @click=${() => props.onSearchChange?.("")}>
+              ×
+            </button>
+          `
+        : nothing}
     </div>
   `;
 }
@@ -255,19 +269,21 @@ function renderAgentGroup(group: AgentGroup, agents: Agent[], props: AgentSideba
 
 ## 实现优先级
 
-| 优先级 | 功能 | 复杂度 | 影响 |
-|--------|------|--------|------|
-| P0 | 状态指示器 | 低 | 高 |
-| P1 | 搜索功能 | 中 | 高 |
-| P2 | 快捷操作 | 中 | 中 |
-| P3 | 分组显示 | 高 | 中 |
+| 优先级 | 功能       | 复杂度 | 影响 |
+| ------ | ---------- | ------ | ---- |
+| P0     | 状态指示器 | 低     | 高   |
+| P1     | 搜索功能   | 中     | 高   |
+| P2     | 快捷操作   | 中     | 中   |
+| P3     | 分组显示   | 高     | 中   |
 
 ---
 
 ## 数据依赖
 
 ### 状态指示器
+
 需要后端提供 Agent 运行状态 API:
+
 ```typescript
 // 可能的 API 响应
 type AgentStatusResponse = {
@@ -279,7 +295,9 @@ type AgentStatusResponse = {
 ```
 
 ### 分组显示
+
 需要配置存储:
+
 ```typescript
 // 用户自定义分组配置
 type AgentGroupsConfig = {

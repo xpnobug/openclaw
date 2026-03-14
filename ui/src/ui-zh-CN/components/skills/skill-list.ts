@@ -41,13 +41,17 @@ export function renderSkillTabs(groups: SkillGroup[], props: SkillsContentProps)
 
       <!-- 标签页内容 -->
       <div class="skills-tabs__content">
-        ${activeGroup
-          ? html`
+        ${
+          activeGroup
+            ? html`
               <div class="skills-cards-grid">
                 ${activeGroup.skills.map((skill) => renderSkillCard(skill, props))}
               </div>
             `
-          : html`<div class="skills-empty">没有技能</div>`}
+            : html`
+                <div class="skills-empty">没有技能</div>
+              `
+        }
       </div>
     </div>
   `;
@@ -72,7 +76,10 @@ function getGroupShortLabel(groupId: string): string {
 /**
  * 获取来源的简短标签
  */
-function getSourceLabel(source: string): { label: string; type: "bundled" | "managed" | "workspace" } {
+function getSourceLabel(source: string): {
+  label: string;
+  type: "bundled" | "managed" | "workspace";
+} {
   switch (source) {
     case "openclaw-bundled":
       return { label: "内置", type: "bundled" };
@@ -125,13 +132,15 @@ export function renderSkillCard(skill: SkillStatusEntry, props: SkillsContentPro
       <p class="skill-card__desc">${highlightText(clampText(skill.description, 80), props.filter)}</p>
 
       <!-- 标签 -->
-      ${tags.length > 0
-        ? html`
+      ${
+        tags.length > 0
+          ? html`
             <div class="skill-card__tags">
               ${tags.slice(0, 4).map((tag) => html`<span class="skill-card__tag">${tag}</span>`)}
             </div>
           `
-        : nothing}
+          : nothing
+      }
 
       <!-- 底部统计 -->
       <div class="skill-card__footer">
@@ -139,14 +148,21 @@ export function renderSkillCard(skill: SkillStatusEntry, props: SkillsContentPro
           <span class="skill-card__stat skill-card__stat--${skill.eligible ? "ok" : "warn"}" title="状态">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"></circle>
-              ${skill.eligible
-                ? html`<path d="M9 12l2 2 4-4"></path>`
-                : html`<path d="M15 9l-6 6M9 9l6 6"></path>`}
+              ${
+                skill.eligible
+                  ? html`
+                      <path d="M9 12l2 2 4-4"></path>
+                    `
+                  : html`
+                      <path d="M15 9l-6 6M9 9l6 6"></path>
+                    `
+              }
             </svg>
             ${skill.eligible ? "可用" : "受阻"}
           </span>
-          ${skill.requirements?.bins?.length
-            ? html`
+          ${
+            skill.requirements?.bins?.length
+              ? html`
                 <span class="skill-card__stat" title="依赖">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -154,7 +170,8 @@ export function renderSkillCard(skill: SkillStatusEntry, props: SkillsContentPro
                   ${skill.requirements.bins.length}
                 </span>
               `
-            : nothing}
+              : nothing
+          }
         </div>
         <!-- 展开详情按钮 -->
         <button
@@ -213,13 +230,15 @@ export function renderSkillGroup(group: SkillGroup, props: SkillsContentProps) {
         </span>
         <span class="skills-group__label">${group.label}</span>
       </div>
-      ${isExpanded
-        ? html`
+      ${
+        isExpanded
+          ? html`
             <div class="skills-group__body">
               ${group.skills.map((skill) => renderSkillItem(skill, props))}
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -260,8 +279,9 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
           <span class="skills-item__name">
             ${skill.emoji ? `${skill.emoji} ` : ""}${highlightText(skill.name, props.filter)}
           </span>
-          ${isBundled && props.allowlistMode === "whitelist"
-            ? html`
+          ${
+            isBundled && props.allowlistMode === "whitelist"
+              ? html`
                 <label class="skills-allowlist-toggle" title="加入白名单">
                   <input
                     type="checkbox"
@@ -274,7 +294,8 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
                   <span class="skills-allowlist-toggle__icon">${inAllowlist ? "✓" : ""}</span>
                 </label>
               `
-            : nothing}
+              : nothing
+          }
           <!-- 展开/折叠按钮 -->
           <button
             class="mc-icon-btn skills-item__expand-btn"
@@ -292,7 +313,13 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
           <span class="skills-chip ${skill.eligible ? "skills-chip--ok" : "skills-chip--warn"}">
             ${skill.eligible ? "可用" : "受阻"}
           </span>
-          ${skill.disabled ? html`<span class="skills-chip skills-chip--warn">已禁用</span>` : nothing}
+          ${
+            skill.disabled
+              ? html`
+                  <span class="skills-chip skills-chip--warn">已禁用</span>
+                `
+              : nothing
+          }
         </div>
         ${missing.length > 0 ? html`<div class="skills-item__missing">缺失: ${missing.join(", ")}</div>` : nothing}
         ${reasons.length > 0 ? html`<div class="skills-item__reasons">原因: ${reasons.join(", ")}</div>` : nothing}
@@ -305,8 +332,9 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
         </button>
 
         <!-- 安装按钮 -->
-        ${canInstall
-          ? html`
+        ${
+          canInstall
+            ? html`
               <button
                 class="mc-btn mc-btn--sm"
                 ?disabled=${isBusy}
@@ -315,16 +343,22 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
                 ${isBusy ? "安装中..." : skill.install[0].label}
               </button>
             `
-          : nothing}
+            : nothing
+        }
 
         <!-- 编辑按钮 -->
-        ${isEditable
-          ? html`
+        ${
+          isEditable
+            ? html`
               <button
                 class="mc-btn mc-btn--sm"
                 ?disabled=${isBusy}
                 @click=${() =>
-                  props.onEditorOpen(skill.skillKey, skill.name, toShortSource(skill.source) as EditableSkillSource)}
+                  props.onEditorOpen(
+                    skill.skillKey,
+                    skill.name,
+                    toShortSource(skill.source) as EditableSkillSource,
+                  )}
               >
                 编辑
               </button>
@@ -332,12 +366,17 @@ export function renderSkillItem(skill: SkillStatusEntry, props: SkillsContentPro
                 class="mc-btn mc-btn--sm mc-btn--danger"
                 ?disabled=${isBusy}
                 @click=${() =>
-                  props.onDeleteOpen(skill.skillKey, skill.name, toShortSource(skill.source) as EditableSkillSource)}
+                  props.onDeleteOpen(
+                    skill.skillKey,
+                    skill.name,
+                    toShortSource(skill.source) as EditableSkillSource,
+                  )}
               >
                 删除
               </button>
             `
-          : nothing}
+            : nothing
+        }
 
         <!-- 消息提示 -->
         ${message ? renderSkillMessage(message) : nothing}

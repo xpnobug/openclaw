@@ -41,28 +41,31 @@
 
 ### 核心技术
 
-| 技术 | 版本 | 用途 | 选型理由 |
-|------|------|------|----------|
-| **Lit** | 3.x | Web Components 框架 | 轻量、原生、性能好 |
-| **TypeScript** | 5.x | 类型系统 | 类型安全、开发体验好 |
-| **WebSocket** | - | 实时通信 | 双向通信、实时更新 |
-| **CSS** | - | 样式 | 原生 CSS，无预处理器 |
+| 技术           | 版本 | 用途                | 选型理由             |
+| -------------- | ---- | ------------------- | -------------------- |
+| **Lit**        | 3.x  | Web Components 框架 | 轻量、原生、性能好   |
+| **TypeScript** | 5.x  | 类型系统            | 类型安全、开发体验好 |
+| **WebSocket**  | -    | 实时通信            | 双向通信、实时更新   |
+| **CSS**        | -    | 样式                | 原生 CSS，无预处理器 |
 
 ### 依赖分析
 
 **零外部依赖**:
+
 - ✅ 不依赖 React/Vue/Angular
 - ✅ 不依赖 UI 组件库
 - ✅ 不依赖状态管理库
 - ✅ 不依赖路由库
 
 **优势**:
+
 - 包体积小（~2.8MB）
 - 加载速度快
 - 维护成本低
 - 升级风险小
 
 **劣势**:
+
 - 需要自己实现通用组件
 - 缺少成熟的状态管理方案
 - 缺少路由管理
@@ -145,14 +148,14 @@
 
 ### 层级职责
 
-| 层级 | 职责 | 文件数 | 代码量 |
-|------|------|--------|--------|
-| **入口层** | Web Component 定义、生命周期 | 1 | 909 行 |
-| **视图层** | 页面布局、路由、面板切换 | 3 | ~1,000 行 |
-| **组件层** | UI 组件、交互逻辑 | 60+ | ~10,000 行 |
-| **控制器层** | 业务逻辑、数据处理 | 12 | ~5,000 行 |
-| **类型层** | TypeScript 类型定义 | 5 | ~1,500 行 |
-| **工具层** | 通用工具函数 | 6 | ~500 行 |
+| 层级         | 职责                         | 文件数 | 代码量     |
+| ------------ | ---------------------------- | ------ | ---------- |
+| **入口层**   | Web Component 定义、生命周期 | 1      | 909 行     |
+| **视图层**   | 页面布局、路由、面板切换     | 3      | ~1,000 行  |
+| **组件层**   | UI 组件、交互逻辑            | 60+    | ~10,000 行 |
+| **控制器层** | 业务逻辑、数据处理           | 12     | ~5,000 行  |
+| **类型层**   | TypeScript 类型定义          | 5      | ~1,500 行  |
+| **工具层**   | 通用工具函数                 | 6      | ~500 行    |
 
 ---
 
@@ -176,6 +179,7 @@
 ### 典型数据流示例
 
 **保存配置**:
+
 ```typescript
 // 1. 用户点击保存按钮
 handleSave() {
@@ -204,38 +208,39 @@ async function saveModelConfig(state: ModelConfigState) {
 ### 状态结构
 
 **核心状态** (`ModelConfigState`):
+
 ```typescript
 interface ModelConfigState {
   // 连接状态
   client: GatewayBrowserClient | null;
   connected: boolean;
-  
+
   // 配置状态
   configForm: Record<string, unknown> | null;
   configLoading: boolean;
   configSaving: boolean;
   configDirty: boolean;
-  
+
   // Agent 状态
   selectedAgentId: string | null;
   agentsList: AgentsListResult | null;
   agentIdentity: AgentIdentityResult | null;
-  
+
   // 会话状态
   agentSessionsResult: SessionsListResult | null;
   agentSessionsLoading: boolean;
   agentSessionsError: string | null;
-  
+
   // 技能状态
   skillsReport: SkillsStatusReport | null;
   skillsLoading: boolean;
   skillsError: string | null;
-  
+
   // 定时任务状态
   cronJobs: CronJob[];
   cronLoading: boolean;
   cronError: string | null;
-  
+
   // ... 更多状态
 }
 ```
@@ -243,6 +248,7 @@ interface ModelConfigState {
 ### 状态管理方式
 
 **当前方案**: **手动状态管理**
+
 - ✅ 简单直接，无学习成本
 - ✅ 性能可控，无额外开销
 - ❌ 缺少时间旅行调试
@@ -250,6 +256,7 @@ interface ModelConfigState {
 - ❌ 缺少撤销/重做
 
 **问题**:
+
 1. **状态分散**: 各个控制器独立管理状态，缺少统一管理
 2. **无持久化**: 刷新页面丢失所有修改（刚需：自动保存）
 3. **无历史记录**: 无法撤销/重做（刚需：撤销/重做）
@@ -264,6 +271,7 @@ interface ModelConfigState {
 **协议**: 自定义 JSON-RPC over WebSocket
 
 **请求格式**:
+
 ```typescript
 {
   method: "config.apply",
@@ -272,6 +280,7 @@ interface ModelConfigState {
 ```
 
 **响应格式**:
+
 ```typescript
 {
   ok: true,
@@ -281,24 +290,26 @@ interface ModelConfigState {
 
 ### RPC 调用统计
 
-| 模块 | RPC 调用数 | 主要方法 |
-|------|-----------|----------|
-| 配置管理 | 10+ | `config.get`, `config.apply`, `config.patch` |
-| 会话管理 | 5+ | `sessions.list`, `sessions.patch`, `sessions.delete` |
-| 技能管理 | 8+ | `skills.status`, `skills.install`, `skills.update` |
-| 定时任务 | 6+ | `cron.list`, `cron.add`, `cron.update`, `cron.delete` |
-| Agent 管理 | 5+ | `agents.list`, `agents.identity`, `agents.files` |
+| 模块       | RPC 调用数 | 主要方法                                              |
+| ---------- | ---------- | ----------------------------------------------------- |
+| 配置管理   | 10+        | `config.get`, `config.apply`, `config.patch`          |
+| 会话管理   | 5+         | `sessions.list`, `sessions.patch`, `sessions.delete`  |
+| 技能管理   | 8+         | `skills.status`, `skills.install`, `skills.update`    |
+| 定时任务   | 6+         | `cron.list`, `cron.add`, `cron.update`, `cron.delete` |
+| Agent 管理 | 5+         | `agents.list`, `agents.identity`, `agents.files`      |
 
 **总计**: 55+ RPC 调用点
 
 ### 通信特点
 
 **优势**:
+
 - ✅ 实时双向通信
 - ✅ 自动重连机制
 - ✅ 错误处理完善
 
 **问题**:
+
 - ❌ 无请求缓存（重复请求浪费资源）
 - ❌ 无请求去重（并发请求可能冲突）
 - ❌ 无离线支持（断网无法使用）
@@ -310,24 +321,26 @@ interface ModelConfigState {
 
 ### 代码规模
 
-| 指标 | 数值 | 评价 |
-|------|------|------|
-| 总代码量 | 24,568 行 | 🟡 中等 |
-| 文件数量 | 131 个 | 🟢 合理 |
-| 平均文件大小 | 187 行 | 🟢 优秀 |
-| 最大文件 | 1,408 行 | 🟡 可接受 |
-| 样式文件 | 7,438 行 | 🔴 过大 |
+| 指标         | 数值      | 评价      |
+| ------------ | --------- | --------- |
+| 总代码量     | 24,568 行 | 🟡 中等   |
+| 文件数量     | 131 个    | 🟢 合理   |
+| 平均文件大小 | 187 行    | 🟢 优秀   |
+| 最大文件     | 1,408 行  | 🟡 可接受 |
+| 样式文件     | 7,438 行  | 🔴 过大   |
 
 ### 性能瓶颈
 
 #### 1. 样式文件过大 🔴 P0
 
 **问题**:
+
 - `model-config.css` 7,438 行，单文件过大
 - 首次加载需要解析所有样式
 - 影响首屏渲染速度
 
 **影响**:
+
 - 首屏加载时间 +200ms
 - 开发体验差（查找困难）
 
@@ -336,11 +349,13 @@ interface ModelConfigState {
 #### 2. 大组件未拆分 🟡 P1
 
 **问题**:
+
 - `workspace-content.ts` (661行)
 - `agent-overview.ts` (661行)
 - 单个组件过大，难以维护
 
 **影响**:
+
 - 代码可读性差
 - 修改风险高
 - 测试困难
@@ -350,10 +365,12 @@ interface ModelConfigState {
 #### 3. 无虚拟滚动 🟡 P2
 
 **问题**:
+
 - 会话列表、技能列表、Agent 列表
 - 数据量大时（>100 项）性能下降
 
 **影响**:
+
 - 渲染时间 +500ms（100 项）
 - 滚动卡顿
 
@@ -362,10 +379,12 @@ interface ModelConfigState {
 #### 4. 无请求缓存 🟡 P2
 
 **问题**:
+
 - 重复请求相同数据
 - 切换面板时重新加载
 
 **影响**:
+
 - 网络请求增加 30%
 - 用户等待时间增加
 
@@ -449,6 +468,7 @@ interface ModelConfigState {
 **方案**: 引入轻量状态管理库（如 `zustand` 或 `jotai`）
 
 **收益**:
+
 - ✅ 时间旅行调试
 - ✅ 状态持久化
 - ✅ 撤销/重做
@@ -464,16 +484,16 @@ interface ModelConfigState {
 **方案**: 实现简单的内存缓存
 
 ```typescript
-const cache = new Map<string, { data: any, timestamp: number }>();
+const cache = new Map<string, { data: any; timestamp: number }>();
 
 async function cachedRequest(method: string, params: any, ttl = 60000) {
   const key = `${method}:${JSON.stringify(params)}`;
   const cached = cache.get(key);
-  
+
   if (cached && Date.now() - cached.timestamp < ttl) {
     return cached.data;
   }
-  
+
   const data = await client.request(method, params);
   cache.set(key, { data, timestamp: Date.now() });
   return data;
@@ -481,6 +501,7 @@ async function cachedRequest(method: string, params: any, ttl = 60000) {
 ```
 
 **收益**:
+
 - ✅ 减少 30% 网络请求
 - ✅ 提升响应速度
 - ✅ 降低服务器压力
@@ -495,6 +516,7 @@ async function cachedRequest(method: string, params: any, ttl = 60000) {
 **方案**: 引入 `lit-virtualizer`
 
 **收益**:
+
 - ✅ 支持 1000+ 项列表
 - ✅ 滚动流畅
 - ✅ 内存占用低
@@ -516,10 +538,12 @@ async function cachedRequest(method: string, params: any, ttl = 60000) {
 **方案**: 提取到 `components/common/`
 
 **已提取**:
+
 - ✅ `form-field.ts` (表单字段)
 - ✅ `ui-icons.ts` (图标)
 
 **待提取**:
+
 - ⏳ 按钮组件
 - ⏳ 模态框组件
 - ⏳ 列表组件
@@ -535,20 +559,20 @@ class ErrorHandler {
   handle(error: Error, context: string) {
     // 1. 记录日志
     console.error(`[${context}]`, error);
-    
+
     // 2. 显示用户友好提示
     showToast(this.getUserMessage(error));
-    
+
     // 3. 上报错误（可选）
     // reportError(error, context);
   }
-  
+
   getUserMessage(error: Error): string {
     // 根据错误类型返回友好提示
-    if (error.message.includes('network')) {
-      return '网络连接失败，请检查网络';
+    if (error.message.includes("network")) {
+      return "网络连接失败，请检查网络";
     }
-    return '操作失败，请重试';
+    return "操作失败，请重试";
   }
 }
 ```
@@ -557,25 +581,27 @@ class ErrorHandler {
 
 ## 📊 架构评分
 
-| 维度 | 评分 | 说明 |
-|------|------|------|
-| **模块化** | ⭐⭐⭐⭐⭐ | 分层清晰，职责明确 |
-| **可维护性** | ⭐⭐⭐⭐ | 67% 文件 <200行，仍有优化空间 |
-| **可扩展性** | ⭐⭐⭐⭐ | 扩展机制完善 |
-| **性能** | ⭐⭐⭐ | 基本够用，有优化空间 |
-| **类型安全** | ⭐⭐⭐⭐⭐ | 严格 TypeScript |
-| **测试覆盖** | ⭐ | 无单元测试 |
-| **文档完善** | ⭐⭐ | 缺少组件文档 |
+| 维度         | 评分       | 说明                          |
+| ------------ | ---------- | ----------------------------- |
+| **模块化**   | ⭐⭐⭐⭐⭐ | 分层清晰，职责明确            |
+| **可维护性** | ⭐⭐⭐⭐   | 67% 文件 <200行，仍有优化空间 |
+| **可扩展性** | ⭐⭐⭐⭐   | 扩展机制完善                  |
+| **性能**     | ⭐⭐⭐     | 基本够用，有优化空间          |
+| **类型安全** | ⭐⭐⭐⭐⭐ | 严格 TypeScript               |
+| **测试覆盖** | ⭐         | 无单元测试                    |
+| **文档完善** | ⭐⭐       | 缺少组件文档                  |
 
 **总体评价**: ⭐⭐⭐⭐ (4/5)
 
 **优势**:
+
 - ✅ 架构清晰，分层合理
 - ✅ 类型安全，开发体验好
 - ✅ 零外部依赖，维护成本低
 - ✅ 模块化程度高
 
 **不足**:
+
 - ❌ 缺少自动保存、撤销/重做等基础功能
 - ❌ 样式文件过大，影响开发体验
 - ❌ 缺少测试覆盖

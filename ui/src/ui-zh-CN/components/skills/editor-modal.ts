@@ -61,17 +61,27 @@ export function renderEditorModal(props: SkillsContentProps) {
           </div>
           <div class="skills-editor__info">
             <span class="skills-editor__source">${editorState.source}</span>
-            ${hasChanges ? html`<span class="skills-editor__dirty">未保存</span>` : nothing}
+            ${
+              hasChanges
+                ? html`
+                    <span class="skills-editor__dirty">未保存</span>
+                  `
+                : nothing
+            }
           </div>
         </div>
 
         <!-- 编辑器内容 -->
         <div class="skills-modal__body skills-editor__body">
-          ${editorState.loading
-            ? html`<div class="skills-editor__loading">加载中...</div>`
-            : editorState.error
-              ? html`<div class="skills-editor__error">${editorState.error}</div>`
-              : renderEditorContent(props)}
+          ${
+            editorState.loading
+              ? html`
+                  <div class="skills-editor__loading">加载中...</div>
+                `
+              : editorState.error
+                ? html`<div class="skills-editor__error">${editorState.error}</div>`
+                : renderEditorContent(props)
+          }
         </div>
 
         <!-- 底部按钮 -->
@@ -166,7 +176,11 @@ export function renderMarkdownPreview(content: string) {
     } else if (line.startsWith("# ")) {
       elements.push(html`<h2 class="skills-preview__h2">${line.slice(2)}</h2>`);
     } else if (line.startsWith("---")) {
-      elements.push(html`<hr class="skills-preview__hr" />`);
+      elements.push(
+        html`
+          <hr class="skills-preview__hr" />
+        `,
+      );
     } else if (line.startsWith("- ")) {
       elements.push(html`<li class="skills-preview__li">${line.slice(2)}</li>`);
     } else if (line.trim()) {

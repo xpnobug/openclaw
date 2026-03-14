@@ -569,6 +569,12 @@ function resolveInboundContentType(
   if (messageType === 42) {
     return "card";
   }
+  if (messageType === 47) {
+    return "emoji";
+  }
+  if (messageType === 48) {
+    return "location";
+  }
   if (messageType === 51) {
     return "status";
   }
@@ -671,19 +677,39 @@ export async function sendTextViaApi(
     wxid: string;
     toWxid: string;
     text: string;
+    at?: string[];
+    /** 与 at 平行的昵称数组，用于在文本前缀 @昵称\u2005（Go 端协议要求）。 */
+    atNicknames?: string[];
   },
   requestFn: typeof request<Record<string, unknown>> = request,
 ): Promise<{ messageId?: string }> {
+  let content = params.text;
+
+  // 参考 Go 端 SendTextMessage：在文本前缀 @昵称\u2005（U+2005 四分之一空格）
+  if (params.at && params.at.length > 0 && params.atNicknames && params.atNicknames.length > 0) {
+    const mentionPrefix = params.atNicknames
+      .filter(Boolean)
+      .map((nick) => `@${nick}\u2005`)
+      .join(" ");
+    if (mentionPrefix) {
+      content = `${mentionPrefix}${content}`;
+    }
+  }
+
+  const body: Record<string, unknown> = {
+    Wxid: params.wxid,
+    ToWxid: params.toWxid,
+    Content: content,
+    Type: 1,
+  };
+  if (params.at && params.at.length > 0) {
+    body.At = params.at.join(",");
+  }
   const raw = await requestFn({
     options: params.options,
     method: "POST",
     endpoint: "/api/Msg/SendTxt",
-    body: {
-      Wxid: params.wxid,
-      ToWxid: params.toWxid,
-      Content: params.text,
-      Type: 1,
-    },
+    body,
   });
 
   const list = Array.isArray(raw.List) ? raw.List : [];
@@ -819,7 +845,7 @@ export async function sendQuoteTextViaApi(
   const storedMessage = params.messageStore?.lookup(replyMsgId) ?? null;
   const referType = storedMessage?.msgType ?? 1;
   const referContent = storedMessage?.rawContent ?? storedMessage?.body ?? replyBody;
-  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>${referType}</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(referContent)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><frsername></fromusername>`;
+  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>${referType}</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(referContent)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><fromusername></fromusername>`;
   const raw = await requestFn({
     options: params.options,
     method: "POST",
@@ -1245,6 +1271,597 @@ export async function enableAutoHeartbeat(params: {
   });
 }
 
+// ─── 语音消息发送 ───
+
+export async function sendVoiceViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    base64: string;
+    voiceTime: number;
+    voiceType: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendVoice",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Base64: params.base64,
+      VoiceTime: params.voiceTime,
+      VoiceType: params.voiceType,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+// ─── 表情消息发送 ───
+
+export async function sendEmojiViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    md5: string;
+    totalLen: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendEmoji",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Md5: params.md5,
+      TotalLen: params.totalLen,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+// ─── 消息撤回 ───
+
+export async function revokeMessageViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    clientMsgId: string;
+    newMsgId: string;
+    createTime: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<void> {
+  await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/Revoke",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      ClientMsgId: params.clientMsgId,
+      NewMsgId: params.newMsgId,
+      CreateTime: params.createTime,
+    },
+  });
+}
+
+// ─── CDN 媒体转发 ───
+
+export async function sendCdnImageViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    content: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendCDNImg",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Content: params.content,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+export async function sendCdnVideoViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    content: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendCDNVideo",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Content: params.content,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+export async function sendCdnFileViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    content: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/SendCDNFile",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      Content: params.content,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+// ─── 入站媒体 XML 解析 ───
+
+export type WechatIpadParsedVoiceXml = {
+  voiceLength: number;
+  aesKey: string;
+  cdnVoiceUrl: string;
+  bufid: string;
+  fromUsername: string;
+  totalLen: number;
+};
+
+/** 解析语音消息 XML，提取 CDN 下载所需字段。 */
+export function parseVoiceXml(xml: string): WechatIpadParsedVoiceXml | null {
+  const voiceLength =
+    extractXmlNumericTag(xml, "voicelength") ??
+    Number(extractXmlAttr(xml, "voicemsg", "voicelength"));
+  const aesKey = extractXmlAttr(xml, "voicemsg", "aeskey") ?? extractXmlTagText(xml, "aeskey");
+  const cdnVoiceUrl =
+    extractXmlAttr(xml, "voicemsg", "cdnvoiceurl") ?? extractXmlTagText(xml, "cdnvoiceurl");
+  const bufid = extractXmlAttr(xml, "voicemsg", "bufid") ?? "";
+  const fromUsername = extractXmlAttr(xml, "voicemsg", "fromusername") ?? "";
+  const totalLenRaw = extractXmlAttr(xml, "voicemsg", "length") ?? extractXmlTagText(xml, "length");
+  const totalLen = totalLenRaw ? Number(totalLenRaw) : 0;
+  if (!aesKey || !cdnVoiceUrl) return null;
+  return {
+    voiceLength: Number.isFinite(voiceLength) ? voiceLength : 0,
+    aesKey,
+    cdnVoiceUrl,
+    bufid,
+    fromUsername,
+    totalLen: Number.isFinite(totalLen) ? totalLen : 0,
+  };
+}
+
+export type WechatIpadParsedVideoXml = {
+  cdnVideoUrl: string;
+  cdnThumbUrl: string;
+  aesKey: string;
+  length: number;
+  fromUsername: string;
+};
+
+/** 解析视频消息 XML，提取 CDN 下载所需字段。 */
+export function parseVideoXml(xml: string): WechatIpadParsedVideoXml | null {
+  const cdnVideoUrl =
+    extractXmlAttr(xml, "videomsg", "cdnvideourl") ?? extractXmlTagText(xml, "cdnvideourl");
+  const cdnThumbUrl =
+    extractXmlAttr(xml, "videomsg", "cdnthumburl") ?? extractXmlTagText(xml, "cdnthumburl");
+  const aesKey = extractXmlAttr(xml, "videomsg", "aeskey") ?? extractXmlTagText(xml, "aeskey");
+  const length =
+    extractXmlNumericTag(xml, "length") ?? Number(extractXmlAttr(xml, "videomsg", "length"));
+  const fromUsername = extractXmlAttr(xml, "videomsg", "fromusername") ?? "";
+  if (!cdnVideoUrl || !aesKey) return null;
+  return {
+    cdnVideoUrl,
+    cdnThumbUrl: cdnThumbUrl ?? "",
+    aesKey,
+    length: Number.isFinite(length) ? length : 0,
+    fromUsername,
+  };
+}
+
+export type WechatIpadParsedFileXml = {
+  title: string;
+  totalLen: number;
+  attachId: string;
+  cdnAttachUrl: string;
+  aesKey: string;
+  fileExt: string;
+};
+
+/** 解析文件消息 XML，提取文件信息和 CDN 下载所需字段。 */
+export function parseFileXml(xml: string): WechatIpadParsedFileXml | null {
+  const appmsgSection = extractXmlSection(xml, "appmsg") ?? xml;
+  const title = extractXmlTagText(appmsgSection, "title") ?? "";
+  const totalLen = extractXmlNumericTag(appmsgSection, "totallen") ?? 0;
+  const attachId =
+    extractXmlTagText(appmsgSection, "attachid") ?? extractXmlTagText(xml, "attachid");
+  const cdnAttachUrl =
+    extractXmlTagText(appmsgSection, "cdnattachurl") ?? extractXmlTagText(xml, "cdnattachurl");
+  const aesKey =
+    extractXmlTagText(appmsgSection, "encryver") ??
+    extractXmlTagText(appmsgSection, "aeskey") ??
+    extractXmlTagText(xml, "aeskey");
+  const fileExt = extractXmlTagText(appmsgSection, "fileext") ?? "";
+  if (!attachId && !cdnAttachUrl) return null;
+  return {
+    title,
+    totalLen: Number.isFinite(totalLen) ? totalLen : 0,
+    attachId: attachId ?? "",
+    cdnAttachUrl: cdnAttachUrl ?? "",
+    aesKey: aesKey ?? "",
+    fileExt,
+  };
+}
+
+export type WechatIpadParsedEmojiXml = {
+  md5: string;
+  totalLen: number;
+  cdnUrl: string;
+};
+
+/** 解析表情消息 XML（messageType=47），提取 md5/totalLen/cdnUrl。 */
+export function parseEmojiXml(xml: string): WechatIpadParsedEmojiXml | null {
+  const md5 = extractXmlAttr(xml, "emoji", "md5");
+  const totalLenRaw =
+    extractXmlAttr(xml, "emoji", "len") ?? extractXmlAttr(xml, "emoji", "totallen");
+  const cdnUrl = extractXmlAttr(xml, "emoji", "cdnurl") ?? extractXmlAttr(xml, "emoji", "thumburl");
+  if (!md5) return null;
+  const totalLen = totalLenRaw ? Number(totalLenRaw) : 0;
+  return {
+    md5,
+    totalLen: Number.isFinite(totalLen) ? totalLen : 0,
+    cdnUrl: cdnUrl ?? "",
+  };
+}
+
+export type WechatIpadParsedCardXml = {
+  nickname: string;
+  alias: string;
+  wxid: string;
+  bigHeadImgUrl: string;
+  smallHeadImgUrl: string;
+};
+
+/** 解析名片消息 XML（messageType=42），提取 nickname/alias/wxid。 */
+export function parseCardXml(xml: string): WechatIpadParsedCardXml | null {
+  const nickname =
+    extractXmlAttr(xml, "msg", "nickname") ?? extractXmlTagText(xml, "nickname") ?? "";
+  const alias = extractXmlAttr(xml, "msg", "alias") ?? extractXmlTagText(xml, "alias") ?? "";
+  const wxid = extractXmlAttr(xml, "msg", "username") ?? extractXmlTagText(xml, "username") ?? "";
+  if (!wxid && !nickname) return null;
+  return {
+    nickname,
+    alias,
+    wxid,
+    bigHeadImgUrl: extractXmlAttr(xml, "msg", "bigheadimgurl") ?? "",
+    smallHeadImgUrl: extractXmlAttr(xml, "msg", "smallheadimgurl") ?? "",
+  };
+}
+
+export type WechatIpadParsedLocationXml = {
+  x: number;
+  y: number;
+  label: string;
+  poiname: string;
+  scale: number;
+};
+
+/** 解析位置消息 XML（messageType=48），提取经纬度和地名。 */
+export function parseLocationXml(xml: string): WechatIpadParsedLocationXml | null {
+  const x = Number(extractXmlAttr(xml, "location", "x") ?? "");
+  const y = Number(extractXmlAttr(xml, "location", "y") ?? "");
+  const label = extractXmlAttr(xml, "location", "label") ?? "";
+  const poiname = extractXmlAttr(xml, "location", "poiname") ?? "";
+  const scale = Number(extractXmlAttr(xml, "location", "scale") ?? "14");
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  return { x, y, label, poiname, scale: Number.isFinite(scale) ? scale : 14 };
+}
+
+// ─── 入站语音/视频下载 ───
+
+/** 调用桥接服务 CDN 下载语音，如端点不存在则返回 null。 */
+export async function downloadVoiceViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    aesKey: string;
+    cdnVoiceUrl: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer; contentType: string; extension: string } | null> {
+  try {
+    const raw = await requestFn({
+      options: params.options,
+      method: "POST",
+      endpoint: "/api/Tools/CdnDownloadVoice",
+      body: {
+        Wxid: params.wxid,
+        FileAesKey: params.aesKey,
+        FileNo: params.cdnVoiceUrl,
+      },
+      timeoutMs: 30_000,
+    });
+
+    const base64 = readStringField(raw, ["Voice", "voice", "Data", "data"]);
+    if (!base64) return null;
+
+    const buffer = Buffer.from(base64, "base64");
+    return { buffer, contentType: "audio/silk", extension: ".silk" };
+  } catch {
+    // 端点不存在或下载失败，返回 null
+    return null;
+  }
+}
+
+/** 调用桥接服务 CDN 下载视频，如端点不存在则返回 null。 */
+export async function downloadVideoViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    aesKey: string;
+    cdnVideoUrl: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer; contentType: string; extension: string } | null> {
+  try {
+    const raw = await requestFn({
+      options: params.options,
+      method: "POST",
+      endpoint: "/api/Tools/CdnDownloadVideo",
+      body: {
+        Wxid: params.wxid,
+        FileAesKey: params.aesKey,
+        FileNo: params.cdnVideoUrl,
+      },
+      timeoutMs: 60_000,
+    });
+
+    const base64 = readStringField(raw, ["Video", "video", "Data", "data"]);
+    if (!base64) return null;
+
+    const buffer = Buffer.from(base64, "base64");
+    return { buffer, contentType: "video/mp4", extension: ".mp4" };
+  } catch {
+    // 端点不存在或下载失败，返回 null
+    return null;
+  }
+}
+
+// ─── Tools 端点下载（与 Go 端一致的分片下载方式） ───
+
+const MEDIA_CHUNK_SIZE = 60 * 1024; // 60KB
+
+/**
+ * 使用 /Tools/DownloadVideo 分片下载视频。
+ * 参考 Go 端 DownloadVideoRequest，通过 MsgId 和 Section 结构分片获取。
+ * 失败返回 null，由调用方回退到 CDN 端点。
+ */
+export async function downloadVideoViaToolsApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    msgId: string;
+    totalLen: number;
+    toWxid?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer; contentType: string; extension: string } | null> {
+  try {
+    const { options, wxid, msgId, totalLen, toWxid } = params;
+    if (!msgId || totalLen <= 0) return null;
+
+    const chunks: Buffer[] = [];
+    let startPos = 0;
+
+    while (startPos < totalLen) {
+      const chunkLen = Math.min(MEDIA_CHUNK_SIZE, totalLen - startPos);
+      const raw = await requestFn({
+        options,
+        method: "POST",
+        endpoint: "/api/Tools/DownloadVideo",
+        body: {
+          Wxid: wxid,
+          MsgId: Number(msgId),
+          CompressType: 0,
+          DataLen: totalLen,
+          Section: {
+            StartPos: startPos,
+            DataLen: chunkLen,
+          },
+          ToWxid: toWxid ?? "",
+        },
+        timeoutMs: 60_000,
+      });
+
+      const dataField = asRecord(raw.data) ?? asRecord(raw.Data);
+      const base64 =
+        (dataField ? readStringField(dataField, ["buffer", "Buffer"]) : undefined) ??
+        readStringField(raw, ["Data", "data", "Base64", "base64"]);
+      if (!base64) break;
+
+      const chunk = Buffer.from(base64, "base64");
+      if (chunk.length === 0) break;
+
+      chunks.push(chunk);
+      startPos += chunk.length;
+    }
+
+    if (chunks.length === 0) return null;
+    return { buffer: Buffer.concat(chunks), contentType: "video/mp4", extension: ".mp4" };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 使用 /Tools/DownloadVoice 分片下载语音。
+ * 参考 Go 端 DownloadVoiceRequest，通过 MsgId、Bufid、FromUserName 分片获取。
+ * 失败返回 null，由调用方回退到 CDN 端点。
+ */
+export async function downloadVoiceViaToolsApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    msgId: string;
+    bufid: string;
+    fromUserName: string;
+    totalLen: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer; contentType: string; extension: string } | null> {
+  try {
+    const { options, wxid, msgId, bufid, fromUserName, totalLen } = params;
+    if (!msgId || totalLen <= 0) return null;
+
+    const chunks: Buffer[] = [];
+    let offset = 0;
+
+    while (offset < totalLen) {
+      const chunkLen = Math.min(MEDIA_CHUNK_SIZE, totalLen - offset);
+      const raw = await requestFn({
+        options,
+        method: "POST",
+        endpoint: "/api/Tools/DownloadVoice",
+        body: {
+          Wxid: wxid,
+          MsgId: Number(msgId),
+          Offset: offset,
+          Length: chunkLen,
+          FromUserName: fromUserName,
+          Bufid: bufid,
+        },
+        timeoutMs: 30_000,
+      });
+
+      const dataField = asRecord(raw.data) ?? asRecord(raw.Data);
+      const base64 =
+        (dataField ? readStringField(dataField, ["buffer", "Buffer"]) : undefined) ??
+        readStringField(raw, ["Data", "data", "Base64", "base64"]);
+      if (!base64) break;
+
+      const chunk = Buffer.from(base64, "base64");
+      if (chunk.length === 0) break;
+
+      chunks.push(chunk);
+      offset += chunk.length;
+
+      // 检查 endFlag
+      const endFlag = readNumberField(raw, ["endFlag", "EndFlag"]);
+      if (endFlag === 1) break;
+    }
+
+    if (chunks.length === 0) return null;
+    return { buffer: Buffer.concat(chunks), contentType: "audio/silk", extension: ".silk" };
+  } catch {
+    return null;
+  }
+}
+
+// ─── 入站文件下载 ───
+
+const DOWNLOAD_CHUNK_SIZE = 60 * 1024; // 60KB
+
+/**
+ * 分片下载文件，参考 Go 端 DownloadFileRequest 结构。
+ * 请求使用嵌套 Section { DataLen, StartPos }，响应数据在 data.buffer 路径。
+ * 失败返回 null。
+ */
+export async function downloadFileViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    attachId: string;
+    totalLen: number;
+    appId?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ buffer: Buffer } | null> {
+  try {
+    const { options, wxid, attachId, totalLen, appId } = params;
+    if (!attachId || totalLen <= 0) return null;
+
+    const chunks: Buffer[] = [];
+    let startPos = 0;
+
+    while (startPos < totalLen) {
+      const chunkLen = Math.min(DOWNLOAD_CHUNK_SIZE, totalLen - startPos);
+      const raw = await requestFn({
+        options,
+        method: "POST",
+        endpoint: "/api/Tools/DownloadFile",
+        body: {
+          Wxid: wxid,
+          AttachId: attachId,
+          AppID: appId ?? "",
+          UserName: wxid,
+          DataLen: totalLen,
+          Section: {
+            DataLen: chunkLen,
+            StartPos: startPos,
+          },
+        },
+        timeoutMs: 60_000,
+      });
+
+      // Go 端响应结构：data.data.buffer（经信封解包后 raw 已是 data 层）
+      const dataField = asRecord(raw.data) ?? asRecord(raw.Data);
+      const base64 =
+        (dataField ? readStringField(dataField, ["buffer", "Buffer"]) : undefined) ??
+        readStringField(raw, ["Data", "data", "Base64", "base64"]);
+      if (!base64) break;
+
+      const chunk = Buffer.from(base64, "base64");
+      if (chunk.length === 0) break;
+
+      chunks.push(chunk);
+      startPos += chunk.length;
+    }
+
+    if (chunks.length === 0) return null;
+    return { buffer: Buffer.concat(chunks) };
+  } catch {
+    return null;
+  }
+}
+
 /**
  * 批量查询联系人详情（昵称、备注、微信号），最多 20 个。
  * 查询失败时返回空数组，不阻塞消息处理。
@@ -1314,4 +1931,255 @@ export async function fetchContactDetailViaApi(
   } catch {
     return [];
   }
+}
+
+// ─── 文件分片上传 ───
+
+const UPLOAD_CHUNK_SIZE = 50 * 1024; // 50KB
+
+type UploadFileResult = {
+  appId: string;
+  mediaId: string;
+};
+
+/**
+ * 分片上传文件到桥接服务。
+ * 参考 Go 端 ToolsSendFile，使用 multipart/form-data，分片大小 50KB。
+ * 上传完成以响应中 createTime 有值为判断依据。
+ */
+export async function uploadFileViaApi(params: {
+  options: WechatIpadApiCallOptions;
+  wxid: string;
+  toWxid: string;
+  fileBuffer: Buffer;
+  fileName: string;
+}): Promise<UploadFileResult | null> {
+  const { options, wxid, fileBuffer, fileName } = params;
+  const totalLen = fileBuffer.length;
+  const fileMd5 = createHash("md5").update(fileBuffer).digest("hex");
+  const clientAppDataId = `${Date.now()}_${randomInt(100000, 999999)}`;
+  const totalChunks = Math.ceil(totalLen / UPLOAD_CHUNK_SIZE);
+
+  let appId = "";
+  let mediaId = "";
+
+  for (let i = 0; i < totalChunks; i++) {
+    const startPos = i * UPLOAD_CHUNK_SIZE;
+    const end = Math.min(startPos + UPLOAD_CHUNK_SIZE, totalLen);
+    const chunk = fileBuffer.subarray(startPos, end);
+
+    // 构建 multipart/form-data（与 Go 端 ToolsSendFile 一致）
+    const boundary = `----WechatIpad${Date.now()}${randomInt(100000, 999999)}`;
+    const parts: Buffer[] = [];
+
+    // 文件分片字段 "chunk"
+    parts.push(
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="chunk"; filename="${fileName}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+      ),
+    );
+    parts.push(chunk);
+    parts.push(Buffer.from("\r\n"));
+
+    // 文本字段
+    const textFields: Record<string, string> = {
+      Wxid: wxid,
+      ClientAppDataId: clientAppDataId,
+      FileMD5: fileMd5,
+      TotalLen: String(totalLen),
+      StartPos: String(startPos),
+      TotalChunks: String(totalChunks),
+    };
+    for (const [key, value] of Object.entries(textFields)) {
+      parts.push(
+        Buffer.from(
+          `--${boundary}\r\nContent-Disposition: form-data; name="${key}"\r\n\r\n${value}\r\n`,
+        ),
+      );
+    }
+
+    parts.push(Buffer.from(`--${boundary}--\r\n`));
+    const body = Buffer.concat(parts);
+
+    const url = new URL("/api/Tools/UploadAppAttachStream", options.baseUrl);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        headers: {
+          "Content-Type": `multipart/form-data; boundary=${boundary}`,
+          Authorization: `Bearer ${options.apiToken}`,
+          "X-Robot-Id": options.robotId,
+        },
+        body,
+        signal: controller.signal,
+      });
+
+      const responseText = await response.text();
+      if (!response.ok) {
+        throw new WechatIpadApiError(
+          `文件上传 HTTP ${response.status} ${response.statusText}`,
+          response.status,
+          responseText,
+        );
+      }
+
+      if (responseText.trim()) {
+        const parsed = JSON.parse(responseText) as Record<string, unknown>;
+        const data = (parsed.data ?? parsed.Data ?? parsed) as Record<string, unknown>;
+
+        // Go 端以 createTime 有值判断上传是否完成
+        const createTime =
+          readNumberField(data, ["createTime", "CreateTime"]) ??
+          readNumberField(parsed, ["createTime", "CreateTime"]);
+        if (createTime !== undefined) {
+          appId = readStringField(data, ["appId", "AppId", "Appid"]) ?? "";
+          mediaId = readStringField(data, ["mediaId", "MediaId", "Mediaid"]) ?? "";
+        }
+      }
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  if (!appId && !mediaId) return null;
+  return { appId, mediaId };
+}
+
+/**
+ * 构建文件消息 appmsg XML（type=6）。
+ */
+export function buildWechatIpadFileMessageXml(params: {
+  fileName: string;
+  fileSize: number;
+  fileExt: string;
+  attachId: string;
+  md5?: string;
+}): string {
+  const { fileName, fileSize, fileExt, attachId, md5 } = params;
+  return `<appmsg appid="" sdkver="0"><title>${escapeXmlText(fileName)}</title><des></des><action></action><type>6</type><showtype>0</showtype><content></content><url></url><appattach><totallen>${fileSize}</totallen><attachid>${escapeXmlText(attachId)}</attachid><emoticonmd5>${escapeXmlText(md5 ?? "")}</emoticonmd5><fileext>${escapeXmlText(fileExt)}</fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5>${escapeXmlText(md5 ?? "")}</md5></appmsg>`;
+}
+
+/**
+ * 组合分片上传 + 文件消息 XML + SendApp 完成文件发送。
+ */
+export async function sendFileViaUploadApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    fileBuffer: Buffer;
+    fileName: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const { options, wxid, toWxid, fileBuffer, fileName } = params;
+  const uploadResult = await uploadFileViaApi({ options, wxid, toWxid, fileBuffer, fileName });
+  if (!uploadResult) {
+    throw new WechatIpadApiError("文件分片上传失败：未返回 AppId/MediaId");
+  }
+
+  const md5 = createHash("md5").update(fileBuffer).digest("hex");
+  const ext = fileName.includes(".") ? fileName.slice(fileName.lastIndexOf(".") + 1) : "";
+  const xml = buildWechatIpadFileMessageXml({
+    fileName,
+    fileSize: fileBuffer.length,
+    fileExt: ext,
+    attachId: uploadResult.appId || uploadResult.mediaId,
+    md5,
+  });
+
+  const raw = await requestFn({
+    options,
+    method: "POST",
+    endpoint: "/api/Msg/SendApp",
+    body: {
+      Wxid: wxid,
+      ToWxid: toWxid,
+      Xml: xml,
+      Type: 6,
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+// ─── 名片分享 ───
+
+/**
+ * 发送名片消息（/Msg/ShareCard）。
+ * 参考 Go 端 Msg.ShareCardParam。
+ */
+export async function sendShareCardViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    cardWxId: string;
+    cardNickName: string;
+    cardAlias?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/ShareCard",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      CardWxId: params.cardWxId,
+      CardNickName: params.cardNickName,
+      CardAlias: params.cardAlias ?? "",
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
+}
+
+// ─── 位置分享 ───
+
+/**
+ * 发送位置消息（/Msg/ShareLocation）。
+ * 参考 Go 端 Msg.ShareLocationParam。
+ */
+export async function sendShareLocationViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    toWxid: string;
+    x: number;
+    y: number;
+    label: string;
+    poiname: string;
+    scale?: number;
+    infourl?: string;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<{ messageId?: string }> {
+  const raw = await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Msg/ShareLocation",
+    body: {
+      Wxid: params.wxid,
+      ToWxid: params.toWxid,
+      X: params.x,
+      Y: params.y,
+      Label: params.label,
+      Poiname: params.poiname,
+      Scale: params.scale ?? 14,
+      Infourl: params.infourl ?? "",
+    },
+  });
+
+  return {
+    messageId: readIdField(raw, ["Newmsgid", "Msgid", "NewMsgId", "MsgId", "messageId", "id"]),
+  };
 }

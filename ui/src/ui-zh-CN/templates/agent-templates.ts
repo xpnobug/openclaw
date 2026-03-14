@@ -172,20 +172,21 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 /** 根据分类获取模板 */
 export function getTemplatesByCategory(category: string): AgentTemplate[] {
   if (category === "all") return AGENT_TEMPLATES;
-  return AGENT_TEMPLATES.filter(t => t.category === category);
+  return AGENT_TEMPLATES.filter((t) => t.category === category);
 }
 
 /** 根据 ID 获取模板 */
 export function getTemplateById(id: string): AgentTemplate | undefined {
-  return AGENT_TEMPLATES.find(t => t.id === id);
+  return AGENT_TEMPLATES.find((t) => t.id === id);
 }
 
 /** 搜索模板 */
 export function searchTemplates(query: string): AgentTemplate[] {
   const q = query.toLowerCase();
-  return AGENT_TEMPLATES.filter(t =>
-    t.name.toLowerCase().includes(q) ||
-    t.description.toLowerCase().includes(q) ||
-    t.tags?.some(tag => tag.toLowerCase().includes(q))
+  return AGENT_TEMPLATES.filter(
+    (t) =>
+      t.name.toLowerCase().includes(q) ||
+      t.description.toLowerCase().includes(q) ||
+      t.tags?.some((tag) => tag.toLowerCase().includes(q)),
   );
 }

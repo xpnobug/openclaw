@@ -4,10 +4,10 @@
  */
 import { html, nothing } from "lit";
 import type { ProviderConfig, ModelApi } from "./constants";
-import type { ProvidersContentProps } from "./types";
 import { icons, LABELS, API_PROTOCOLS, AUTH_MODES } from "./constants";
-import { renderModelRow } from "./model-row";
 import { renderHeadersEditor } from "./headers-editor";
+import { renderModelRow } from "./model-row";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 获取协议标签
@@ -65,8 +65,9 @@ export function renderProviderCard(
         </div>
       </div>
 
-      ${expanded
-        ? html`
+      ${
+        expanded
+          ? html`
             <div class="mc-provider-card__content">
               <div class="mc-form-section">
                 <div class="mc-form-row">
@@ -99,7 +100,11 @@ export function renderProviderCard(
                       .value=${provider.baseUrl}
                       placeholder="https://api.example.com/v1"
                       @input=${(e: Event) =>
-                        props.onProviderUpdate(key, "baseUrl", (e.target as HTMLInputElement).value)}
+                        props.onProviderUpdate(
+                          key,
+                          "baseUrl",
+                          (e.target as HTMLInputElement).value,
+                        )}
                     />
                   </label>
                 </div>
@@ -131,8 +136,9 @@ export function renderProviderCard(
                     </select>
                   </label>
                 </div>
-                ${showApiKey
-                  ? html`
+                ${
+                  showApiKey
+                    ? html`
                       <div class="mc-form-row">
                         <label class="mc-field">
                           <span class="mc-field__label">${LABELS.providerApiKey}</span>
@@ -142,12 +148,17 @@ export function renderProviderCard(
                             .value=${provider.apiKey ?? ""}
                             placeholder="sk-... 或 \${ENV_VAR}"
                             @input=${(e: Event) =>
-                              props.onProviderUpdate(key, "apiKey", (e.target as HTMLInputElement).value)}
+                              props.onProviderUpdate(
+                                key,
+                                "apiKey",
+                                (e.target as HTMLInputElement).value,
+                              )}
                           />
                         </label>
                       </div>
                     `
-                  : nothing}
+                    : nothing
+                }
                 ${renderHeadersEditor(key, provider.headers, props)}
               </div>
 
@@ -168,7 +179,8 @@ export function renderProviderCard(
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }

@@ -1,14 +1,14 @@
 import type { AgentsConfigProps } from "../../views/agents/types";
-/**
- * 会话管理 回调
- */
-import type { CallbackContext } from "./types";
 import {
   loadAgentSessions,
   patchSessionModel,
   createSession,
   deleteSession,
 } from "../model-config";
+/**
+ * 会话管理 回调
+ */
+import type { CallbackContext } from "./types";
 
 type Pick_ = Pick<
   AgentsConfigProps,

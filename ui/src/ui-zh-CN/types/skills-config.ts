@@ -136,11 +136,11 @@ export type EditableSkillSource = "managed" | "workspace";
  * Skill file information (from skills.files.list RPC)
  */
 export type SkillFileInfo = {
-  name: string;              // 技能名称 / Skill name
-  path: string;              // SKILL.md 完整路径 / Full path to SKILL.md
+  name: string; // 技能名称 / Skill name
+  path: string; // SKILL.md 完整路径 / Full path to SKILL.md
   source: EditableSkillSource; // 来源 / Source
-  exists: boolean;           // 是否存在 / Whether file exists
-  size: number;              // 文件大小（字节）/ File size in bytes
+  exists: boolean; // 是否存在 / Whether file exists
+  size: number; // 文件大小（字节）/ File size in bytes
   modifiedAt: number | null; // 最后修改时间戳 / Last modified timestamp
 };
 
@@ -149,9 +149,9 @@ export type SkillFileInfo = {
  * Result of listing skill files
  */
 export type SkillFilesListResult = {
-  managedDir: string;        // managed 技能目录 / Managed skills directory
-  workspaceDir: string;      // workspace 技能目录 / Workspace skills directory
-  skills: SkillFileInfo[];   // 技能列表 / Skill list
+  managedDir: string; // managed 技能目录 / Managed skills directory
+  workspaceDir: string; // workspace 技能目录 / Workspace skills directory
+  skills: SkillFileInfo[]; // 技能列表 / Skill list
 };
 
 // ─── 编辑器视图模式 / Editor view mode ────────────────────────────────────────
@@ -169,16 +169,16 @@ export type SkillEditorMode = "edit" | "preview" | "split";
  * Skill editor state
  */
 export type SkillEditorState = {
-  open: boolean;                    // 编辑器是否打开 / Whether editor is open
-  skillKey: string | null;          // 当前编辑的技能键 / Current editing skill key
-  skillName: string | null;         // 当前编辑的技能名称 / Current editing skill name
+  open: boolean; // 编辑器是否打开 / Whether editor is open
+  skillKey: string | null; // 当前编辑的技能键 / Current editing skill key
+  skillName: string | null; // 当前编辑的技能名称 / Current editing skill name
   source: EditableSkillSource | null; // 技能来源 / Skill source
-  content: string;                  // 编辑器内容 / Editor content
-  original: string;                 // 原始内容（用于脏检查）/ Original content (for dirty check)
-  mode: SkillEditorMode;            // 编辑模式 / Edit mode
-  saving: boolean;                  // 保存中 / Saving
-  loading: boolean;                 // 加载中 / Loading
-  error: string | null;             // 错误信息 / Error message
+  content: string; // 编辑器内容 / Editor content
+  original: string; // 原始内容（用于脏检查）/ Original content (for dirty check)
+  mode: SkillEditorMode; // 编辑模式 / Edit mode
+  saving: boolean; // 保存中 / Saving
+  loading: boolean; // 加载中 / Loading
+  error: string | null; // 错误信息 / Error message
 };
 
 /**
@@ -186,13 +186,13 @@ export type SkillEditorState = {
  * Create skill modal state
  */
 export type SkillCreateState = {
-  open: boolean;                    // 弹窗是否打开 / Whether modal is open
-  name: string;                     // 新技能名称 / New skill name
-  source: EditableSkillSource;      // 创建位置 / Create location
-  template: string;                 // 模板内容 / Template content
-  creating: boolean;                // 创建中 / Creating
-  error: string | null;             // 错误信息 / Error message
-  nameError: string | null;         // 名称验证错误 / Name validation error
+  open: boolean; // 弹窗是否打开 / Whether modal is open
+  name: string; // 新技能名称 / New skill name
+  source: EditableSkillSource; // 创建位置 / Create location
+  template: string; // 模板内容 / Template content
+  creating: boolean; // 创建中 / Creating
+  error: string | null; // 错误信息 / Error message
+  nameError: string | null; // 名称验证错误 / Name validation error
 };
 
 /**
@@ -200,12 +200,12 @@ export type SkillCreateState = {
  * Delete skill confirmation state
  */
 export type SkillDeleteState = {
-  open: boolean;                    // 确认弹窗是否打开 / Whether confirmation is open
-  skillKey: string | null;          // 待删除的技能键 / Skill key to delete
-  skillName: string | null;         // 待删除的技能名称 / Skill name to delete
+  open: boolean; // 确认弹窗是否打开 / Whether confirmation is open
+  skillKey: string | null; // 待删除的技能键 / Skill key to delete
+  skillName: string | null; // 待删除的技能名称 / Skill name to delete
   source: EditableSkillSource | null; // 技能来源 / Skill source
-  deleting: boolean;                // 删除中 / Deleting
-  error: string | null;             // 错误信息 / Error message
+  deleting: boolean; // 删除中 / Deleting
+  error: string | null; // 错误信息 / Error message
 };
 
 // ─── 技能文件预览状态 / Skill file preview state ─────────────────────────────────
@@ -215,12 +215,12 @@ export type SkillDeleteState = {
  * Skill file preview state (read-only view)
  */
 export type SkillPreviewState = {
-  open: boolean;                    // 预览是否打开 / Whether preview is open
-  skillKey: string | null;          // 技能键 / Skill key
-  skillName: string | null;         // 技能名称 / Skill name
-  content: string;                  // 文件内容 / File content
-  loading: boolean;                 // 加载中 / Loading
-  error: string | null;             // 错误信息 / Error message
+  open: boolean; // 预览是否打开 / Whether preview is open
+  skillKey: string | null; // 技能键 / Skill key
+  skillName: string | null; // 技能名称 / Skill name
+  content: string; // 文件内容 / File content
+  loading: boolean; // 加载中 / Loading
+  error: string | null; // 错误信息 / Error message
 };
 
 // ─── 组件属性 / Component props ───────────────────────────────────────────────

@@ -39,8 +39,9 @@ export function renderScheduleFields(props: CronContentProps) {
     </div>
 
     <!-- 调度参数 -->
-    ${form.scheduleKind === "at"
-      ? html`
+    ${
+      form.scheduleKind === "at"
+        ? html`
           <div class="mc-field">
             <label class="mc-field__label">${LABELS.runAt}</label>
             <input
@@ -52,8 +53,8 @@ export function renderScheduleFields(props: CronContentProps) {
             />
           </div>
         `
-      : form.scheduleKind === "every"
-        ? html`
+        : form.scheduleKind === "every"
+          ? html`
             <div class="cron-form-grid">
               <div class="mc-field">
                 <label class="mc-field__label">${LABELS.every}</label>
@@ -73,7 +74,8 @@ export function renderScheduleFields(props: CronContentProps) {
                   .value=${form.everyUnit}
                   @change=${(e: Event) =>
                     onFormChange({
-                      everyUnit: (e.target as HTMLSelectElement).value as CronFormState["everyUnit"],
+                      everyUnit: (e.target as HTMLSelectElement)
+                        .value as CronFormState["everyUnit"],
                     })}
                 >
                   <option value="minutes">${LABELS.minutes}</option>
@@ -83,7 +85,7 @@ export function renderScheduleFields(props: CronContentProps) {
               </div>
             </div>
           `
-        : html`
+          : html`
             <div class="cron-form-grid">
               <div class="mc-field">
                 <label class="mc-field__label">${LABELS.cronExpr}</label>
@@ -108,7 +110,8 @@ export function renderScheduleFields(props: CronContentProps) {
                 />
               </div>
             </div>
-          `}
+          `
+    }
   `;
 }
 
@@ -141,8 +144,12 @@ export function renderCreateModal(props: CronContentProps) {
 
   const modalTitle = isEditMode ? LABELS.editJob : LABELS.newJob;
   const submitLabel = isEditMode
-    ? props.busy ? LABELS.updating : LABELS.updateJob
-    : props.busy ? LABELS.adding : LABELS.addJob;
+    ? props.busy
+      ? LABELS.updating
+      : LABELS.updateJob
+    : props.busy
+      ? LABELS.adding
+      : LABELS.addJob;
 
   return html`
     <div class="cron-confirm-modal" @click=${handleClose}>
@@ -228,7 +235,8 @@ export function renderCreateModal(props: CronContentProps) {
                 class="mc-select"
                 .value=${form.sessionTarget}
                 @change=${(e: Event) => {
-                  const newTarget = (e.target as HTMLSelectElement).value as CronFormState["sessionTarget"];
+                  const newTarget = (e.target as HTMLSelectElement)
+                    .value as CronFormState["sessionTarget"];
                   if (newTarget === "main" && form.payloadKind === "agentTurn") {
                     onFormChange({ sessionTarget: newTarget, payloadKind: "systemEvent" });
                   } else {
@@ -246,7 +254,9 @@ export function renderCreateModal(props: CronContentProps) {
                 class="mc-select"
                 .value=${form.wakeMode}
                 @change=${(e: Event) =>
-                  onFormChange({ wakeMode: (e.target as HTMLSelectElement).value as CronFormState["wakeMode"] })}
+                  onFormChange({
+                    wakeMode: (e.target as HTMLSelectElement).value as CronFormState["wakeMode"],
+                  })}
               >
                 <option value="next-heartbeat">${LABELS.wakeModeNextHeartbeat}</option>
                 <option value="now">${LABELS.wakeModeNow}</option>
@@ -261,7 +271,10 @@ export function renderCreateModal(props: CronContentProps) {
               class="mc-select"
               .value=${form.payloadKind}
               @change=${(e: Event) =>
-                onFormChange({ payloadKind: (e.target as HTMLSelectElement).value as CronFormState["payloadKind"] })}
+                onFormChange({
+                  payloadKind: (e.target as HTMLSelectElement)
+                    .value as CronFormState["payloadKind"],
+                })}
             >
               <option value="systemEvent">${LABELS.payloadSystemEvent}</option>
               <option value="agentTurn" ?disabled=${form.sessionTarget === "main"}>
@@ -284,8 +297,9 @@ export function renderCreateModal(props: CronContentProps) {
           </div>
 
           <!-- Agent 执行选项 -->
-          ${form.payloadKind === "agentTurn"
-            ? html`
+          ${
+            form.payloadKind === "agentTurn"
+              ? html`
                 <div class="cron-form-grid" style="margin-bottom: 16px;">
                   <div class="mc-field" style="justify-content: center;">
                     <label class="mc-toggle-field">
@@ -296,7 +310,9 @@ export function renderCreateModal(props: CronContentProps) {
                           ?checked=${form.deliveryMode === "announce"}
                           @change=${(e: Event) =>
                             onFormChange({
-                              deliveryMode: (e.target as HTMLInputElement).checked ? "announce" : "none",
+                              deliveryMode: (e.target as HTMLInputElement).checked
+                                ? "announce"
+                                : "none",
                             })}
                         />
                         <span class="mc-toggle__track"></span>
@@ -345,17 +361,20 @@ export function renderCreateModal(props: CronContentProps) {
                   </div>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 错误提示 -->
-          ${props.error
-            ? html`
+          ${
+            props.error
+              ? html`
                 <div class="cron-error-banner">
                   ${icons.alertCircle}
                   <span>${props.error}</span>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
 
         <div class="cron-create-modal__footer">

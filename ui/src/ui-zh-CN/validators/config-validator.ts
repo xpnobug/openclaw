@@ -1,8 +1,14 @@
+import * as rules from "./rules.js";
 /**
  * 配置验证器
  */
-import type { ValidationResult, ValidationError, ValidationWarning, ValidationRule, ValidationContext } from "./types.js";
-import * as rules from "./rules.js";
+import type {
+  ValidationResult,
+  ValidationError,
+  ValidationWarning,
+  ValidationRule,
+  ValidationContext,
+} from "./types.js";
 
 /** 获取嵌套路径的值 */
 function getPath(obj: Record<string, unknown>, path: string): unknown {
@@ -14,16 +20,16 @@ function runRule<T>(
   rule: ValidationRule<T>,
   value: T,
   path: string,
-  context?: ValidationContext
+  context?: ValidationContext,
 ): ValidationError | ValidationWarning | null {
   if (rule.validate(value, context)) return null;
-  
+
   const message = typeof rule.message === "function" ? rule.message(value) : rule.message;
   const base = { path, code: rule.code, message };
-  
-  return rule.severity === "error" 
-    ? { ...base, value } as ValidationError
-    : { ...base } as ValidationWarning;
+
+  return rule.severity === "error"
+    ? ({ ...base, value } as ValidationError)
+    : ({ ...base } as ValidationWarning);
 }
 
 /** Agent 字段验证规则 */
@@ -44,7 +50,7 @@ function validateObject(
   data: Record<string, unknown>,
   fieldRules: Record<string, ValidationRule[]>,
   basePath: string,
-  context?: ValidationContext
+  context?: ValidationContext,
 ): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationWarning[] = [];
@@ -70,7 +76,7 @@ export class ConfigValidator {
   /** 验证 Agent 配置 */
   validateAgent(config: Record<string, unknown>, existingIds: string[] = []): ValidationResult {
     const result = validateObject(config, AGENT_RULES, "");
-    
+
     // 唯一性检查
     if (config.id && existingIds.includes(config.id as string)) {
       result.errors.push({
@@ -81,7 +87,7 @@ export class ConfigValidator {
       });
       result.valid = false;
     }
-    
+
     return result;
   }
 
@@ -98,11 +104,11 @@ export class ConfigValidator {
     // 验证 agents
     const agents = (config.agents as Record<string, unknown>[] | undefined) ?? [];
     const agentIds: string[] = [];
-    
+
     agents.forEach((agent, i) => {
       const result = this.validateAgent(agent, agentIds);
-      errors.push(...result.errors.map(e => ({ ...e, path: `agents.${i}.${e.path}` })));
-      warnings.push(...result.warnings.map(w => ({ ...w, path: `agents.${i}.${w.path}` })));
+      errors.push(...result.errors.map((e) => ({ ...e, path: `agents.${i}.${e.path}` })));
+      warnings.push(...result.warnings.map((w) => ({ ...w, path: `agents.${i}.${w.path}` })));
       if (agent.id) agentIds.push(agent.id as string);
     });
 
@@ -110,8 +116,8 @@ export class ConfigValidator {
     const channels = (config.channels as Record<string, unknown>[] | undefined) ?? [];
     channels.forEach((channel, i) => {
       const result = this.validateChannel(channel);
-      errors.push(...result.errors.map(e => ({ ...e, path: `channels.${i}.${e.path}` })));
-      warnings.push(...result.warnings.map(w => ({ ...w, path: `channels.${i}.${w.path}` })));
+      errors.push(...result.errors.map((e) => ({ ...e, path: `channels.${i}.${e.path}` })));
+      warnings.push(...result.warnings.map((w) => ({ ...w, path: `channels.${i}.${w.path}` })));
     });
 
     return { valid: errors.length === 0, errors, warnings };

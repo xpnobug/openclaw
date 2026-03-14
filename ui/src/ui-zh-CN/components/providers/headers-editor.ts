@@ -3,8 +3,8 @@
  * Headers editor component
  */
 import { html } from "lit";
-import type { ProvidersContentProps } from "./types";
 import { icons, LABELS } from "./constants";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 渲染 Headers 编辑器
@@ -56,9 +56,10 @@ export function renderHeadersEditor(
           ${icons.add} ${LABELS.addHeader}
         </button>
       </div>
-      ${entries.length === 0
-        ? html`<div class="mc-headers-section__hint">${LABELS.headersHint}</div>`
-        : html`
+      ${
+        entries.length === 0
+          ? html`<div class="mc-headers-section__hint">${LABELS.headersHint}</div>`
+          : html`
             <div class="mc-headers-list">
               ${entries.map(
                 ([key, value]) => html`
@@ -89,7 +90,8 @@ export function renderHeadersEditor(
                 `,
               )}
             </div>
-          `}
+          `
+      }
     </div>
   `;
 }

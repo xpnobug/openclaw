@@ -1,11 +1,11 @@
+import { openSkillEditor } from "./editor";
+import { loadSkillsStatus } from "./loader";
+import { getErrorMessage } from "./state";
 /**
  * 技能配置控制器 - 创建/删除/预览操作
  * Skills config controller - Create/Delete/Preview operations
  */
 import type { SkillsConfigState, EditableSkillSource } from "./types";
-import { getErrorMessage } from "./state";
-import { loadSkillsStatus } from "./loader";
-import { openSkillEditor } from "./editor";
 
 // ─── 常量 / Constants ───────────────────────────────────────────────────────
 
@@ -263,7 +263,7 @@ export async function openSkillPreview(
   if (!state.client || !state.connected) return;
 
   // 从技能报告中获取技能信息以确定来源
-  const skill = state.skillsConfigReport?.skills.find(s => s.skillKey === skillKey);
+  const skill = state.skillsConfigReport?.skills.find((s) => s.skillKey === skillKey);
   if (!skill) return;
 
   // 确定来源类型和文件路径

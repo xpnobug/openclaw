@@ -1,8 +1,4 @@
 import type { AgentsConfigProps } from "../../views/agents/types";
-/**
- * 定时任务 回调
- */
-import type { CallbackContext } from "./types";
 import {
   addCronJob,
   updateCronJob,
@@ -13,6 +9,10 @@ import {
   populateCronFormFromJob,
   DEFAULT_CRON_FORM,
 } from "../cron-config";
+/**
+ * 定时任务 回调
+ */
+import type { CallbackContext } from "./types";
 
 type Pick_ = Pick<
   AgentsConfigProps,

@@ -4,8 +4,8 @@
  */
 import { html, nothing } from "lit";
 import type { ModelApi, AuthMode } from "./constants";
-import type { ProvidersContentProps } from "./types";
 import { icons, LABELS, API_PROTOCOLS, AUTH_MODES, DEFAULT_PROVIDER_FORM } from "./constants";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 渲染添加供应商弹窗
@@ -98,8 +98,9 @@ export function renderAddProviderModal(props: ProvidersContentProps) {
           </div>
 
           <!-- API 密钥 -->
-          ${showApiKey
-            ? html`
+          ${
+            showApiKey
+              ? html`
                 <div class="mc-field" style="margin-bottom: 16px;">
                   <label class="mc-field__label">${LABELS.providerApiKey}</label>
                   <input
@@ -112,17 +113,20 @@ export function renderAddProviderModal(props: ProvidersContentProps) {
                   />
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 错误提示 -->
-          ${props.addError
-            ? html`
+          ${
+            props.addError
+              ? html`
                 <div class="cron-error-banner">
                   ${icons.info}
                   <span>${props.addError}</span>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
 
         <div class="cron-create-modal__footer">

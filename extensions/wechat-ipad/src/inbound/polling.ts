@@ -27,6 +27,9 @@ const SUPPORTED_INBOUND_CONTENT_TYPES = new Set([
   "video",
   "file",
   "link",
+  "emoji",
+  "card",
+  "location",
 ]);
 
 function buildSeenKey(accountId: string, chatId: string, id: string): string {

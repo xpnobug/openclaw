@@ -3,16 +3,16 @@
  * Skill detail modal component
  */
 import { html, nothing } from "lit";
-import type {
-  SkillsContentProps,
-  EditableSkillSource,
-} from "../../types/skills-config";
+import type { SkillsContentProps, EditableSkillSource } from "../../types/skills-config";
 import { clampText, toShortSource } from "./utils";
 
 /**
  * 获取来源的简短标签
  */
-function getSourceLabel(source: string): { label: string; type: "bundled" | "managed" | "workspace" } {
+function getSourceLabel(source: string): {
+  label: string;
+  type: "bundled" | "managed" | "workspace";
+} {
   switch (source) {
     case "openclaw-bundled":
       return { label: "内置", type: "bundled" };
@@ -91,8 +91,9 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
           </div>
 
           <!-- 缺失项 -->
-          ${missing.length > 0
-            ? html`
+          ${
+            missing.length > 0
+              ? html`
                 <div class="skill-detail__section">
                   <h4 class="skill-detail__section-title">缺失依赖</h4>
                   <div class="skill-detail__missing-list">
@@ -100,7 +101,8 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                   </div>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 基本信息 -->
           <div class="skill-detail__section">
@@ -114,8 +116,9 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                 <span class="skill-detail__info-label">文件路径</span>
                 <span class="skill-detail__info-value mono">${clampText(skill.filePath, 50)}</span>
               </div>
-              ${skill.homepage
-                ? html`
+              ${
+                skill.homepage
+                  ? html`
                     <div class="skill-detail__info-row">
                       <span class="skill-detail__info-label">主页</span>
                       <a class="skill-detail__info-link" href="${skill.homepage}" target="_blank" rel="noreferrer">
@@ -123,7 +126,8 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                       </a>
                     </div>
                   `
-                : nothing}
+                  : nothing
+              }
               <!-- 查看文件内容按钮 -->
               <div class="skill-detail__info-row">
                 <span class="skill-detail__info-label">技能文件</span>
@@ -142,8 +146,9 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
           </div>
 
           <!-- API Key 配置 -->
-          ${skill.primaryEnv
-            ? html`
+          ${
+            skill.primaryEnv
+              ? html`
                 <div class="skill-detail__section">
                   <h4 class="skill-detail__section-title">API Key 配置</h4>
                   <div class="skill-detail__apikey">
@@ -167,11 +172,13 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                   </div>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
 
           <!-- 白名单设置（仅内置技能） -->
-          ${isBundled && props.allowlistMode === "whitelist"
-            ? html`
+          ${
+            isBundled && props.allowlistMode === "whitelist"
+              ? html`
                 <div class="skill-detail__section">
                   <h4 class="skill-detail__section-title">白名单</h4>
                   <label class="skill-detail__checkbox">
@@ -187,7 +194,8 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                   </label>
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
 
         <!-- 弹窗底部操作 -->
@@ -203,8 +211,9 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
             </button>
 
             <!-- 安装按钮 -->
-            ${canInstall
-              ? html`
+            ${
+              canInstall
+                ? html`
                   <button
                     class="mc-btn mc-btn--sm"
                     ?disabled=${isBusy}
@@ -213,13 +222,15 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                     ${isBusy ? "安装中..." : skill.install[0].label}
                   </button>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
 
           <div class="skill-detail__footer-right">
             <!-- 编辑按钮（仅 managed 和 workspace 技能）-->
-            ${isEditable
-              ? html`
+            ${
+              isEditable
+                ? html`
                   <button
                     class="mc-btn mc-btn--sm"
                     ?disabled=${isBusy}
@@ -235,7 +246,8 @@ export function renderSkillDetailModal(skillKey: string, props: SkillsContentPro
                     删除
                   </button>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
         </div>
       </div>

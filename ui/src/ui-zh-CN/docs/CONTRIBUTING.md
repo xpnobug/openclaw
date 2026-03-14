@@ -23,23 +23,23 @@
 ```typescript
 // ✅ 好：清晰的命名
 type UserConfig = { name: string; email: string };
-function loadUserConfig(): UserConfig { }
+function loadUserConfig(): UserConfig {}
 const isConfigValid = true;
 
 // ❌ 差：模糊的命名
 type UC = { n: string; e: string };
-function load(): any { }
+function load(): any {}
 const flag = true;
 ```
 
-| 类型 | 规范 | 示例 |
-|------|------|------|
-| **类型** | PascalCase | `UserConfig`, `ModelState` |
-| **接口** | PascalCase | `IUserService`, `ConfigOptions` |
-| **函数** | camelCase | `loadConfig`, `renderButton` |
-| **变量** | camelCase | `userName`, `isValid` |
-| **常量** | UPPER_SNAKE_CASE | `MAX_RETRY`, `API_URL` |
-| **私有属性** | _camelCase | `_internalState` |
+| 类型         | 规范             | 示例                            |
+| ------------ | ---------------- | ------------------------------- |
+| **类型**     | PascalCase       | `UserConfig`, `ModelState`      |
+| **接口**     | PascalCase       | `IUserService`, `ConfigOptions` |
+| **函数**     | camelCase        | `loadConfig`, `renderButton`    |
+| **变量**     | camelCase        | `userName`, `isValid`           |
+| **常量**     | UPPER_SNAKE_CASE | `MAX_RETRY`, `API_URL`          |
+| **私有属性** | \_camelCase      | `_internalState`                |
 
 #### 类型定义
 
@@ -103,16 +103,24 @@ import "./styles/button.css";
 
 ```css
 /* ✅ 好：BEM 命名 */
-.mc-btn { }
-.mc-btn--primary { }
-.mc-btn--disabled { }
-.mc-btn__icon { }
-.mc-btn__label { }
+.mc-btn {
+}
+.mc-btn--primary {
+}
+.mc-btn--disabled {
+}
+.mc-btn__icon {
+}
+.mc-btn__label {
+}
 
 /* ❌ 差：随意命名 */
-.button { }
-.buttonPrimary { }
-.btn-icon { }
+.button {
+}
+.buttonPrimary {
+}
+.btn-icon {
+}
 ```
 
 #### CSS 变量
@@ -137,11 +145,14 @@ import "./styles/button.css";
 
 ```css
 /* ✅ 好：低特异性 */
-.mc-btn { }
-.mc-btn--primary { }
+.mc-btn {
+}
+.mc-btn--primary {
+}
 
 /* ❌ 差：高特异性 */
-div.container .sidebar .mc-btn.primary { }
+div.container .sidebar .mc-btn.primary {
+}
 ```
 
 ---
@@ -163,12 +174,12 @@ components/
 
 #### 文件大小
 
-| 规模 | 行数 | 评价 |
-|------|------|------|
-| **小文件** | <100 | 🟢 优秀 |
-| **中文件** | 100-300 | 🟢 良好 |
-| **大文件** | 300-500 | 🟡 可接受 |
-| **超大文件** | >500 | 🔴 需拆分 |
+| 规模         | 行数    | 评价      |
+| ------------ | ------- | --------- |
+| **小文件**   | <100    | 🟢 优秀   |
+| **中文件**   | 100-300 | 🟢 良好   |
+| **大文件**   | 300-500 | 🟡 可接受 |
+| **超大文件** | >500    | 🔴 需拆分 |
 
 ---
 
@@ -188,13 +199,13 @@ bugfix/xxx (修复)
 
 ### 分支命名
 
-| 类型 | 格式 | 示例 |
-|------|------|------|
-| **功能** | `feature/描述` | `feature/add-search` |
-| **修复** | `bugfix/描述` | `bugfix/fix-login` |
-| **优化** | `refactor/描述` | `refactor/split-css` |
-| **文档** | `docs/描述` | `docs/update-readme` |
-| **测试** | `test/描述` | `test/add-unit-tests` |
+| 类型     | 格式            | 示例                  |
+| -------- | --------------- | --------------------- |
+| **功能** | `feature/描述`  | `feature/add-search`  |
+| **修复** | `bugfix/描述`   | `bugfix/fix-login`    |
+| **优化** | `refactor/描述` | `refactor/split-css`  |
+| **文档** | `docs/描述`     | `docs/update-readme`  |
+| **测试** | `test/描述`     | `test/add-unit-tests` |
 
 ### Commit 规范
 
@@ -210,16 +221,16 @@ bugfix/xxx (修复)
 
 #### Type 类型
 
-| Type | 说明 | 示例 |
-|------|------|------|
-| **feat** | 新功能 | `feat(ui): 添加搜索框` |
-| **fix** | 修复 bug | `fix(api): 修复登录失败` |
-| **refactor** | 重构 | `refactor(ui): 拆分大文件` |
-| **style** | 样式调整 | `style(ui): 调整按钮样式` |
-| **docs** | 文档更新 | `docs: 更新 README` |
-| **test** | 测试相关 | `test: 添加单元测试` |
-| **chore** | 构建/工具 | `chore: 更新依赖` |
-| **perf** | 性能优化 | `perf: 优化列表渲染` |
+| Type         | 说明      | 示例                       |
+| ------------ | --------- | -------------------------- |
+| **feat**     | 新功能    | `feat(ui): 添加搜索框`     |
+| **fix**      | 修复 bug  | `fix(api): 修复登录失败`   |
+| **refactor** | 重构      | `refactor(ui): 拆分大文件` |
+| **style**    | 样式调整  | `style(ui): 调整按钮样式`  |
+| **docs**     | 文档更新  | `docs: 更新 README`        |
+| **test**     | 测试相关  | `test: 添加单元测试`       |
+| **chore**    | 构建/工具 | `chore: 更新依赖`          |
+| **perf**     | 性能优化  | `perf: 优化列表渲染`       |
 
 #### 示例
 
@@ -251,23 +262,28 @@ fix bug
 
 ```markdown
 ## 变更类型
+
 - [ ] 新功能
 - [ ] Bug 修复
 - [ ] 重构
 - [ ] 文档更新
 
 ## 变更说明
+
 简要描述本次变更的内容和原因
 
 ## 测试
+
 - [ ] 单元测试通过
 - [ ] 手动测试通过
 - [ ] 无回归问题
 
 ## 截图
+
 （如有 UI 变更，请提供截图）
 
 ## 相关 Issue
+
 Closes #123
 ```
 
@@ -281,28 +297,35 @@ Closes #123
 
 ```markdown
 # 一级标题（文档标题）
+
 ## 二级标题（章节）
+
 ### 三级标题（小节）
+
 #### 四级标题（细节）
 ```
 
 #### 代码块
 
-```markdown
+````markdown
 <!-- ✅ 好：指定语言 -->
+
 ```typescript
 function hello() {
   console.log("Hello");
 }
 ```
+````
 
 <!-- ❌ 差：不指定语言 -->
+
 ```
 function hello() {
   console.log("Hello");
 }
 ```
-```
+
+````
 
 #### 表格
 
@@ -310,20 +333,20 @@ function hello() {
 | 列1 | 列2 | 列3 |
 |-----|-----|-----|
 | 值1 | 值2 | 值3 |
-```
+````
 
 ### JSDoc 规范
 
-```typescript
+````typescript
 /**
  * 渲染按钮组件
- * 
+ *
  * @param props - 按钮属性
  * @param props.label - 按钮文字
  * @param props.onClick - 点击事件
  * @param props.variant - 按钮变体（默认 "primary"）
  * @returns Lit 模板结果
- * 
+ *
  * @example
  * ```typescript
  * renderButton({
@@ -336,7 +359,7 @@ function hello() {
 export function renderButton(props: ButtonProps): TemplateResult {
   // ...
 }
-```
+````
 
 ---
 
@@ -351,33 +374,33 @@ src/utils/format.ts → src/utils/__tests__/format.test.ts
 ### 测试结构
 
 ```typescript
-describe('Component/Function Name', () => {
+describe("Component/Function Name", () => {
   // Setup
   beforeEach(() => {
     // 初始化
   });
-  
+
   // Happy Path
-  describe('正常情况', () => {
-    it('should work correctly', () => {
+  describe("正常情况", () => {
+    it("should work correctly", () => {
       // 测试
     });
   });
-  
+
   // Edge Cases
-  describe('边界情况', () => {
-    it('should handle empty input', () => {
+  describe("边界情况", () => {
+    it("should handle empty input", () => {
       // 测试
     });
   });
-  
+
   // Error Cases
-  describe('错误情况', () => {
-    it('should throw error on invalid input', () => {
+  describe("错误情况", () => {
+    it("should throw error on invalid input", () => {
       // 测试
     });
   });
-  
+
   // Cleanup
   afterEach(() => {
     // 清理
@@ -389,13 +412,13 @@ describe('Component/Function Name', () => {
 
 ```typescript
 // ✅ 好：描述性命名
-it('should merge two objects correctly', () => { });
-it('should handle null values', () => { });
-it('should throw error on invalid input', () => { });
+it("should merge two objects correctly", () => {});
+it("should handle null values", () => {});
+it("should throw error on invalid input", () => {});
 
 // ❌ 差：模糊命名
-it('test1', () => { });
-it('works', () => { });
+it("test1", () => {});
+it("works", () => {});
 ```
 
 ---
@@ -405,37 +428,46 @@ it('works', () => { });
 ### Review 清单
 
 #### 代码质量
+
 - [ ] 代码符合规范
 - [ ] 无明显性能问题
 - [ ] 无安全漏洞
 - [ ] 错误处理完善
 
 #### 测试
+
 - [ ] 有单元测试
 - [ ] 测试覆盖关键路径
 - [ ] 测试通过
 
 #### 文档
+
 - [ ] 有 JSDoc 注释
 - [ ] 复杂逻辑有说明
 - [ ] README 已更新
 
 #### Git
+
 - [ ] Commit 信息清晰
 - [ ] 无多余文件
 - [ ] 无敏感信息
 
 ### Review 评论
 
-```markdown
+````markdown
 <!-- ✅ 好：建设性意见 -->
+
 建议使用 `Array.filter()` 代替 `for` 循环，代码更简洁：
+
 ```typescript
-const filtered = items.filter(item => item.active);
+const filtered = items.filter((item) => item.active);
 ```
+````
 
 <!-- ❌ 差：不友好评论 -->
+
 这代码写得太烂了！
+
 ```
 
 ---
@@ -447,12 +479,14 @@ const filtered = items.filter(item => item.active);
 遵循语义化版本 (Semantic Versioning):
 
 ```
+
 主版本号.次版本号.修订号
 
 1.0.0 → 1.0.1 (修复 bug)
 1.0.1 → 1.1.0 (新功能)
 1.1.0 → 2.0.0 (破坏性变更)
-```
+
+````
 
 ### 发布流程
 
@@ -477,7 +511,7 @@ git push origin main --tags
 
 # 6. 发布
 npm publish
-```
+````
 
 ### CHANGELOG 格式
 
@@ -487,15 +521,19 @@ npm publish
 ## [1.0.1] - 2026-02-07
 
 ### Added
+
 - 添加会话搜索功能
 
 ### Fixed
+
 - 修复配置保存失败的问题
 
 ### Changed
+
 - 优化列表渲染性能
 
 ### Removed
+
 - 移除废弃的 API
 ```
 
@@ -529,10 +567,7 @@ npm publish
 
 ```json
 {
-  "extends": [
-    "eslint:recommended",
-    "plugin:@typescript-eslint/recommended"
-  ],
+  "extends": ["eslint:recommended", "plugin:@typescript-eslint/recommended"],
   "rules": {
     "no-console": "warn",
     "@typescript-eslint/no-explicit-any": "error",
@@ -564,4 +599,4 @@ pnpm test
 
 ---
 
-*文档生成时间: 2026-02-07*
+_文档生成时间: 2026-02-07_

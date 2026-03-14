@@ -6,8 +6,8 @@
  * Uses shared tools permissions components
  */
 import { html, nothing } from "lit";
-import type { PermissionsContentProps, ToolPolicyConfig, ToolProfileId } from "./types";
 import { renderToolsList, renderProfileSection } from "../tools/index.js";
+import type { PermissionsContentProps, ToolPolicyConfig, ToolProfileId } from "./types";
 
 /**
  * 工具权限默认作用域
@@ -24,7 +24,7 @@ export function renderToolsPermissionsSection(props: PermissionsContentProps) {
   // 获取当前作用域的配置
   const globalConfig = props.toolsConfig ?? {};
   const agentConfig = !isGlobal
-    ? props.agentToolsConfigs.find((a) => a.id === selectedScope)?.tools ?? {}
+    ? (props.agentToolsConfigs.find((a) => a.id === selectedScope)?.tools ?? {})
     : {};
   const currentConfig = isGlobal ? globalConfig : agentConfig;
 
@@ -114,7 +114,13 @@ function renderToolsScopeSelector(props: PermissionsContentProps, selectedScope:
               @click=${() => props.onToolsSelectAgent(agent.id)}
             >
               ${label}
-              ${agent.isDefault ? html`<span class="permissions-tab__badge">默认</span>` : nothing}
+              ${
+                agent.isDefault
+                  ? html`
+                      <span class="permissions-tab__badge">默认</span>
+                    `
+                  : nothing
+              }
             </button>
           `;
         })}

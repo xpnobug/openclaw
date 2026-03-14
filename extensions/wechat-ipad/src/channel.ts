@@ -53,9 +53,13 @@ import {
 import { collectWechatIpadStatusIssues } from "./infra/status-issues.js";
 import {
   normalizeWechatIpadTarget,
+  sendWechatIpadEmoji,
+  sendWechatIpadFile,
   sendWechatIpadLinkCard,
   sendWechatIpadMedia,
   sendWechatIpadText,
+  sendWechatIpadVoice,
+  forwardWechatIpadCdn,
 } from "./outbound/send.js";
 import type {
   ResolvedWechatIpadAccount,
@@ -620,11 +624,54 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     sendPayload: async ({ to, payload, accountId, cfg, replyToId }) => {
       const wechatIpadData =
         (payload.channelData?.["wechat-ipad"] as WechatIpadChannelData | undefined) ?? {};
+
+      // 表情消息路由
+      if (wechatIpadData.emoji) {
+        const result = await sendWechatIpadEmoji(to, wechatIpadData.emoji, {
+          accountId: accountId ?? undefined,
+          cfg: cfg as OpenClawConfig,
+        });
+        return {
+          channel: "wechat-ipad",
+          ok: result.ok,
+          messageId: result.messageId ?? "",
+          error: result.error ? new Error(result.error) : undefined,
+        };
+      }
+
+      // CDN 媒体转发路由
+      if (wechatIpadData.cdnForward) {
+        const result = await forwardWechatIpadCdn(to, wechatIpadData.cdnForward, {
+          accountId: accountId ?? undefined,
+          cfg: cfg as OpenClawConfig,
+        });
+        return {
+          channel: "wechat-ipad",
+          ok: result.ok,
+          messageId: result.messageId ?? "",
+          error: result.error ? new Error(result.error) : undefined,
+        };
+      }
+
+      // 链接卡片路由
       const linkCard = wechatIpadData.linkCard;
       if (!linkCard) {
         const text = payload.text ?? "";
         const mediaUrl = payload.mediaUrl ?? payload.mediaUrls?.[0];
         if (mediaUrl) {
+          // 语音消息路由
+          if (payload.audioAsVoice === true) {
+            const result = await sendWechatIpadVoice(to, mediaUrl, text, {
+              accountId: accountId ?? undefined,
+              cfg: cfg as OpenClawConfig,
+            });
+            return {
+              channel: "wechat-ipad",
+              ok: result.ok,
+              messageId: result.messageId ?? "",
+              error: result.error ? new Error(result.error) : undefined,
+            };
+          }
           const result = await sendWechatIpadMedia(to, mediaUrl, text, {
             accountId: accountId ?? undefined,
             cfg: cfg as OpenClawConfig,

@@ -24,10 +24,4 @@ export type {
 } from "./constants";
 
 // 常量
-export {
-  icons,
-  LABELS,
-  API_PROTOCOLS,
-  AUTH_MODES,
-  DEFAULT_PROVIDER_FORM,
-} from "./constants";
+export { icons, LABELS, API_PROTOCOLS, AUTH_MODES, DEFAULT_PROVIDER_FORM } from "./constants";

@@ -3,9 +3,9 @@
  * Permissions content component - main entry
  */
 import { html } from "lit";
-import type { PermissionsContentProps } from "./types";
 import { renderExecPermissionsContent } from "./exec-permissions";
 import { renderToolsPermissionsSection } from "./tools-permissions";
+import type { PermissionsContentProps } from "./types";
 
 // 重新导出类型供外部使用
 export type {
@@ -54,9 +54,11 @@ export function renderPermissionsContent(props: PermissionsContentProps) {
       </div>
 
       <!-- 内容区域 -->
-      ${props.activeTab === "exec"
-        ? renderExecPermissionsContent(props)
-        : renderToolsPermissionsSection(props)}
+      ${
+        props.activeTab === "exec"
+          ? renderExecPermissionsContent(props)
+          : renderToolsPermissionsSection(props)
+      }
     </div>
   `;
 }

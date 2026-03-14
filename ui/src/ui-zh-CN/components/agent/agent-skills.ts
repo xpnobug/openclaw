@@ -6,7 +6,6 @@
  * Reuses the skills management layout
  */
 import { html, nothing } from "lit";
-import { renderSkillsContent } from "../skills-content";
 import type {
   SkillsContentProps,
   SkillStatusReport,
@@ -22,6 +21,7 @@ import type {
   EditableSkillSource,
   SkillEditorMode,
 } from "../../types/skills-config";
+import { renderSkillsContent } from "../skills-content";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions

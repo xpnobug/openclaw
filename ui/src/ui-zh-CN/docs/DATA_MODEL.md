@@ -28,54 +28,54 @@ type ModelConfigState = {
   client: GatewayBrowserClient | null;
   connected: boolean;
   lastError: string | null;
-  
+
   // 模型配置 (11个字段)
   modelConfigLoading: boolean;
   modelConfigSaving: boolean;
   modelConfigProviders: Record<string, ProviderConfig>;
   modelConfigAgentDefaults: AgentDefaults;
   // ... 更多
-  
+
   // 会话管理 (3个字段)
   agentSessionsLoading: boolean;
   agentSessionsResult: SessionsListResult | null;
   agentSessionsError: string | null;
-  
+
   // 权限管理 (7个字段)
   permissionsLoading: boolean;
   permissionsSaving: boolean;
   // ... 更多
-  
+
   // 工具权限 (6个字段)
   toolsConfig: ToolsConfig | null;
   // ... 更多
-  
+
   // 工作区文件 (11个字段)
   workspaceFiles: WorkspaceFileInfo[];
   // ... 更多
-  
+
   // 定时任务 (13个字段)
   cronLoading: boolean;
   cronJobs: CronJob[];
   // ... 更多
-  
+
   // 其他状态 (10+ 个字段)
   // ...
-}
+};
 ```
 
 ### 状态统计
 
-| 模块 | 字段数 | 占比 | 说明 |
-|------|--------|------|------|
-| **连接状态** | 3 | 5% | client, connected, lastError |
-| **模型配置** | 11 | 18% | 供应商、Agent、Gateway 配置 |
-| **会话管理** | 3 | 5% | 会话列表、加载、错误 |
-| **权限管理** | 7 | 11% | Exec 权限、工具权限 |
-| **工具权限** | 6 | 10% | 全局工具、Agent 工具 |
-| **工作区文件** | 11 | 18% | 文件列表、编辑器状态 |
-| **定时任务** | 13 | 21% | 任务列表、表单、执行历史 |
-| **其他** | 8 | 13% | 弹窗、表单、UI 状态 |
+| 模块           | 字段数 | 占比 | 说明                         |
+| -------------- | ------ | ---- | ---------------------------- |
+| **连接状态**   | 3      | 5%   | client, connected, lastError |
+| **模型配置**   | 11     | 18%  | 供应商、Agent、Gateway 配置  |
+| **会话管理**   | 3      | 5%   | 会话列表、加载、错误         |
+| **权限管理**   | 7      | 11%  | Exec 权限、工具权限          |
+| **工具权限**   | 6      | 10%  | 全局工具、Agent 工具         |
+| **工作区文件** | 11     | 18%  | 文件列表、编辑器状态         |
+| **定时任务**   | 13     | 21%  | 任务列表、表单、执行历史     |
+| **其他**       | 8      | 13%  | 弹窗、表单、UI 状态          |
 
 **总计**: 62+ 个状态字段
 
@@ -105,6 +105,7 @@ workspaceFiles: WorkspaceFileInfo[];
 ```
 
 **特点**:
+
 - 来自 Gateway RPC 响应
 - 需要缓存
 - 需要同步
@@ -142,6 +143,7 @@ cronDeleteConfirmJobId: string | null;
 ```
 
 **特点**:
+
 - 本地状态，不需要同步
 - 可以持久化到 localStorage
 - 影响用户体验
@@ -165,6 +167,7 @@ workspaceOriginalContent: string;
 ```
 
 **特点**:
+
 - 临时数据
 - 需要自动保存（避免丢失）
 - 需要脏检查（是否修改）
@@ -193,6 +196,7 @@ get sessionCount(): number {
 ```
 
 **特点**:
+
 - 不需要存储
 - 实时计算
 - 可以缓存计算结果
@@ -209,7 +213,7 @@ modelConfigOriginal: {
   providers: Record<string, ProviderConfig>;
   agentDefaults: AgentDefaults;
   gateway: GatewayConfig;
-};
+}
 
 // 当前表单数据
 modelConfigProviders: Record<string, ProviderConfig>;
@@ -312,6 +316,7 @@ async function loadModelConfig(state: ModelConfigState) {
 ```
 
 **问题**:
+
 - ❌ 无缓存，每次都重新加载
 - ❌ 无乐观更新
 - ❌ 无请求去重
@@ -330,8 +335,8 @@ handleSave() {
 async function saveModelConfig(state: ModelConfigState) {
   state.modelConfigSaving = true;
   try {
-    await state.client.request("config.apply", { 
-      config: buildConfig(state) 
+    await state.client.request("config.apply", {
+      config: buildConfig(state)
     });
     state.modelConfigOriginal = { ...state };
   } finally {
@@ -344,6 +349,7 @@ async function saveModelConfig(state: ModelConfigState) {
 ```
 
 **问题**:
+
 - ❌ 保存失败后状态不一致
 - ❌ 无保存成功提示
 - ❌ 无保存失败回滚
@@ -373,6 +379,7 @@ async function deleteSession(state: ModelConfigState, sessionKey: string) {
 ```
 
 **问题**:
+
 - ❌ 无乐观更新（先删除 UI，再发请求）
 - ❌ 删除失败后需要重新加载
 - ❌ 无删除成功提示
@@ -383,13 +390,13 @@ async function deleteSession(state: ModelConfigState, sessionKey: string) {
 
 ### RPC 调用统计
 
-| 模块 | RPC 方法数 | 调用次数 | 说明 |
-|------|-----------|----------|------|
-| **配置管理** | 3 | 5 | config.get, config.apply, config.patch |
-| **会话管理** | 3 | 4 | sessions.list, sessions.patch, sessions.delete |
-| **定时任务** | 6 | 8 | cron.list, cron.add, cron.update, cron.delete, cron.run, cron.runs |
-| **权限管理** | 2 | 2 | permissions.get, permissions.save |
-| **工作区** | 2 | 1 | workspace.files, workspace.save |
+| 模块         | RPC 方法数 | 调用次数 | 说明                                                               |
+| ------------ | ---------- | -------- | ------------------------------------------------------------------ |
+| **配置管理** | 3          | 5        | config.get, config.apply, config.patch                             |
+| **会话管理** | 3          | 4        | sessions.list, sessions.patch, sessions.delete                     |
+| **定时任务** | 6          | 8        | cron.list, cron.add, cron.update, cron.delete, cron.run, cron.runs |
+| **权限管理** | 2          | 2        | permissions.get, permissions.save                                  |
+| **工作区**   | 2          | 1        | workspace.files, workspace.save                                    |
 
 **总计**: 22 个 RPC 调用点
 
@@ -409,6 +416,7 @@ await client.request("config.apply", { config });
 ```
 
 **问题**:
+
 - ❌ 无版本控制（并发修改冲突）
 - ❌ 无增量更新（每次保存整个配置）
 
@@ -428,6 +436,7 @@ const sessions = await client.request("sessions.list");
 ```
 
 **问题**:
+
 - ❌ 无乐观更新
 - ❌ 重复请求浪费资源
 
@@ -436,6 +445,7 @@ const sessions = await client.request("sessions.list");
 ### RPC 错误处理
 
 **当前方式**:
+
 ```typescript
 try {
   await client.request("config.apply", { config });
@@ -445,17 +455,19 @@ try {
 ```
 
 **问题**:
+
 - ❌ 错误信息不友好（直接显示原始错误）
 - ❌ 无错误分类（网络错误、业务错误、权限错误）
 - ❌ 无重试机制
 
 **优化方案**:
+
 ```typescript
 class RpcError extends Error {
   constructor(
     public code: string,
     public message: string,
-    public details?: unknown
+    public details?: unknown,
   ) {
     super(message);
   }
@@ -468,7 +480,7 @@ async function requestWithRetry(method: string, params: any, retries = 3) {
     } catch (err) {
       if (i === retries - 1) throw err;
       if (isNetworkError(err)) {
-        await sleep(1000 * Math.pow(2, i));  // 指数退避
+        await sleep(1000 * Math.pow(2, i)); // 指数退避
         continue;
       }
       throw err;
@@ -501,6 +513,7 @@ agentSessionsError: string | null;
 ```
 
 **问题**:
+
 - 难以理解状态结构
 - 难以管理状态生命周期
 - 难以实现状态持久化
@@ -514,7 +527,7 @@ type ModelConfigState = {
     connected: boolean;
     error: string | null;
   };
-  
+
   modelConfig: {
     loading: boolean;
     saving: boolean;
@@ -525,13 +538,13 @@ type ModelConfigState = {
     };
     original: { ... } | null;
   };
-  
+
   sessions: {
     loading: boolean;
     error: string | null;
     data: SessionsListResult | null;
   };
-  
+
   // ... 其他模块
 }
 ```
@@ -543,6 +556,7 @@ type ModelConfigState = {
 **现状**: 无法撤销/重做
 
 **问题**:
+
 - 用户改错了无法撤销
 - 无法查看修改历史
 
@@ -557,27 +571,27 @@ type StateHistory<T> = {
 
 function undo<T>(history: StateHistory<T>): StateHistory<T> {
   if (history.past.length === 0) return history;
-  
+
   const previous = history.past[history.past.length - 1];
   const newPast = history.past.slice(0, -1);
-  
+
   return {
     past: newPast,
     present: previous,
-    future: [history.present, ...history.future]
+    future: [history.present, ...history.future],
   };
 }
 
 function redo<T>(history: StateHistory<T>): StateHistory<T> {
   if (history.future.length === 0) return history;
-  
+
   const next = history.future[0];
   const newFuture = history.future.slice(1);
-  
+
   return {
     past: [...history.past, history.present],
     present: next,
-    future: newFuture
+    future: newFuture,
   };
 }
 ```
@@ -589,6 +603,7 @@ function redo<T>(history: StateHistory<T>): StateHistory<T> {
 **现状**: 刷新页面丢失所有修改
 
 **问题**:
+
 - 用户体验极差
 - 容易导致数据丢失
 
@@ -603,15 +618,15 @@ watch(state, (newState) => {
     cronForm: newState.cronForm,
     workspaceEditorContent: newState.workspaceEditorContent,
   };
-  
-  localStorage.setItem('draft-state', JSON.stringify(draft));
+
+  localStorage.setItem("draft-state", JSON.stringify(draft));
   showDraftIndicator();
 });
 
 // 页面加载时恢复
 onMounted(() => {
-  const draft = localStorage.getItem('draft-state');
-  if (draft && confirm('发现未保存的修改，是否恢复？')) {
+  const draft = localStorage.getItem("draft-state");
+  if (draft && confirm("发现未保存的修改，是否恢复？")) {
     const data = JSON.parse(draft);
     Object.assign(state, data);
   }
@@ -619,7 +634,7 @@ onMounted(() => {
 
 // 保存成功后清除
 onSaveSuccess(() => {
-  localStorage.removeItem('draft-state');
+  localStorage.removeItem("draft-state");
   hideDraftIndicator();
 });
 ```
@@ -631,6 +646,7 @@ onSaveSuccess(() => {
 ### 当前状态: 无缓存
 
 **问题**:
+
 - 重复请求相同数据
 - 切换面板时重新加载
 - 浪费网络资源
@@ -643,36 +659,36 @@ onSaveSuccess(() => {
 type CacheEntry<T> = {
   data: T;
   timestamp: number;
-  ttl: number;  // 过期时间（毫秒）
+  ttl: number; // 过期时间（毫秒）
 };
 
 class MemoryCache {
   private cache = new Map<string, CacheEntry<any>>();
-  
+
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
     if (!entry) return null;
-    
+
     if (Date.now() - entry.timestamp > entry.ttl) {
       this.cache.delete(key);
       return null;
     }
-    
+
     return entry.data;
   }
-  
+
   set<T>(key: string, data: T, ttl = 60000) {
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
-      ttl
+      ttl,
     });
   }
-  
+
   invalidate(key: string) {
     this.cache.delete(key);
   }
-  
+
   clear() {
     this.cache.clear();
   }
@@ -682,19 +698,19 @@ class MemoryCache {
 const cache = new MemoryCache();
 
 async function loadSessions(state: ModelConfigState) {
-  const cacheKey = 'sessions:list';
+  const cacheKey = "sessions:list";
   const cached = cache.get<SessionsListResult>(cacheKey);
-  
+
   if (cached) {
     state.agentSessionsResult = cached;
     return;
   }
-  
+
   state.agentSessionsLoading = true;
   try {
     const result = await state.client.request("sessions.list");
     state.agentSessionsResult = result;
-    cache.set(cacheKey, result, 60000);  // 缓存 1 分钟
+    cache.set(cacheKey, result, 60000); // 缓存 1 分钟
   } finally {
     state.agentSessionsLoading = false;
   }
@@ -703,8 +719,8 @@ async function loadSessions(state: ModelConfigState) {
 // 删除会话后，清除缓存
 async function deleteSession(state: ModelConfigState, sessionKey: string) {
   await state.client.request("sessions.delete", { key: sessionKey });
-  cache.invalidate('sessions:list');  // 清除缓存
-  await loadSessions(state);  // 重新加载
+  cache.invalidate("sessions:list"); // 清除缓存
+  await loadSessions(state); // 重新加载
 }
 ```
 
@@ -715,17 +731,17 @@ async function deleteSession(state: ModelConfigState, sessionKey: string) {
 ```typescript
 class RequestDeduplicator {
   private pending = new Map<string, Promise<any>>();
-  
+
   async request<T>(key: string, fn: () => Promise<T>): Promise<T> {
     // 如果已有相同请求在进行中，返回同一个 Promise
     if (this.pending.has(key)) {
       return this.pending.get(key)!;
     }
-    
+
     const promise = fn().finally(() => {
       this.pending.delete(key);
     });
-    
+
     this.pending.set(key, promise);
     return promise;
   }
@@ -735,7 +751,7 @@ class RequestDeduplicator {
 const deduplicator = new RequestDeduplicator();
 
 async function loadSessions(state: ModelConfigState) {
-  return deduplicator.request('sessions:list', async () => {
+  return deduplicator.request("sessions:list", async () => {
     state.agentSessionsLoading = true;
     try {
       const result = await state.client.request("sessions.list");
@@ -749,8 +765,8 @@ async function loadSessions(state: ModelConfigState) {
 
 // 多次调用只会发送一次请求
 loadSessions(state);
-loadSessions(state);  // 复用第一次的请求
-loadSessions(state);  // 复用第一次的请求
+loadSessions(state); // 复用第一次的请求
+loadSessions(state); // 复用第一次的请求
 ```
 
 ---
@@ -764,15 +780,15 @@ async function deleteSession(state: ModelConfigState, sessionKey: string) {
   if (original) {
     state.agentSessionsResult = {
       ...original,
-      sessions: original.sessions.filter(s => s.key !== sessionKey),
-      count: original.count - 1
+      sessions: original.sessions.filter((s) => s.key !== sessionKey),
+      count: original.count - 1,
     };
   }
-  
+
   try {
     // 2. 发送请求
     await state.client.request("sessions.delete", { key: sessionKey });
-    
+
     // 3. 成功：显示提示
     showToast({ message: "删除成功", type: "success" });
   } catch (err) {
@@ -789,12 +805,12 @@ async function deleteSession(state: ModelConfigState, sessionKey: string) {
 
 ### 持久化策略
 
-| 数据类型 | 持久化方式 | TTL | 说明 |
-|----------|-----------|-----|------|
-| **表单草稿** | localStorage | 永久 | 避免数据丢失 |
-| **UI 状态** | localStorage | 永久 | 展开状态、选中项 |
-| **缓存数据** | 内存 | 1-5 分钟 | 减少请求 |
-| **配置数据** | Gateway | 永久 | 持久化到文件 |
+| 数据类型     | 持久化方式   | TTL      | 说明             |
+| ------------ | ------------ | -------- | ---------------- |
+| **表单草稿** | localStorage | 永久     | 避免数据丢失     |
+| **UI 状态**  | localStorage | 永久     | 展开状态、选中项 |
+| **缓存数据** | 内存         | 1-5 分钟 | 减少请求         |
+| **配置数据** | Gateway      | 永久     | 持久化到文件     |
 
 ### 实现方案
 
@@ -805,23 +821,23 @@ class PersistenceManager {
   saveDraft(key: string, data: unknown) {
     localStorage.setItem(`draft:${key}`, JSON.stringify(data));
   }
-  
+
   // 加载草稿
   loadDraft<T>(key: string): T | null {
     const json = localStorage.getItem(`draft:${key}`);
     return json ? JSON.parse(json) : null;
   }
-  
+
   // 清除草稿
   clearDraft(key: string) {
     localStorage.removeItem(`draft:${key}`);
   }
-  
+
   // 保存 UI 状态
   saveUIState(key: string, data: unknown) {
     localStorage.setItem(`ui:${key}`, JSON.stringify(data));
   }
-  
+
   // 加载 UI 状态
   loadUIState<T>(key: string): T | null {
     const json = localStorage.getItem(`ui:${key}`);
@@ -833,13 +849,16 @@ class PersistenceManager {
 const persistence = new PersistenceManager();
 
 // 自动保存表单草稿
-watch(() => state.cronForm, (form) => {
-  persistence.saveDraft('cron-form', form);
-});
+watch(
+  () => state.cronForm,
+  (form) => {
+    persistence.saveDraft("cron-form", form);
+  },
+);
 
 // 页面加载时恢复
 onMounted(() => {
-  const draft = persistence.loadDraft('cron-form');
+  const draft = persistence.loadDraft("cron-form");
   if (draft) {
     state.cronForm = draft;
   }
@@ -847,7 +866,7 @@ onMounted(() => {
 
 // 保存成功后清除草稿
 onSaveSuccess(() => {
-  persistence.clearDraft('cron-form');
+  persistence.clearDraft("cron-form");
 });
 ```
 
@@ -864,23 +883,22 @@ onSaveSuccess(() => {
 
 ```typescript
 // 监听表单变化
-watch([
-  () => state.modelConfig.data,
-  () => state.cronForm,
-  () => state.workspaceEditorContent
-], () => {
-  persistence.saveDraft('config', {
-    modelConfig: state.modelConfig.data,
-    cronForm: state.cronForm,
-    workspaceEditorContent: state.workspaceEditorContent
-  });
-  showDraftIndicator();
-});
+watch(
+  [() => state.modelConfig.data, () => state.cronForm, () => state.workspaceEditorContent],
+  () => {
+    persistence.saveDraft("config", {
+      modelConfig: state.modelConfig.data,
+      cronForm: state.cronForm,
+      workspaceEditorContent: state.workspaceEditorContent,
+    });
+    showDraftIndicator();
+  },
+);
 
 // 页面加载时恢复
 onMounted(() => {
-  const draft = persistence.loadDraft('config');
-  if (draft && confirm('发现未保存的修改，是否恢复？')) {
+  const draft = persistence.loadDraft("config");
+  if (draft && confirm("发现未保存的修改，是否恢复？")) {
     Object.assign(state, draft);
   }
 });
@@ -896,16 +914,12 @@ onMounted(() => {
 ```typescript
 const cache = new MemoryCache();
 
-async function cachedRequest<T>(
-  method: string, 
-  params: any, 
-  ttl = 60000
-): Promise<T> {
+async function cachedRequest<T>(method: string, params: any, ttl = 60000): Promise<T> {
   const key = `${method}:${JSON.stringify(params)}`;
   const cached = cache.get<T>(key);
-  
+
   if (cached) return cached;
-  
+
   const result = await client.request<T>(method, params);
   cache.set(key, result, ttl);
   return result;
@@ -923,22 +937,22 @@ async function cachedRequest<T>(
 class ErrorHandler {
   handle(error: Error, context: string) {
     console.error(`[${context}]`, error);
-    
+
     const message = this.getUserMessage(error);
     showToast({ message, type: "error" });
   }
-  
+
   getUserMessage(error: Error): string {
-    if (error.message.includes('network')) {
-      return '网络连接失败，请检查网络';
+    if (error.message.includes("network")) {
+      return "网络连接失败，请检查网络";
     }
-    if (error.message.includes('timeout')) {
-      return '请求超时，请重试';
+    if (error.message.includes("timeout")) {
+      return "请求超时，请重试";
     }
-    if (error.message.includes('permission')) {
-      return '权限不足，请联系管理员';
+    if (error.message.includes("permission")) {
+      return "权限不足，请联系管理员";
     }
-    return '操作失败，请重试';
+    return "操作失败，请重试";
   }
 }
 ```
@@ -970,21 +984,23 @@ class ErrorHandler {
 
 ## 📊 数据模型评分
 
-| 维度 | 评分 | 说明 |
-|------|------|------|
+| 维度           | 评分   | 说明               |
+| -------------- | ------ | ------------------ |
 | **结构清晰度** | ⭐⭐⭐ | 状态分散，难以理解 |
-| **可维护性** | ⭐⭐⭐ | 状态字段过多 |
-| **性能** | ⭐⭐ | 无缓存，重复请求 |
-| **容错性** | ⭐⭐ | 错误处理不完善 |
-| **持久化** | ⭐ | 无自动保存 |
+| **可维护性**   | ⭐⭐⭐ | 状态字段过多       |
+| **性能**       | ⭐⭐   | 无缓存，重复请求   |
+| **容错性**     | ⭐⭐   | 错误处理不完善     |
+| **持久化**     | ⭐     | 无自动保存         |
 
 **总体评价**: ⭐⭐⭐ (3/5)
 
 **优势**:
+
 - ✅ 类型安全
 - ✅ 数据完整
 
 **不足**:
+
 - ❌ 状态分散，难以管理
 - ❌ 无缓存，性能差
 - ❌ 无持久化，容易丢失数据

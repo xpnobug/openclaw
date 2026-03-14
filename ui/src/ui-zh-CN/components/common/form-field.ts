@@ -303,22 +303,32 @@ export function renderFormField(props: FormFieldProps): TemplateResult {
 
   switch (field.type) {
     case "text":
-      return renderTextField(field.label, value as string | undefined, (v) => onChange(v || undefined), {
-        placeholder: field.placeholder,
-        required: field.required,
-        disabled: field.disabled,
-        description: field.description,
-        className,
-      });
+      return renderTextField(
+        field.label,
+        value as string | undefined,
+        (v) => onChange(v || undefined),
+        {
+          placeholder: field.placeholder,
+          required: field.required,
+          disabled: field.disabled,
+          description: field.description,
+          className,
+        },
+      );
 
     case "password":
-      return renderPasswordField(field.label, value as string | undefined, (v) => onChange(v || undefined), {
-        placeholder: field.placeholder,
-        required: field.required,
-        disabled: field.disabled,
-        description: field.description,
-        className,
-      });
+      return renderPasswordField(
+        field.label,
+        value as string | undefined,
+        (v) => onChange(v || undefined),
+        {
+          placeholder: field.placeholder,
+          required: field.required,
+          disabled: field.disabled,
+          description: field.description,
+          className,
+        },
+      );
 
     case "number":
       return renderNumberField(field.label, value as number | undefined, onChange, {

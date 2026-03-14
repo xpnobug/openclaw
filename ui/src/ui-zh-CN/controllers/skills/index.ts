@@ -40,11 +40,7 @@ export {
 } from "./loader";
 
 // 技能操作
-export {
-  updateSkillEnabled,
-  saveSkillApiKey,
-  installSkillDependency,
-} from "./actions";
+export { updateSkillEnabled, saveSkillApiKey, installSkillDependency } from "./actions";
 
 // UI 状态
 export {

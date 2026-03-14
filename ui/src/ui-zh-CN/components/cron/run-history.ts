@@ -3,8 +3,8 @@
  * Cron run history components
  */
 import { html, nothing } from "lit";
-import type { CronContentProps } from "../../types/cron-config";
 import { formatMs } from "../../../ui/format";
+import type { CronContentProps } from "../../types/cron-config";
 import { LABELS, icons } from "./constants";
 
 /**

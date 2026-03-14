@@ -3,6 +3,7 @@
  * Exec permissions components
  */
 import { html, nothing } from "lit";
+import { EXEC_APPROVALS_DEFAULT_SCOPE, SECURITY_OPTIONS, ASK_OPTIONS } from "./constants";
 import type {
   PermissionsContentProps,
   ExecApprovalsFile,
@@ -10,11 +11,6 @@ import type {
   ExecApprovalsAllowlistEntry,
   ExecSecurity,
 } from "./types";
-import {
-  EXEC_APPROVALS_DEFAULT_SCOPE,
-  SECURITY_OPTIONS,
-  ASK_OPTIONS,
-} from "./constants";
 import { resolveDefaults, formatAgo } from "./utils";
 
 /**
@@ -75,14 +71,21 @@ export function renderExecTargetSection(props: PermissionsContentProps) {
               />
               <span class="permissions-radio__mark"></span>
               <span class="permissions-radio__text">远程节点</span>
-              ${!hasNodes ? html`<span class="permissions-radio__hint">（无可用节点）</span>` : nothing}
+              ${
+                !hasNodes
+                  ? html`
+                      <span class="permissions-radio__hint">（无可用节点）</span>
+                    `
+                  : nothing
+              }
             </label>
           </div>
         </div>
 
         <!-- 节点选择（仅在远程节点模式下显示） -->
-        ${!isGateway
-          ? html`
+        ${
+          !isGateway
+            ? html`
               <div class="permissions-target__node">
                 <label class="permissions-target__label">选择节点</label>
                 <select
@@ -92,7 +95,9 @@ export function renderExecTargetSection(props: PermissionsContentProps) {
                     const target = event.target as HTMLSelectElement;
                     const nodeId = target.value || null;
                     if (props.dirty) {
-                      const confirmed = confirm("有未保存的更改，切换节点将丢失这些更改。是否继续？");
+                      const confirmed = confirm(
+                        "有未保存的更改，切换节点将丢失这些更改。是否继续？",
+                      );
                       if (!confirmed) {
                         target.value = props.execTargetNodeId ?? "";
                         return;
@@ -110,39 +115,43 @@ export function renderExecTargetSection(props: PermissionsContentProps) {
                 </select>
               </div>
             `
-          : nothing}
+            : nothing
+        }
 
         <!-- 目标说明 -->
         <div class="permissions-target__info">
-          ${isGateway
-            ? html`
-                <div class="permissions-info-box">
-                  <span class="permissions-info-box__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="16" x2="12" y2="12"></line>
-                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                  </span>
-                  <span class="permissions-info-box__text">
-                    <strong>本地网关</strong>：配置在本机执行命令的权限。所有通过此网关执行的命令都将受此配置控制。
-                  </span>
-                </div>
-              `
-            : html`
-                <div class="permissions-info-box">
-                  <span class="permissions-info-box__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <line x1="12" y1="16" x2="12" y2="12"></line>
-                      <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                    </svg>
-                  </span>
-                  <span class="permissions-info-box__text">
-                    <strong>远程节点</strong>：配置在远程设备执行命令的权限。选择的节点必须支持 exec approvals 功能。
-                  </span>
-                </div>
-              `}
+          ${
+            isGateway
+              ? html`
+                  <div class="permissions-info-box">
+                    <span class="permissions-info-box__icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </span>
+                    <span class="permissions-info-box__text">
+                      <strong>本地网关</strong>：配置在本机执行命令的权限。所有通过此网关执行的命令都将受此配置控制。
+                    </span>
+                  </div>
+                `
+              : html`
+                  <div class="permissions-info-box">
+                    <span class="permissions-info-box__icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                      </svg>
+                    </span>
+                    <span class="permissions-info-box__text">
+                      <strong>远程节点</strong>：配置在远程设备执行命令的权限。选择的节点必须支持 exec approvals
+                      功能。
+                    </span>
+                  </div>
+                `
+          }
         </div>
       </div>
     </div>
@@ -171,15 +180,22 @@ export function renderExecPermissionsContent(props: PermissionsContentProps) {
     <!-- 目标选择器 -->
     ${renderExecTargetSection(props)}
 
-    ${!ready
-      ? html`
+    ${
+      !ready
+        ? html`
           <div class="permissions-empty">
-            ${props.loading
-              ? html`<p>正在加载权限配置...</p>`
-              : html`<p>权限配置加载中，请稍候...</p>`}
+            ${
+              props.loading
+                ? html`
+                    <p>正在加载权限配置...</p>
+                  `
+                : html`
+                    <p>权限配置加载中，请稍候...</p>
+                  `
+            }
           </div>
         `
-      : html`
+        : html`
           <!-- Agent 选择器 -->
           ${renderAgentSelector(props, selectedScope)}
 
@@ -188,7 +204,8 @@ export function renderExecPermissionsContent(props: PermissionsContentProps) {
 
           <!-- 允许列表（仅非默认 Agent 显示） -->
           ${!isDefaults ? renderAllowlistSection(props, form, selectedScope) : nothing}
-        `}
+        `
+    }
   `;
 }
 
@@ -208,8 +225,9 @@ function renderAgentSelector(props: PermissionsContentProps, selectedScope: stri
           <p class="permissions-section__desc">选择要配置的 Agent，或配置全局默认设置。</p>
         </div>
         <div class="permissions-section__actions">
-          ${!hasWildcard
-            ? html`
+          ${
+            !hasWildcard
+              ? html`
                 <button
                   class="mc-btn mc-btn--sm"
                   ?disabled=${props.saving}
@@ -219,7 +237,8 @@ function renderAgentSelector(props: PermissionsContentProps, selectedScope: stri
                   + 通配符 (*)
                 </button>
               `
-            : nothing}
+              : nothing
+          }
           <button
             class="mc-btn mc-btn--sm"
             ?disabled=${props.saving}
@@ -241,8 +260,9 @@ function renderAgentSelector(props: PermissionsContentProps, selectedScope: stri
         >
           全局默认
         </button>
-        ${hasWildcard
-          ? html`
+        ${
+          hasWildcard
+            ? html`
               <button
                 class="permissions-tab permissions-tab--wildcard ${isWildcardSelected ? "permissions-tab--active" : ""}"
                 @click=${() => props.onSelectAgent("*")}
@@ -251,7 +271,8 @@ function renderAgentSelector(props: PermissionsContentProps, selectedScope: stri
                 <span class="permissions-tab__badge">匹配所有</span>
               </button>
             `
-          : nothing}
+            : nothing
+        }
         ${props.agents
           .filter((agent) => agent.id !== "*")
           .map((agent) => {
@@ -264,10 +285,20 @@ function renderAgentSelector(props: PermissionsContentProps, selectedScope: stri
                 @click=${() => props.onSelectAgent(agent.id)}
               >
                 ${label}
-                ${agent.isDefault ? html`<span class="permissions-tab__badge">默认</span>` : nothing}
-                ${hasConfig && !agent.isDefault
-                  ? html`<span class="permissions-tab__badge permissions-tab__badge--config">已配置</span>`
-                  : nothing}
+                ${
+                  agent.isDefault
+                    ? html`
+                        <span class="permissions-tab__badge">默认</span>
+                      `
+                    : nothing
+                }
+                ${
+                  hasConfig && !agent.isDefault
+                    ? html`
+                        <span class="permissions-tab__badge permissions-tab__badge--config">已配置</span>
+                      `
+                    : nothing
+                }
               </button>
             `;
           })}
@@ -287,7 +318,7 @@ function renderPolicySection(
   isDefaults: boolean,
 ) {
   const agent = !isDefaults
-    ? ((form?.agents ?? {})[selectedScope] as Record<string, unknown> | undefined) ?? {}
+    ? (((form?.agents ?? {})[selectedScope] as Record<string, unknown> | undefined) ?? {})
     : {};
   const basePath = isDefaults ? ["defaults"] : ["agents", selectedScope];
 
@@ -295,11 +326,12 @@ function renderPolicySection(
   const agentAsk = typeof agent.ask === "string" ? agent.ask : undefined;
   const agentAskFallback = typeof agent.askFallback === "string" ? agent.askFallback : undefined;
 
-  const securityValue = isDefaults ? defaults.security : agentSecurity ?? "__default__";
-  const askValue = isDefaults ? defaults.ask : agentAsk ?? "__default__";
-  const askFallbackValue = isDefaults ? defaults.askFallback : agentAskFallback ?? "__default__";
+  const securityValue = isDefaults ? defaults.security : (agentSecurity ?? "__default__");
+  const askValue = isDefaults ? defaults.ask : (agentAsk ?? "__default__");
+  const askFallbackValue = isDefaults ? defaults.askFallback : (agentAskFallback ?? "__default__");
 
-  const autoOverride = typeof agent.autoAllowSkills === "boolean" ? agent.autoAllowSkills : undefined;
+  const autoOverride =
+    typeof agent.autoAllowSkills === "boolean" ? agent.autoAllowSkills : undefined;
   const autoEffective = autoOverride ?? defaults.autoAllowSkills;
   const autoIsDefault = autoOverride == null;
 
@@ -313,15 +345,18 @@ function renderPolicySection(
         <div>
           <h4 class="permissions-section__title">安全策略</h4>
           <p class="permissions-section__desc">
-            ${isDefaults
-              ? "配置全局默认的安全策略。"
-              : isWildcard
-                ? "配置通配符规则，匹配所有未单独配置的 Agent。"
-                : `配置 ${selectedScope} Agent 的安全策略。`}
+            ${
+              isDefaults
+                ? "配置全局默认的安全策略。"
+                : isWildcard
+                  ? "配置通配符规则，匹配所有未单独配置的 Agent。"
+                  : `配置 ${selectedScope} Agent 的安全策略。`
+            }
           </p>
         </div>
-        ${hasAgentConfig
-          ? html`
+        ${
+          hasAgentConfig
+            ? html`
               <button
                 class="mc-btn mc-btn--sm mc-btn--danger"
                 ?disabled=${props.saving}
@@ -334,7 +369,8 @@ function renderPolicySection(
                 删除配置
               </button>
             `
-          : nothing}
+            : nothing
+        }
       </div>
 
       <div class="permissions-policy-grid">
@@ -359,11 +395,13 @@ function renderPolicySection(
               }
             }}
           >
-            ${!isDefaults
-              ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
+            ${
+              !isDefaults
+                ? html`<option value="__default__" ?selected=${securityValue === "__default__"}>
                   使用默认 (${defaults.security})
                 </option>`
-              : nothing}
+                : nothing
+            }
             ${SECURITY_OPTIONS.map(
               (option) =>
                 html`<option value=${option.value} ?selected=${securityValue === option.value}>
@@ -394,11 +432,13 @@ function renderPolicySection(
               }
             }}
           >
-            ${!isDefaults
-              ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
+            ${
+              !isDefaults
+                ? html`<option value="__default__" ?selected=${askValue === "__default__"}>
                   使用默认 (${defaults.ask})
                 </option>`
-              : nothing}
+                : nothing
+            }
             ${ASK_OPTIONS.map(
               (option) =>
                 html`<option value=${option.value} ?selected=${askValue === option.value}>
@@ -429,11 +469,13 @@ function renderPolicySection(
               }
             }}
           >
-            ${!isDefaults
-              ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
+            ${
+              !isDefaults
+                ? html`<option value="__default__" ?selected=${askFallbackValue === "__default__"}>
                   使用默认 (${defaults.askFallback})
                 </option>`
-              : nothing}
+                : nothing
+            }
             ${SECURITY_OPTIONS.map(
               (option) =>
                 html`<option value=${option.value} ?selected=${askFallbackValue === option.value}>
@@ -448,11 +490,13 @@ function renderPolicySection(
           <div class="permissions-policy-item__header">
             <span class="permissions-policy-item__title">自动允许技能 CLI</span>
             <span class="permissions-policy-item__desc">
-              ${isDefaults
-                ? "自动允许 Gateway 注册的技能可执行文件。"
-                : autoIsDefault
-                  ? `使用默认 (${defaults.autoAllowSkills ? "开启" : "关闭"})`
-                  : `覆盖 (${autoEffective ? "开启" : "关闭"})`}
+              ${
+                isDefaults
+                  ? "自动允许 Gateway 注册的技能可执行文件。"
+                  : autoIsDefault
+                    ? `使用默认 (${defaults.autoAllowSkills ? "开启" : "关闭"})`
+                    : `覆盖 (${autoEffective ? "开启" : "关闭"})`
+              }
             </span>
           </div>
           <div class="permissions-checkbox-row">
@@ -468,8 +512,9 @@ function renderPolicySection(
               />
               <span>启用</span>
             </label>
-            ${!isDefaults && !autoIsDefault
-              ? html`
+            ${
+              !isDefaults && !autoIsDefault
+                ? html`
                   <button
                     class="mc-btn mc-btn--sm"
                     ?disabled=${props.saving}
@@ -478,7 +523,8 @@ function renderPolicySection(
                     使用默认
                   </button>
                 `
-              : nothing}
+                : nothing
+            }
           </div>
         </div>
       </div>
@@ -516,16 +562,18 @@ function renderAllowlistSection(
       </div>
 
       <div class="permissions-allowlist">
-        ${allowlist.length === 0
-          ? html`
-              <div class="permissions-allowlist__empty">
-                <p>暂无允许列表规则。</p>
-                <p class="muted">点击"添加规则"来添加允许执行的命令模式。</p>
-              </div>
-            `
-          : allowlist.map((entry, index) =>
-              renderAllowlistEntry(props, entry, selectedScope, index),
-            )}
+        ${
+          allowlist.length === 0
+            ? html`
+                <div class="permissions-allowlist__empty">
+                  <p>暂无允许列表规则。</p>
+                  <p class="muted">点击"添加规则"来添加允许执行的命令模式。</p>
+                </div>
+              `
+            : allowlist.map((entry, index) =>
+                renderAllowlistEntry(props, entry, selectedScope, index),
+              )
+        }
       </div>
     </div>
   `;
@@ -555,22 +603,23 @@ function renderAllowlistEntry(
             ?disabled=${props.saving}
             @input=${(event: Event) => {
               const target = event.target as HTMLInputElement;
-              props.onPatch(
-                ["agents", selectedScope, "allowlist", index, "pattern"],
-                target.value,
-              );
+              props.onPatch(["agents", selectedScope, "allowlist", index, "pattern"], target.value);
             }}
           />
         </div>
         <div class="permissions-allowlist__item-meta">
           <span class="muted">最后使用: ${lastUsed}</span>
-          ${entry.lastUsedCommand
-            ? html`<span class="mono muted" title=${entry.lastUsedCommand}>
-                ${entry.lastUsedCommand.length > 50
-                  ? entry.lastUsedCommand.slice(0, 50) + "..."
-                  : entry.lastUsedCommand}
+          ${
+            entry.lastUsedCommand
+              ? html`<span class="mono muted" title=${entry.lastUsedCommand}>
+                ${
+                  entry.lastUsedCommand.length > 50
+                    ? entry.lastUsedCommand.slice(0, 50) + "..."
+                    : entry.lastUsedCommand
+                }
               </span>`
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
       <div class="permissions-allowlist__item-actions">

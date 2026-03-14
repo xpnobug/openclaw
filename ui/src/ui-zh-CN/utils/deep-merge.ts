@@ -13,7 +13,7 @@
  */
 export function deepMerge<T extends Record<string, unknown>>(
   target: T,
-  source: Record<string, unknown>
+  source: Record<string, unknown>,
 ): T {
   const result = { ...target } as Record<string, unknown>;
   for (const key of Object.keys(source)) {
@@ -29,7 +29,7 @@ export function deepMerge<T extends Record<string, unknown>>(
     ) {
       result[key] = deepMerge(
         targetValue as Record<string, unknown>,
-        sourceValue as Record<string, unknown>
+        sourceValue as Record<string, unknown>,
       );
     } else {
       result[key] = sourceValue;

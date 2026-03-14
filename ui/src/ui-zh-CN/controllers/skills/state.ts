@@ -76,11 +76,7 @@ export function getErrorMessage(err: unknown): string {
   return String(err);
 }
 
-export function setSkillMessage(
-  state: SkillsConfigState,
-  key: string,
-  message?: SkillMessage,
-) {
+export function setSkillMessage(state: SkillsConfigState, key: string, message?: SkillMessage) {
   if (!key.trim()) return;
   const next = { ...state.skillsConfigMessages };
   if (message) next[key] = message;
@@ -96,7 +92,11 @@ export function hasSkillsConfigChanges(state: SkillsConfigState): boolean {
   // 检查编辑状态
   if (Object.keys(state.skillsConfigEdits).length > 0) {
     for (const edit of Object.values(state.skillsConfigEdits)) {
-      if (edit.enabled !== undefined || edit.apiKey !== undefined || edit.inAllowlist !== undefined) {
+      if (
+        edit.enabled !== undefined ||
+        edit.apiKey !== undefined ||
+        edit.inAllowlist !== undefined
+      ) {
         return true;
       }
       // 检查环境变量变更

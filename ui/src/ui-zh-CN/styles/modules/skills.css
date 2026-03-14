@@ -717,8 +717,13 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 /* ===========================================
@@ -738,8 +743,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .skill-detail-modal {
@@ -2326,7 +2335,9 @@
   border-radius: var(--radius);
   cursor: pointer;
   color: var(--text-secondary);
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .skills-modal__close:hover {
@@ -2388,7 +2399,9 @@
   font-size: 12px;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 
 .skills-editor__mode-tab:hover {
@@ -2621,7 +2634,9 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .skills-create__radio:hover {
@@ -2940,7 +2955,6 @@
     font-size: 12px;
   }
 }
-
 
 /* =========================================================================
    技能文件预览弹窗 / Skill file preview modal

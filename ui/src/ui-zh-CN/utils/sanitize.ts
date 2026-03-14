@@ -30,7 +30,7 @@ const VALID_MAX_TOKENS_FIELDS = ["max_completion_tokens", "max_tokens"] as const
  * @returns 清理后的配置或 undefined
  */
 export function sanitizeCompat(
-  compat: Record<string, unknown>
+  compat: Record<string, unknown>,
 ): Record<string, unknown> | undefined {
   const result: Record<string, unknown> = {};
 
@@ -42,7 +42,7 @@ export function sanitizeCompat(
     if (key === "maxTokensField") {
       if (
         typeof value === "string" &&
-        VALID_MAX_TOKENS_FIELDS.includes(value as typeof VALID_MAX_TOKENS_FIELDS[number])
+        VALID_MAX_TOKENS_FIELDS.includes(value as (typeof VALID_MAX_TOKENS_FIELDS)[number])
       ) {
         result[key] = value;
       }
@@ -65,7 +65,7 @@ export function sanitizeCompat(
  * @returns 清理后的成本配置或 undefined
  */
 export function sanitizeCost(
-  cost: Record<string, unknown> | undefined
+  cost: Record<string, unknown> | undefined,
 ): { input: number; output: number; cacheRead?: number; cacheWrite?: number } | undefined {
   if (!cost) return undefined;
 
@@ -90,12 +90,8 @@ export function sanitizeCost(
  * @param obj - 要检查的对象
  * @returns 原对象或 undefined
  */
-export function sanitizeEmptyObject<T extends Record<string, unknown>>(
-  obj: T
-): T | undefined {
-  const hasValue = Object.values(obj).some(
-    (v) => v !== undefined && v !== null && v !== ""
-  );
+export function sanitizeEmptyObject<T extends Record<string, unknown>>(obj: T): T | undefined {
+  const hasValue = Object.values(obj).some((v) => v !== undefined && v !== null && v !== "");
   return hasValue ? obj : undefined;
 }
 

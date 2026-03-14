@@ -71,7 +71,13 @@ export const TOOL_GROUPS: Record<string, ToolGroupDef> = {
   "group:sessions": {
     label: "会话",
     desc: "会话和子代理管理",
-    tools: ["sessions_list", "sessions_history", "sessions_send", "sessions_spawn", "session_status"],
+    tools: [
+      "sessions_list",
+      "sessions_history",
+      "sessions_send",
+      "sessions_spawn",
+      "session_status",
+    ],
   },
   "group:memory": {
     label: "记忆",

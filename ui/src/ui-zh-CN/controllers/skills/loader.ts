@@ -1,9 +1,9 @@
+import { getErrorMessage } from "./state";
 /**
  * 技能配置控制器 - 数据加载和保存
  * Skills config controller - Data loading and saving
  */
 import type { SkillsConfigState, SkillsConfig, SkillStatusReport } from "./types";
-import { getErrorMessage } from "./state";
 
 // ─── 加载技能状态 / Load skills status ──────────────────────────────────────
 
@@ -11,10 +11,7 @@ export type LoadSkillsOptions = {
   clearMessages?: boolean;
 };
 
-export async function loadSkillsStatus(
-  state: SkillsConfigState,
-  options?: LoadSkillsOptions,
-) {
+export async function loadSkillsStatus(state: SkillsConfigState, options?: LoadSkillsOptions) {
   if (options?.clearMessages && Object.keys(state.skillsConfigMessages).length > 0) {
     state.skillsConfigMessages = {};
   }
@@ -25,9 +22,7 @@ export async function loadSkillsStatus(
   state.skillsConfigError = null;
 
   try {
-    const res = (await state.client.request("skills.status", {})) as
-      | SkillStatusReport
-      | undefined;
+    const res = (await state.client.request("skills.status", {})) as SkillStatusReport | undefined;
 
     if (res) {
       state.skillsConfigReport = res;
@@ -173,11 +168,7 @@ export async function updateSkillsConfigField(
 
 // ─── 全局设置 / Global settings ─────────────────────────────────────────────
 
-export async function updateGlobalSetting(
-  state: SkillsConfigState,
-  field: string,
-  value: unknown,
-) {
+export async function updateGlobalSetting(state: SkillsConfigState, field: string, value: unknown) {
   if (!state.client || !state.connected) return;
   if (!state.skillsConfigBaseHash) {
     state.skillsConfigError = "Config hash missing; reload and retry.";
@@ -214,10 +205,7 @@ export async function updateGlobalSetting(
 
 // ─── 额外技能目录 / Extra skill directories ──────────────────────────────────
 
-export async function updateExtraDirs(
-  state: SkillsConfigState,
-  dirs: string[],
-) {
+export async function updateExtraDirs(state: SkillsConfigState, dirs: string[]) {
   if (!state.client || !state.connected) return;
   if (!state.skillsConfigBaseHash) {
     state.skillsConfigError = "Config hash missing; reload and retry.";

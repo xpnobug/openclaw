@@ -235,7 +235,9 @@
   background: var(--bg-elevated);
   margin-bottom: 12px;
   overflow: hidden;
-  transition: border-color var(--duration-fast) ease, box-shadow var(--duration-fast) ease;
+  transition:
+    border-color var(--duration-fast) ease,
+    box-shadow var(--duration-fast) ease;
 }
 
 .cron-job-card:hover {
@@ -334,8 +336,13 @@
 }
 
 @keyframes cron-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
 }
 
 /* 任务详情展开 */
@@ -695,4 +702,3 @@
 :root[data-theme="light"] .cron-create-modal__content {
   background: white;
 }
-

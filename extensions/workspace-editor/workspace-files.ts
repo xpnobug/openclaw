@@ -1,4 +1,3 @@
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
 /**
  * Workspace file operations for the workspace-editor plugin.
  * 工作区文件操作
@@ -12,6 +11,7 @@ import type { MoltbotConfig } from "openclaw/plugin-sdk";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { MoltbotConfig } from "openclaw/plugin-sdk";
 
 // ───────────────────────────────────────────────────────────────────────────
 // 动态加载配置 / Dynamic config loading

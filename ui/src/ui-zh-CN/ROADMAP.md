@@ -20,16 +20,19 @@
 **价值**: 减少 90% 的配置错误
 
 **痛点**:
+
 - 配置错误后，Gateway 启动失败，用户不知道哪里错了
 - 需要查日志才能定位问题，门槛高
 
 **解决方案**:
+
 - 实时配置验证（输入时就提示）
 - 错误提示清晰（"模型 ID 不存在，可用：xxx"）
 - 配置健康度评分（0-100 分）
 - 一键修复常见问题
 
 **实现要点**:
+
 ```typescript
 interface ConfigValidator {
   validate(config: Config): ValidationResult;
@@ -53,16 +56,19 @@ const rules = [
 **价值**: 节省 80% 的查找时间
 
 **痛点**:
+
 - 会话多了之后，找不到想要的会话
 - 只能一个一个翻，效率低
 
 **解决方案**:
+
 - 搜索框（按名称、Agent、时间）
 - 快速过滤（按 Agent、模型、状态）
 - 排序（按时间、名称、活跃度）
 - 搜索结果高亮
 
 **实现要点**:
+
 ```typescript
 interface SessionFilter {
   query?: string;
@@ -72,11 +78,12 @@ interface SessionFilter {
 }
 
 function filterSessions(sessions: Session[], filter: SessionFilter): Session[] {
-  return sessions.filter(s => 
-    matchQuery(s, filter.query) &&
-    matchAgent(s, filter.agentId) &&
-    matchModel(s, filter.model) &&
-    matchDateRange(s, filter.dateRange)
+  return sessions.filter(
+    (s) =>
+      matchQuery(s, filter.query) &&
+      matchAgent(s, filter.agentId) &&
+      matchModel(s, filter.model) &&
+      matchDateRange(s, filter.dateRange),
   );
 }
 ```
@@ -90,22 +97,24 @@ function filterSessions(sessions: Session[], filter: SessionFilter): Session[] {
 **价值**: 节省 90% 的操作时间
 
 **痛点**:
+
 - 删除多个会话，要点多次删除按钮，每次还要确认
 - 测试时创建大量临时会话，清理麻烦
 
 **解决方案**:
+
 - 勾选多个会话
 - 批量删除按钮
 - 一次确认即可
 
 **实现要点**:
+
 ```typescript
 const [selectedSessions, setSelectedSessions] = useState<Set<string>>(new Set());
 
 function handleBatchDelete() {
   if (confirm(`确定删除 ${selectedSessions.size} 个会话？`)) {
-    Promise.all([...selectedSessions].map(key => deleteSession(key)))
-      .then(() => refresh());
+    Promise.all([...selectedSessions].map((key) => deleteSession(key))).then(() => refresh());
   }
 }
 ```
@@ -121,27 +130,30 @@ function handleBatchDelete() {
 **价值**: 避免数据丢失
 
 **痛点**:
+
 - 忘记保存，刷新页面后丢失所有修改
 - 用户体验极差，容易崩溃
 
 **解决方案**:
+
 - 每次修改后自动保存到 localStorage
 - 刷新页面后自动恢复
 - 顶部显示"有未保存的修改"提示
 - 保存成功后清除草稿
 
 **实现要点**:
+
 ```typescript
 // 监听配置变化
 watch(configForm, (newVal) => {
-  localStorage.setItem('draft-config', JSON.stringify(newVal));
+  localStorage.setItem("draft-config", JSON.stringify(newVal));
   showDraftIndicator();
 });
 
 // 页面加载时恢复
 onMounted(() => {
-  const draft = localStorage.getItem('draft-config');
-  if (draft && confirm('发现未保存的修改，是否恢复？')) {
+  const draft = localStorage.getItem("draft-config");
+  if (draft && confirm("发现未保存的修改，是否恢复？")) {
     configForm.value = JSON.parse(draft);
   }
 });
@@ -156,10 +168,12 @@ onMounted(() => {
 **价值**: 效率提升 3-5 倍
 
 **痛点**:
+
 - 鼠标操作太慢，效率低
 - 高频操作需要快捷方式
 
 **解决方案**:
+
 ```
 Cmd/Ctrl + S  → 保存配置
 Cmd/Ctrl + K  → 快速搜索（全局）
@@ -171,21 +185,22 @@ Enter         → 确认选择
 ```
 
 **实现要点**:
+
 ```typescript
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "s") {
       e.preventDefault();
       handleSave();
     }
-    if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
       openQuickSearch();
     }
   };
-  
-  window.addEventListener('keydown', handleKeyDown);
-  return () => window.removeEventListener('keydown', handleKeyDown);
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
 }, []);
 ```
 
@@ -198,24 +213,27 @@ useEffect(() => {
 **价值**: 灵活性大幅提升
 
 **痛点**:
+
 - 无法调整顺序，只能删了重建
 - Agent、技能、任务顺序固定
 
 **解决方案**:
+
 - 鼠标拖拽，直接调整顺序
 - 适用于：Agent 列表、技能列表、通道列表、定时任务
 
 **实现要点**:
+
 ```typescript
 // 使用 @dnd-kit 或 react-beautiful-dnd
-import { DndContext, closestCenter } from '@dnd-kit/core';
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { DndContext, closestCenter } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 function handleDragEnd(event) {
   const { active, over } = event;
   if (active.id !== over.id) {
-    const oldIndex = items.findIndex(i => i.id === active.id);
-    const newIndex = items.findIndex(i => i.id === over.id);
+    const oldIndex = items.findIndex((i) => i.id === active.id);
+    const newIndex = items.findIndex((i) => i.id === over.id);
     setItems(arrayMove(items, oldIndex, newIndex));
   }
 }
@@ -230,10 +248,12 @@ function handleDragEnd(event) {
 **价值**: 操作效率提升 2-3 倍
 
 **痛点**:
+
 - 常用操作藏得太深
 - 需要点进去找按钮
 
 **解决方案**:
+
 ```
 右键 Agent：
   - 编辑配置
@@ -251,6 +271,7 @@ function handleDragEnd(event) {
 ```
 
 **实现要点**:
+
 ```typescript
 function handleContextMenu(e: MouseEvent, item: Agent) {
   e.preventDefault();
@@ -258,10 +279,10 @@ function handleContextMenu(e: MouseEvent, item: Agent) {
     x: e.clientX,
     y: e.clientY,
     items: [
-      { label: '编辑配置', onClick: () => editAgent(item) },
-      { label: '复制配置', onClick: () => copyAgent(item) },
-      { label: '删除 Agent', onClick: () => deleteAgent(item), danger: true },
-    ]
+      { label: "编辑配置", onClick: () => editAgent(item) },
+      { label: "复制配置", onClick: () => copyAgent(item) },
+      { label: "删除 Agent", onClick: () => deleteAgent(item), danger: true },
+    ],
   });
 }
 ```
@@ -275,15 +296,18 @@ function handleContextMenu(e: MouseEvent, item: Agent) {
 **价值**: 避免误操作
 
 **痛点**:
+
 - 改错了配置，无法撤销
 - 只能重新填，或者刷新页面（丢失所有修改）
 
 **解决方案**:
+
 - Cmd/Ctrl + Z 撤销
 - Cmd/Ctrl + Shift + Z 重做
 - 历史记录栈
 
 **实现要点**:
+
 ```typescript
 const [history, setHistory] = useState<Config[]>([]);
 const [currentIndex, setCurrentIndex] = useState(0);
@@ -314,10 +338,12 @@ function redo() {
 **价值**: 提升开发体验
 
 **问题**:
+
 - `model-config.css` 7,438 行，单文件过大
 - 难以维护，查找困难
 
 **方案**:
+
 ```
 styles/
 ├── base.css           # 基础样式 (500行)
@@ -341,6 +367,7 @@ styles/
 **价值**: 提升可维护性
 
 **待拆分文件**:
+
 - `workspace-content.ts` (661行) → 按功能拆分为 5-6 个子组件
 - `agent-overview.ts` (661行) → 会话管理、模型配置、身份信息独立
 - `config-loader.ts` (587行) → 按职责拆分（加载/解析/验证）
@@ -352,15 +379,15 @@ styles/
 ### 第一阶段：核心刚需（本周，18-24 小时）
 
 **功能**:
+
 1. ✅ 配置错误提示（4-6h）
 2. ✅ 会话搜索过滤（3-4h）
 3. ✅ 批量删除会话（2-3h）
 
-**交互**:
-4. ✅ 自动保存（4-6h）
-5. ✅ 快捷键支持（4-6h）
+**交互**: 4. ✅ 自动保存（4-6h）5. ✅ 快捷键支持（4-6h）
 
 **预期成果**:
+
 - 配置不再出错
 - 会话管理效率提升 10 倍
 - 避免数据丢失
@@ -370,15 +397,12 @@ styles/
 
 ### 第二阶段：体验优化（下周，20-30 小时）
 
-**交互**:
-6. 拖拽排序（6-8h）
-7. 右键菜单（5-7h）
-8. 撤销/重做（8-10h）
+**交互**: 6. 拖拽排序（6-8h）7. 右键菜单（5-7h）8. 撤销/重做（8-10h）
 
-**优化**:
-9. 样式文件拆分（4-6h）
+**优化**: 9. 样式文件拆分（4-6h）
 
 **预期成果**:
+
 - 交互体验质的飞跃
 - 代码可维护性提升
 
@@ -387,12 +411,14 @@ styles/
 ### 第三阶段：长期规划（40+ 小时）
 
 **功能**:
+
 - Token 使用统计
 - 配置向导系统
 - 数据可视化仪表板
 - 协作功能
 
 **优化**:
+
 - 大文件拆分
 - 性能优化
 - 测试覆盖
@@ -401,17 +427,17 @@ styles/
 
 ## 📊 优先级矩阵
 
-| 功能 | 刚需程度 | 工作量 | 立即价值 | 优先级 |
-|------|----------|--------|----------|--------|
-| 配置错误提示 | 🔥🔥🔥🔥🔥 | 4-6h | 减少 90% 配置错误 | 🔴 P0 |
-| 会话搜索 | 🔥🔥🔥🔥🔥 | 3-4h | 节省 80% 查找时间 | 🔴 P0 |
-| 自动保存 | 🔥🔥🔥🔥🔥 | 4-6h | 避免数据丢失 | 🔴 P0 |
-| 快捷键 | 🔥🔥🔥🔥🔥 | 4-6h | 效率提升 3-5 倍 | 🔴 P0 |
-| 拖拽排序 | 🔥🔥🔥🔥🔥 | 6-8h | 灵活性大幅提升 | 🔴 P0 |
-| 批量删除 | 🔥🔥🔥🔥 | 2-3h | 节省 90% 操作时间 | 🟡 P1 |
-| 右键菜单 | 🔥🔥🔥🔥 | 5-7h | 效率提升 2-3 倍 | 🟡 P1 |
-| 撤销/重做 | 🔥🔥🔥🔥 | 8-10h | 避免误操作 | 🟡 P1 |
-| 样式拆分 | 🔥🔥🔥🔥 | 4-6h | 提升开发体验 | 🟡 P1 |
+| 功能         | 刚需程度   | 工作量 | 立即价值          | 优先级 |
+| ------------ | ---------- | ------ | ----------------- | ------ |
+| 配置错误提示 | 🔥🔥🔥🔥🔥 | 4-6h   | 减少 90% 配置错误 | 🔴 P0  |
+| 会话搜索     | 🔥🔥🔥🔥🔥 | 3-4h   | 节省 80% 查找时间 | 🔴 P0  |
+| 自动保存     | 🔥🔥🔥🔥🔥 | 4-6h   | 避免数据丢失      | 🔴 P0  |
+| 快捷键       | 🔥🔥🔥🔥🔥 | 4-6h   | 效率提升 3-5 倍   | 🔴 P0  |
+| 拖拽排序     | 🔥🔥🔥🔥🔥 | 6-8h   | 灵活性大幅提升    | 🔴 P0  |
+| 批量删除     | 🔥🔥🔥🔥   | 2-3h   | 节省 90% 操作时间 | 🟡 P1  |
+| 右键菜单     | 🔥🔥🔥🔥   | 5-7h   | 效率提升 2-3 倍   | 🟡 P1  |
+| 撤销/重做    | 🔥🔥🔥🔥   | 8-10h  | 避免误操作        | 🟡 P1  |
+| 样式拆分     | 🔥🔥🔥🔥   | 4-6h   | 提升开发体验      | 🟡 P1  |
 
 ---
 

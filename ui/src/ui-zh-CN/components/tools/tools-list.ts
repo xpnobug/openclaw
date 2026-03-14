@@ -3,7 +3,6 @@
  * Tools list rendering component
  */
 import { html, nothing } from "lit";
-import type { ToolsListProps } from "./types";
 import {
   TOOL_DESCRIPTIONS,
   TOOL_GROUPS,
@@ -12,6 +11,7 @@ import {
   isToolDenied,
   isGroupDenied,
 } from "./constants";
+import type { ToolsListProps } from "./types";
 
 /**
  * 渲染工具列表区块
@@ -52,14 +52,16 @@ export function renderToolsList(props: ToolsListProps) {
         </button>
       </div>
 
-      ${expanded
-        ? html`
+      ${
+        expanded
+          ? html`
             <div class="tools-list">
               ${renderToolGroups(denyList, saving, handleToolToggle, handleGroupToggle)}
               ${renderStandaloneTools(denyList, saving, handleToolToggle)}
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }

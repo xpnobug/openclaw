@@ -1,12 +1,3 @@
-/**
- * 定时任务控制器
- * Cron job controller
- *
- * 处理定时任务的加载、创建、更新操作
- * Handles cron job loading, creation, and update operations
- */
-import type { CronJob, ChannelUiMetaEntry } from "../../ui/types";
-import type { CronFormState } from "../../ui/ui-types";
 import {
   loadCronStatus as loadCronStatusBase,
   loadCronJobs as loadCronJobsBase,
@@ -17,6 +8,15 @@ import {
   loadCronRuns as loadCronRunsBase,
   type CronState,
 } from "../../ui/controllers/cron";
+/**
+ * 定时任务控制器
+ * Cron job controller
+ *
+ * 处理定时任务的加载、创建、更新操作
+ * Handles cron job loading, creation, and update operations
+ */
+import type { CronJob, ChannelUiMetaEntry } from "../../ui/types";
+import type { CronFormState } from "../../ui/ui-types";
 import type { ModelConfigState } from "./state";
 
 /**
@@ -24,26 +24,66 @@ import type { ModelConfigState } from "./state";
  */
 function getCronStateAdapter(state: ModelConfigState): CronState {
   return {
-    get client() { return state.client; },
-    set client(v) { state.client = v; },
-    get connected() { return state.connected; },
-    set connected(v) { state.connected = v; },
-    get cronLoading() { return state.cronLoading; },
-    set cronLoading(v) { state.cronLoading = v; },
-    get cronJobs() { return state.cronJobs; },
-    set cronJobs(v) { state.cronJobs = v; },
-    get cronStatus() { return state.cronStatus; },
-    set cronStatus(v) { state.cronStatus = v; },
-    get cronError() { return state.cronError; },
-    set cronError(v) { state.cronError = v; },
-    get cronForm() { return state.cronForm; },
-    set cronForm(v) { state.cronForm = v; },
-    get cronRunsJobId() { return state.cronRunsJobId; },
-    set cronRunsJobId(v) { state.cronRunsJobId = v; },
-    get cronRuns() { return state.cronRuns; },
-    set cronRuns(v) { state.cronRuns = v; },
-    get cronBusy() { return state.cronBusy; },
-    set cronBusy(v) { state.cronBusy = v; },
+    get client() {
+      return state.client;
+    },
+    set client(v) {
+      state.client = v;
+    },
+    get connected() {
+      return state.connected;
+    },
+    set connected(v) {
+      state.connected = v;
+    },
+    get cronLoading() {
+      return state.cronLoading;
+    },
+    set cronLoading(v) {
+      state.cronLoading = v;
+    },
+    get cronJobs() {
+      return state.cronJobs;
+    },
+    set cronJobs(v) {
+      state.cronJobs = v;
+    },
+    get cronStatus() {
+      return state.cronStatus;
+    },
+    set cronStatus(v) {
+      state.cronStatus = v;
+    },
+    get cronError() {
+      return state.cronError;
+    },
+    set cronError(v) {
+      state.cronError = v;
+    },
+    get cronForm() {
+      return state.cronForm;
+    },
+    set cronForm(v) {
+      state.cronForm = v;
+    },
+    get cronRunsJobId() {
+      return state.cronRunsJobId;
+    },
+    set cronRunsJobId(v) {
+      state.cronRunsJobId = v;
+    },
+    get cronRuns() {
+      return state.cronRuns;
+    },
+    set cronRuns(v) {
+      state.cronRuns = v;
+    },
+    get cronBusy() {
+      return state.cronBusy;
+    },
+    set cronBusy(v) {
+      state.cronBusy = v;
+    },
   };
 }
 
@@ -52,10 +92,7 @@ function getCronStateAdapter(state: ModelConfigState): CronState {
  */
 export async function loadCronData(state: ModelConfigState): Promise<void> {
   const adapter = getCronStateAdapter(state);
-  await Promise.all([
-    loadCronStatusBase(adapter),
-    loadCronJobsBase(adapter),
-  ]);
+  await Promise.all([loadCronStatusBase(adapter), loadCronJobsBase(adapter)]);
 }
 
 /**

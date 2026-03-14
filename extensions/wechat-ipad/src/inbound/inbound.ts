@@ -2,7 +2,22 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { AgentMediaPayload, OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
 import { buildAgentMediaPayload, detectMime, extensionForMime } from "openclaw/plugin-sdk";
-import { downloadImageViaApi, fetchContactDetailViaApi, parseImageXml } from "../api/api.js";
+import {
+  downloadFileViaApi,
+  downloadImageViaApi,
+  downloadVideoViaApi,
+  downloadVideoViaToolsApi,
+  downloadVoiceViaApi,
+  downloadVoiceViaToolsApi,
+  fetchContactDetailViaApi,
+  parseCardXml,
+  parseEmojiXml,
+  parseFileXml,
+  parseLocationXml,
+  parseImageXml,
+  parseVideoXml,
+  parseVoiceXml,
+} from "../api/api.js";
 import {
   getWechatIpadContact,
   getWechatIpadLoginSession,
@@ -173,6 +188,219 @@ async function downloadAndSaveInboundImage(params: {
 }
 
 /**
+ * 下载语音并保存到 agent 工作目录。
+ * 任何步骤失败均记日志并返回 null，不阻塞消息处理。
+ */
+async function downloadAndSaveInboundVoice(params: {
+  msg: WechatIpadInboundMessage;
+  deps: WechatIpadInboundContext;
+  wxid: string;
+  voiceDir: string;
+}): Promise<{ path: string; contentType: string } | null> {
+  const { msg, deps, wxid, voiceDir } = params;
+  try {
+    const parsed = parseVoiceXml(msg.rawContent ?? msg.body);
+    if (!parsed) {
+      emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 语音 XML 解析失败，跳过下载`);
+      return null;
+    }
+
+    // 优先使用 /Tools/DownloadVoice（MsgId 分片方式），失败回退 CDN 端点
+    let result: { buffer: Buffer; contentType: string; extension: string } | null = null;
+    if (msg.msgId && parsed.bufid && parsed.totalLen > 0) {
+      result = await downloadVoiceViaToolsApi({
+        options: {
+          baseUrl: deps.baseUrl,
+          apiToken: deps.apiToken,
+          robotId: deps.robotId,
+        },
+        wxid,
+        msgId: msg.msgId,
+        bufid: parsed.bufid,
+        fromUserName: parsed.fromUsername || wxid,
+        totalLen: parsed.totalLen,
+      });
+    }
+    if (!result) {
+      result = await downloadVoiceViaApi({
+        options: {
+          baseUrl: deps.baseUrl,
+          apiToken: deps.apiToken,
+          robotId: deps.robotId,
+        },
+        wxid,
+        aesKey: parsed.aesKey,
+        cdnVoiceUrl: parsed.cdnVoiceUrl,
+      });
+    }
+
+    if (!result) {
+      emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 语音下载 API 不可用，跳过`);
+      return null;
+    }
+
+    const contactId = msg.chatType === "group" ? msg.chatId : msg.senderId;
+    const timestamp = Math.floor((msg.timestamp || Date.now()) / 1000);
+    const msgId = msg.msgId ?? msg.id;
+    const ext = result.extension;
+    const fileName = `${timestamp}_${msgId}${ext}`;
+    const dir = join(voiceDir, contactId);
+    const filePath = join(dir, fileName);
+
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, result.buffer);
+
+    return { path: filePath, contentType: result.contentType };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 语音下载/保存失败：${message}`);
+    return null;
+  }
+}
+
+/**
+ * 下载视频并保存到 agent 工作目录。
+ * 任何步骤失败均记日志并返回 null，不阻塞消息处理。
+ */
+async function downloadAndSaveInboundVideo(params: {
+  msg: WechatIpadInboundMessage;
+  deps: WechatIpadInboundContext;
+  wxid: string;
+  videoDir: string;
+}): Promise<{ path: string; contentType: string } | null> {
+  const { msg, deps, wxid, videoDir } = params;
+  try {
+    const parsed = parseVideoXml(msg.rawContent ?? msg.body);
+    if (!parsed) {
+      emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 视频 XML 解析失败，跳过下载`);
+      return null;
+    }
+
+    // 优先使用 /Tools/DownloadVideo（MsgId 分片方式），失败回退 CDN 端点
+    let result: { buffer: Buffer; contentType: string; extension: string } | null = null;
+    if (msg.msgId && parsed.length > 0) {
+      result = await downloadVideoViaToolsApi({
+        options: {
+          baseUrl: deps.baseUrl,
+          apiToken: deps.apiToken,
+          robotId: deps.robotId,
+        },
+        wxid,
+        msgId: msg.msgId,
+        totalLen: parsed.length,
+        toWxid: parsed.fromUsername || undefined,
+      });
+    }
+    if (!result) {
+      result = await downloadVideoViaApi({
+        options: {
+          baseUrl: deps.baseUrl,
+          apiToken: deps.apiToken,
+          robotId: deps.robotId,
+        },
+        wxid,
+        aesKey: parsed.aesKey,
+        cdnVideoUrl: parsed.cdnVideoUrl,
+      });
+    }
+
+    if (!result) {
+      emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 视频下载 API 不可用，跳过`);
+      return null;
+    }
+
+    const contactId = msg.chatType === "group" ? msg.chatId : msg.senderId;
+    const timestamp = Math.floor((msg.timestamp || Date.now()) / 1000);
+    const msgId = msg.msgId ?? msg.id;
+    const ext = result.extension;
+    const fileName = `${timestamp}_${msgId}${ext}`;
+    const dir = join(videoDir, contactId);
+    const filePath = join(dir, fileName);
+
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, result.buffer);
+
+    return { path: filePath, contentType: result.contentType };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 视频下载/保存失败：${message}`);
+    return null;
+  }
+}
+
+/**
+ * 下载文件并保存到 agent 工作目录。
+ * 任何步骤失败均记日志并返回 null，不阻塞消息处理。
+ */
+async function downloadAndSaveInboundFile(params: {
+  msg: WechatIpadInboundMessage;
+  deps: WechatIpadInboundContext;
+  wxid: string;
+  fileDir: string;
+}): Promise<{ path: string; contentType: string } | null> {
+  const { msg, deps, wxid, fileDir } = params;
+  try {
+    const fileMeta = parseFileXml(msg.rawContent ?? msg.body);
+    if (!fileMeta || (!fileMeta.attachId && !fileMeta.cdnAttachUrl)) {
+      emitWechatIpadLog(
+        deps,
+        `${buildLogPrefix(deps.accountId)}: 文件 XML 解析失败或缺少下载信息，跳过下载`,
+      );
+      return null;
+    }
+
+    const result = await downloadFileViaApi({
+      options: {
+        baseUrl: deps.baseUrl,
+        apiToken: deps.apiToken,
+        robotId: deps.robotId,
+      },
+      wxid,
+      attachId: fileMeta.attachId || fileMeta.cdnAttachUrl,
+      totalLen: fileMeta.totalLen,
+    });
+
+    if (!result) {
+      emitWechatIpadLog(
+        deps,
+        `${buildLogPrefix(deps.accountId)}: 文件下载 API 不可用或下载失败，跳过`,
+      );
+      return null;
+    }
+
+    const contactId = msg.chatType === "group" ? msg.chatId : msg.senderId;
+    const timestamp = Math.floor((msg.timestamp || Date.now()) / 1000);
+    const msgId = msg.msgId ?? msg.id;
+    const ext = fileMeta.fileExt ? `.${fileMeta.fileExt}` : "";
+    const safeTitle = (fileMeta.title || `file_${msgId}`).replace(/[/\\:*?"<>|]/g, "_");
+    const fileName = `${timestamp}_${safeTitle}${ext && !safeTitle.endsWith(ext) ? ext : ""}`;
+    const dir = join(fileDir, contactId);
+    const filePath = join(dir, fileName);
+
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(filePath, result.buffer);
+
+    // 根据文件扩展名推导 contentType
+    const contentType =
+      ext === ".pdf"
+        ? "application/pdf"
+        : ext === ".doc" || ext === ".docx"
+          ? "application/msword"
+          : ext === ".xls" || ext === ".xlsx"
+            ? "application/vnd.ms-excel"
+            : ext === ".zip"
+              ? "application/zip"
+              : "application/octet-stream";
+
+    return { path: filePath, contentType };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    emitWechatIpadLog(deps, `${buildLogPrefix(deps.accountId)}: 文件下载/保存失败：${message}`);
+    return null;
+  }
+}
+
+/**
  * 统一处理 wechat-ipad 入站：策略校验 + 路由 + 回复派发。
  */
 export async function handleWechatIpadInboundMessage(
@@ -323,16 +551,127 @@ export async function handleWechatIpadInboundMessage(
     }
   }
 
+  // 语音下载
+  if (msg.contentType === "voice") {
+    const resolvedWxid =
+      deps.wxid?.trim() || getWechatIpadLoginSession(accountId)?.wxid?.trim() || robotId;
+    const stateDir = runtime.state.resolveStateDir();
+    const voiceDir = join(stateDir, "workspace", "wechat-ipad-data", accountId, "voices");
+    const saved = await downloadAndSaveInboundVoice({
+      msg,
+      deps,
+      wxid: resolvedWxid,
+      voiceDir,
+    });
+    if (saved) {
+      mediaPayload = buildAgentMediaPayload([saved]);
+      emitWechatIpadLog(deps, `${logPrefix}: 语音已保存至 ${saved.path}`);
+    }
+  }
+
+  // 视频下载
+  if (msg.contentType === "video") {
+    const resolvedWxid =
+      deps.wxid?.trim() || getWechatIpadLoginSession(accountId)?.wxid?.trim() || robotId;
+    const stateDir = runtime.state.resolveStateDir();
+    const videoDir = join(stateDir, "workspace", "wechat-ipad-data", accountId, "videos");
+    const saved = await downloadAndSaveInboundVideo({
+      msg,
+      deps,
+      wxid: resolvedWxid,
+      videoDir,
+    });
+    if (saved) {
+      mediaPayload = buildAgentMediaPayload([saved]);
+      emitWechatIpadLog(deps, `${logPrefix}: 视频已保存至 ${saved.path}`);
+    }
+  }
+
+  // 文件消息：下载文件并构建 mediaPayload
+  if (msg.contentType === "file") {
+    const fileMeta = parseFileXml(msg.rawContent ?? msg.body);
+    if (fileMeta) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 收到文件消息：${fileMeta.title}（${fileMeta.totalLen} 字节，扩展名=${fileMeta.fileExt}）`,
+      );
+      const resolvedWxid =
+        deps.wxid?.trim() || getWechatIpadLoginSession(accountId)?.wxid?.trim() || robotId;
+      const stateDir = runtime.state.resolveStateDir();
+      const fileDir = join(stateDir, "workspace", "wechat-ipad-data", accountId, "files");
+      const saved = await downloadAndSaveInboundFile({
+        msg,
+        deps,
+        wxid: resolvedWxid,
+        fileDir,
+      });
+      if (saved) {
+        mediaPayload = buildAgentMediaPayload([saved]);
+        emitWechatIpadLog(deps, `${logPrefix}: 文件已保存至 ${saved.path}`);
+      }
+    }
+  }
+
+  // 表情消息：解析元信息
+  if (msg.contentType === "emoji") {
+    const emojiMeta = parseEmojiXml(msg.rawContent ?? msg.body);
+    if (emojiMeta) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 收到表情消息：md5=${emojiMeta.md5}，大小=${emojiMeta.totalLen}`,
+      );
+    }
+  }
+
+  // 名片消息：解析联系人信息
+  if (msg.contentType === "card") {
+    const cardMeta = parseCardXml(msg.rawContent ?? msg.body);
+    if (cardMeta) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 收到名片消息：${cardMeta.nickname}（${cardMeta.wxid}）`,
+      );
+    }
+  }
+
+  // 位置消息：解析经纬度和地名
+  if (msg.contentType === "location") {
+    const locMeta = parseLocationXml(msg.rawContent ?? msg.body);
+    if (locMeta) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 收到位置消息：${locMeta.poiname || locMeta.label}（${locMeta.x},${locMeta.y}）`,
+      );
+    }
+  }
+
   const envelopeOptions = runtime.channel.reply.resolveEnvelopeFormatOptions(cfg);
   const defaultSafetyPrefix =
     "[系统安全提示：此用户为访客(guest)，禁止执行系统命令、文件操作、代码执行或工具调用，仅允许普通对话]\n\n";
   const effectiveSafetyPrefix = isTrusted ? "" : (safetyPrefix ?? defaultSafetyPrefix);
 
-  // 图片消息：如果下载成功则使用描述性文本替代原始 XML
+  // 媒体消息：如果下载成功则使用描述性文本替代原始 XML
   const effectiveBody =
     msg.contentType === "image" && mediaPayload.MediaPath
       ? "[图片]"
-      : `${effectiveSafetyPrefix}${msg.body}`;
+      : msg.contentType === "voice" && mediaPayload.MediaPath
+        ? "[语音]"
+        : msg.contentType === "video" && mediaPayload.MediaPath
+          ? "[视频]"
+          : msg.contentType === "file"
+            ? mediaPayload.MediaPath
+              ? `[文件] ${parseFileXml(msg.rawContent ?? msg.body)?.title ?? ""}`
+              : `[文件] ${parseFileXml(msg.rawContent ?? msg.body)?.title ?? ""}（未下载）`
+            : msg.contentType === "emoji"
+              ? "[表情]"
+              : msg.contentType === "card"
+                ? `[名片] ${parseCardXml(msg.rawContent ?? msg.body)?.nickname ?? ""}`
+                : msg.contentType === "location"
+                  ? (() => {
+                      const loc = parseLocationXml(msg.rawContent ?? msg.body);
+                      return `[位置] ${loc?.poiname || loc?.label || ""}`;
+                    })()
+                  : `${effectiveSafetyPrefix}${msg.body}`;
 
   const body = runtime.channel.reply.formatInboundEnvelope({
     channel: "WeChat iPad",

@@ -48,9 +48,13 @@ export function renderCreateModal(props: SkillsContentProps) {
               .value=${createState.name}
               @input=${(e: Event) => props.onCreateNameChange((e.target as HTMLInputElement).value)}
             />
-            ${createState.nameError
-              ? html`<div class="skills-create__field-error">${createState.nameError}</div>`
-              : html`<div class="skills-create__hint">仅允许小写字母、数字和连字符</div>`}
+            ${
+              createState.nameError
+                ? html`<div class="skills-create__field-error">${createState.nameError}</div>`
+                : html`
+                    <div class="skills-create__hint">仅允许小写字母、数字和连字符</div>
+                  `
+            }
           </div>
 
           <div class="skills-create__field">

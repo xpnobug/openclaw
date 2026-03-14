@@ -3,10 +3,10 @@
  * Provider config content component - Main entry
  */
 import { html } from "lit";
-import type { ProvidersContentProps } from "./types";
+import { renderAddProviderModal } from "./add-modal";
 import { icons, LABELS } from "./constants";
 import { renderProviderCard } from "./provider-card";
-import { renderAddProviderModal } from "./add-modal";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 渲染供应商配置内容
@@ -113,9 +113,10 @@ export function renderProvidersContent(props: ProvidersContentProps) {
       </details>
 
       <div class="config-content__body">
-        ${providerKeys.length === 0
-          ? html`<div class="mc-empty">${LABELS.noProviders}</div>`
-          : html`
+        ${
+          providerKeys.length === 0
+            ? html`<div class="mc-empty">${LABELS.noProviders}</div>`
+            : html`
               <div class="mc-providers-grid">
                 ${providerKeys.map((key) =>
                   renderProviderCard(
@@ -126,7 +127,8 @@ export function renderProvidersContent(props: ProvidersContentProps) {
                   ),
                 )}
               </div>
-            `}
+            `
+        }
       </div>
 
       <!-- 添加供应商弹窗 -->

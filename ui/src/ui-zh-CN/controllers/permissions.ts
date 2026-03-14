@@ -24,10 +24,7 @@ export type ExecApprovalsTargetNode = {
 };
 
 // 支持 Exec Approvals 的节点命令
-const EXEC_APPROVALS_COMMANDS = [
-  "system.execApprovals.get",
-  "system.execApprovals.set",
-];
+const EXEC_APPROVALS_COMMANDS = ["system.execApprovals.get", "system.execApprovals.set"];
 
 /**
  * 从节点列表中筛选支持 Exec Approvals 的节点
@@ -43,9 +40,7 @@ export function resolveExecApprovalsNodes(
     .map((node) => {
       const nodeId = String(node.nodeId ?? "");
       const displayName = node.displayName as string | undefined;
-      const label = displayName && displayName !== nodeId
-        ? displayName + " · " + nodeId
-        : nodeId;
+      const label = displayName && displayName !== nodeId ? displayName + " · " + nodeId : nodeId;
       return { id: nodeId, label };
     });
 }
@@ -124,9 +119,10 @@ export async function loadPermissions(
   state.lastError = null;
 
   try {
-    const rpc = target?.kind === "node"
-      ? { method: "exec.approvals.node.get", params: { nodeId: target.nodeId } }
-      : { method: "exec.approvals.get", params: {} };
+    const rpc =
+      target?.kind === "node"
+        ? { method: "exec.approvals.node.get", params: { nodeId: target.nodeId } }
+        : { method: "exec.approvals.get", params: {} };
 
     const res = (await state.client.request(rpc.method, rpc.params)) as ExecApprovalsSnapshot;
     state.execApprovalsSnapshot = res;
@@ -143,10 +139,7 @@ export async function loadPermissions(
 /**
  * 添加新的 Agent 配置（包括通配符）
  */
-export function addPermissionsAgent(
-  state: ModelConfigState,
-  agentId: string,
-): void {
+export function addPermissionsAgent(state: ModelConfigState, agentId: string): void {
   const base = JSON.parse(
     JSON.stringify(state.execApprovalsForm ?? state.execApprovalsSnapshot?.file ?? {}),
   ) as ExecApprovalsFile;
@@ -173,10 +166,7 @@ export function addPermissionsAgent(
 /**
  * 删除 Agent 配置
  */
-export function removePermissionsAgent(
-  state: ModelConfigState,
-  agentId: string,
-): void {
+export function removePermissionsAgent(state: ModelConfigState, agentId: string): void {
   const base = JSON.parse(
     JSON.stringify(state.execApprovalsForm ?? state.execApprovalsSnapshot?.file ?? {}),
   ) as ExecApprovalsFile;
@@ -222,9 +212,10 @@ export async function savePermissions(
     }
 
     const file = state.execApprovalsForm ?? state.execApprovalsSnapshot?.file ?? {};
-    const rpc = target?.kind === "node"
-      ? { method: "exec.approvals.node.set", params: { nodeId: target.nodeId, file, baseHash } }
-      : { method: "exec.approvals.set", params: { file, baseHash } };
+    const rpc =
+      target?.kind === "node"
+        ? { method: "exec.approvals.node.set", params: { nodeId: target.nodeId, file, baseHash } }
+        : { method: "exec.approvals.set", params: { file, baseHash } };
 
     await state.client.request(rpc.method, rpc.params);
 
@@ -240,20 +231,14 @@ export async function savePermissions(
 /**
  * 选择权限管理的 Agent
  */
-export function selectPermissionsAgent(
-  state: ModelConfigState,
-  agentId: string | null,
-): void {
+export function selectPermissionsAgent(state: ModelConfigState, agentId: string | null): void {
   state.permissionsSelectedAgent = agentId;
 }
 
 /**
  * 切换权限管理的标签页
  */
-export function setPermissionsActiveTab(
-  state: ModelConfigState,
-  tab: PermissionsTabId,
-): void {
+export function setPermissionsActiveTab(state: ModelConfigState, tab: PermissionsTabId): void {
   state.permissionsActiveTab = tab;
 }
 
@@ -325,10 +310,7 @@ export function removePermissionsFormValue(
 /**
  * 添加允许列表条目
  */
-export function addPermissionsAllowlistEntry(
-  state: ModelConfigState,
-  agentId: string,
-): void {
+export function addPermissionsAllowlistEntry(state: ModelConfigState, agentId: string): void {
   const base = JSON.parse(
     JSON.stringify(state.execApprovalsForm ?? state.execApprovalsSnapshot?.file ?? {}),
   ) as ExecApprovalsFile;

@@ -79,27 +79,81 @@ export type WorkspaceContentProps = {
 
 const icons = {
   // 文件夹图标 / Folder icon
-  folder: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>`,
+  folder: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+    </svg>
+  `,
   // 文件图标 / File icon
-  file: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>`,
+  file: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+      <polyline points="14 2 14 8 20 8"></polyline>
+    </svg>
+  `,
   // 编辑图标 / Edit icon
-  edit: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+  edit: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+    </svg>
+  `,
   // 预览图标 / Eye icon
-  eye: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`,
+  eye: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+      <circle cx="12" cy="12" r="3"></circle>
+    </svg>
+  `,
   // 分屏图标 / Split icon
-  split: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="12" y1="3" x2="12" y2="21"></line></svg>`,
+  split: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="12" y1="3" x2="12" y2="21"></line>
+    </svg>
+  `,
   // 保存图标 / Save icon
-  save: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>`,
+  save: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+      <polyline points="17 21 17 13 7 13 7 21"></polyline>
+      <polyline points="7 3 7 8 15 8"></polyline>
+    </svg>
+  `,
   // 刷新图标 / Refresh icon
-  refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
+  refresh: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+  `,
   // 加号图标 / Plus icon
-  plus: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+  plus: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="12" y1="5" x2="12" y2="19"></line>
+      <line x1="5" y1="12" x2="19" y2="12"></line>
+    </svg>
+  `,
   // 展开箭头 / Chevron right (collapsed)
-  chevronRight: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>`,
+  chevronRight: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6"></polyline>
+    </svg>
+  `,
   // 收起箭头 / Chevron down (expanded)
-  chevronDown: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>`,
+  chevronDown: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="6 9 12 15 18 9"></polyline>
+    </svg>
+  `,
   // 返回箭头 / Back arrow
-  arrowLeft: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>`,
+  arrowLeft: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="19" y1="12" x2="5" y2="12"></line>
+      <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+  `,
 };
 
 // ─── 中文标签 / Labels ──────────────────────────────────────────────────────
@@ -323,9 +377,8 @@ function renderFileItem(
   const isSelected = props.selectedFile === file.name;
   const desc = getFileDescription(file.name);
   // For indented items, only show the base name / 缩进项只显示基础文件名
-  const displayName = indent && file.name.includes("/")
-    ? file.name.slice(file.name.indexOf("/") + 1)
-    : file.name;
+  const displayName =
+    indent && file.name.includes("/") ? file.name.slice(file.name.indexOf("/") + 1) : file.name;
 
   return html`
     <button
@@ -337,17 +390,25 @@ function renderFileItem(
       <span class="ws-file-item__info">
         <span class="ws-file-item__name">
           ${displayName}
-          ${!file.exists
-            ? html`<span class="ws-file-item__badge ws-file-item__badge--new">新建</span>`
-            : nothing}
-          ${isSelected && hasChanges
-            ? html`<span class="ws-file-item__badge ws-file-item__badge--unsaved">${LABELS.unsaved}</span>`
-            : nothing}
+          ${
+            !file.exists
+              ? html`
+                  <span class="ws-file-item__badge ws-file-item__badge--new">新建</span>
+                `
+              : nothing
+          }
+          ${
+            isSelected && hasChanges
+              ? html`<span class="ws-file-item__badge ws-file-item__badge--unsaved">${LABELS.unsaved}</span>`
+              : nothing
+          }
         </span>
         <span class="ws-file-item__desc">${desc}</span>
-        ${file.exists
-          ? html`<span class="ws-file-item__meta">${formatSize(file.size)} · ${formatTime(file.modifiedAt)}</span>`
-          : nothing}
+        ${
+          file.exists
+            ? html`<span class="ws-file-item__meta">${formatSize(file.size)} · ${formatTime(file.modifiedAt)}</span>`
+            : nothing
+        }
       </span>
     </button>
   `;
@@ -356,9 +417,7 @@ function renderFileItem(
 // ─── 渲染文件列表 / Render file list ──────────────────────────────────────
 
 function renderFileList(props: WorkspaceContentProps) {
-  const hasChanges = !!(
-    props.selectedFile && props.editorContent !== props.originalContent
-  );
+  const hasChanges = !!(props.selectedFile && props.editorContent !== props.originalContent);
   const groups = groupFilesByFolder(props.files);
   const expandedFolders = props.expandedFolders ?? new Set<string>();
 
@@ -393,9 +452,7 @@ function renderFileList(props: WorkspaceContentProps) {
         ${groups.map((group) => {
           // Root files: render directly / 根目录文件直接渲染
           if (group.folder === null) {
-            return group.files.map((file) =>
-              renderFileItem(file, props, hasChanges, false),
-            );
+            return group.files.map((file) => renderFileItem(file, props, hasChanges, false));
           }
 
           // Folder group: render as collapsible / 文件夹：渲染为可展开
@@ -403,9 +460,7 @@ function renderFileList(props: WorkspaceContentProps) {
           const isExpanded = expandedFolders.has(folderName);
           const fileCount = group.files.length;
           // Check if any child is selected / 检查是否有子文件被选中
-          const hasSelectedChild = group.files.some(
-            (f) => f.name === props.selectedFile,
-          );
+          const hasSelectedChild = group.files.some((f) => f.name === props.selectedFile);
 
           return html`
             <button
@@ -422,16 +477,18 @@ function renderFileList(props: WorkspaceContentProps) {
                   ${folderName}/
                   <span class="ws-folder-item__count">${fileCount}</span>
                 </span>
-                ${group.desc
-                  ? html`<span class="ws-folder-item__desc">${group.desc}</span>`
-                  : nothing}
+                ${
+                  group.desc
+                    ? html`<span class="ws-folder-item__desc">${group.desc}</span>`
+                    : nothing
+                }
               </span>
             </button>
-            ${isExpanded
-              ? group.files.map((file) =>
-                  renderFileItem(file, props, hasChanges, true),
-                )
-              : nothing}
+            ${
+              isExpanded
+                ? group.files.map((file) => renderFileItem(file, props, hasChanges, true))
+                : nothing
+            }
           `;
         })}
       </div>
@@ -453,9 +510,11 @@ function renderEditorToolbar(props: WorkspaceContentProps) {
     <div class="ws-editor__toolbar">
       <div class="ws-editor__toolbar-left">
         <span class="ws-editor__filename">${props.selectedFile ?? ""}</span>
-        ${hasChanges
-          ? html`<span class="ws-editor__unsaved-dot" title=${LABELS.unsaved}></span>`
-          : nothing}
+        ${
+          hasChanges
+            ? html`<span class="ws-editor__unsaved-dot" title=${LABELS.unsaved}></span>`
+            : nothing
+        }
       </div>
       <div class="ws-editor__toolbar-right">
         <!-- 模式切换 / Mode toggle -->
@@ -507,35 +566,35 @@ function renderEditor(props: WorkspaceContentProps) {
 
   return html`
     ${renderEditorToolbar(props)}
-    ${props.error
-      ? html`<div class="mc-error">${props.error}</div>`
-      : nothing}
+    ${props.error ? html`<div class="mc-error">${props.error}</div>` : nothing}
     <div class="ws-editor__panels ${props.editorMode === "split" ? "ws-editor__panels--split" : ""}">
-      ${showEditor
-        ? html`
+      ${
+        showEditor
+          ? html`
             <div class="ws-editor__edit-panel">
               <textarea
                 class="ws-editor__textarea"
                 .value=${props.editorContent}
                 @input=${(e: Event) =>
-                  props.onContentChange(
-                    (e.target as HTMLTextAreaElement).value,
-                  )}
+                  props.onContentChange((e.target as HTMLTextAreaElement).value)}
                 placeholder="在此输入内容..."
                 spellcheck="false"
               ></textarea>
             </div>
           `
-        : nothing}
-      ${showPreview
-        ? html`
+          : nothing
+      }
+      ${
+        showPreview
+          ? html`
             <div class="ws-editor__preview-panel">
               <div class="ws-preview">
                 ${renderMarkdownPreview(props.editorContent)}
               </div>
             </div>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -653,17 +712,21 @@ export function renderWorkspaceContent(props: WorkspaceContentProps) {
         </div>
         <!-- 右侧编辑器 / Right editor -->
         <div class="ws-editor ${showMobileEditor ? "ws-editor--mobile-active" : ""}">
-          ${showMobileEditor && props.onMobileBack
-            ? html`
+          ${
+            showMobileEditor && props.onMobileBack
+              ? html`
                 <button class="ws-editor__back-btn" @click=${props.onMobileBack}>
                   ${icons.arrowLeft}
                   <span>${LABELS.back}</span>
                 </button>
               `
-            : nothing}
-          ${props.loading
-            ? html`<div class="ws-editor__loading">${LABELS.loading}</div>`
-            : renderEditor(props)}
+              : nothing
+          }
+          ${
+            props.loading
+              ? html`<div class="ws-editor__loading">${LABELS.loading}</div>`
+              : renderEditor(props)
+          }
         </div>
       </div>
     </div>

@@ -22,11 +22,7 @@ const FIX_MAP: Record<string, FixGenerator> = {
   INVALID_ID_FORMAT: (error) => ({
     errorCode: error.code,
     description: "ID 格式不正确",
-    manualSteps: [
-      "ID 只能包含小写字母、数字和连字符",
-      "必须以小写字母开头",
-      `示例: my-agent-1`,
-    ],
+    manualSteps: ["ID 只能包含小写字母、数字和连字符", "必须以小写字母开头", `示例: my-agent-1`],
   }),
 
   DUPLICATE_VALUE: (error) => ({
@@ -55,11 +51,7 @@ const FIX_MAP: Record<string, FixGenerator> = {
   CHANNEL_AUTH_FAILED: () => ({
     errorCode: "CHANNEL_AUTH_FAILED",
     description: "通道认证失败",
-    manualSteps: [
-      "1. 检查 Token/API Key 是否正确",
-      "2. 确认凭据未过期",
-      "3. 检查网络连接",
-    ],
+    manualSteps: ["1. 检查 Token/API Key 是否正确", "2. 确认凭据未过期", "3. 检查网络连接"],
   }),
 
   INVALID_URL: (error) => ({
@@ -86,7 +78,7 @@ export class ErrorFixer {
 
   /** 批量获取修复建议 */
   getSuggestions(errors: ValidationError[], context?: ValidationContext): FixSuggestion[] {
-    return errors.map(e => this.getSuggestion(e, context));
+    return errors.map((e) => this.getSuggestion(e, context));
   }
 }
 

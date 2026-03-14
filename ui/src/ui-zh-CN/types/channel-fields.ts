@@ -300,10 +300,7 @@ export const FIELD_SEND_READ_RECEIPTS: ChannelConfigField = {
 /**
  * 基本访问控制字段组
  */
-export const COMMON_ACCESS_FIELDS: ChannelConfigField[] = [
-  FIELD_DM_POLICY,
-  FIELD_GROUP_POLICY,
-];
+export const COMMON_ACCESS_FIELDS: ChannelConfigField[] = [FIELD_DM_POLICY, FIELD_GROUP_POLICY];
 
 /**
  * 完整访问控制字段组（含白名单）
@@ -318,10 +315,7 @@ export const FULL_ACCESS_FIELDS: ChannelConfigField[] = [
 /**
  * 历史记录字段组
  */
-export const HISTORY_FIELDS: ChannelConfigField[] = [
-  FIELD_HISTORY_LIMIT,
-  FIELD_DM_HISTORY_LIMIT,
-];
+export const HISTORY_FIELDS: ChannelConfigField[] = [FIELD_HISTORY_LIMIT, FIELD_DM_HISTORY_LIMIT];
 
 /**
  * 基本消息设置字段组
@@ -372,14 +366,20 @@ export function withLabel(field: ChannelConfigField, label: string): ChannelConf
 /**
  * 创建带自定义占位符的字段副本
  */
-export function withPlaceholder(field: ChannelConfigField, placeholder: string): ChannelConfigField {
+export function withPlaceholder(
+  field: ChannelConfigField,
+  placeholder: string,
+): ChannelConfigField {
   return { ...field, placeholder };
 }
 
 /**
  * 创建带自定义描述的字段副本
  */
-export function withDescription(field: ChannelConfigField, description: string): ChannelConfigField {
+export function withDescription(
+  field: ChannelConfigField,
+  description: string,
+): ChannelConfigField {
   return { ...field, description };
 }
 
@@ -400,6 +400,9 @@ export function inSection(field: ChannelConfigField, section: string): ChannelCo
 /**
  * 批量设置字段的 section
  */
-export function fieldsInSection(fields: ChannelConfigField[], section: string): ChannelConfigField[] {
+export function fieldsInSection(
+  fields: ChannelConfigField[],
+  section: string,
+): ChannelConfigField[] {
   return fields.map((f) => inSection(f, section));
 }

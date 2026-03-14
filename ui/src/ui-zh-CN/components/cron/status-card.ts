@@ -3,8 +3,8 @@
  * Cron status card component
  */
 import { html } from "lit";
-import type { CronContentProps } from "../../types/cron-config";
 import { formatNextRun } from "../../../ui/presenter";
+import type { CronContentProps } from "../../types/cron-config";
 import { LABELS } from "./constants";
 
 /**

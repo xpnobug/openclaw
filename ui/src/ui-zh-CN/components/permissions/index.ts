@@ -43,9 +43,4 @@ export {
 } from "./constants";
 
 // 工具函数
-export {
-  normalizeSecurity,
-  normalizeAsk,
-  resolveDefaults,
-  formatAgo,
-} from "./utils";
+export { normalizeSecurity, normalizeAsk, resolveDefaults, formatAgo } from "./utils";

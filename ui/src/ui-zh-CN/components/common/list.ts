@@ -91,12 +91,8 @@ export function renderSimpleListItem(props: {
         <div class="list-item__label">${props.label}</div>
         ${props.description ? html`<div class="list-item__desc">${props.description}</div>` : nothing}
       </div>
-      ${props.badge
-        ? html`<div class="list-item__badge">${props.badge}</div>`
-        : nothing}
-      ${props.actions
-        ? html`<div class="list-item__actions">${props.actions}</div>`
-        : nothing}
+      ${props.badge ? html`<div class="list-item__badge">${props.badge}</div>` : nothing}
+      ${props.actions ? html`<div class="list-item__actions">${props.actions}</div>` : nothing}
     </div>
   `;
 }
@@ -159,7 +155,8 @@ export function renderGroupedList<T>(props: {
 
   return html`
     <div class="list list--grouped ${props.className ?? ""}">
-      ${props.groups.map((group) => html`
+      ${props.groups.map(
+        (group) => html`
         <div class="list-group ${group.collapsed ? "list-group--collapsed" : ""}">
           <button
             class="list-group__header"
@@ -169,17 +166,18 @@ export function renderGroupedList<T>(props: {
             <span class="list-group__count">${group.items.length}</span>
             <span class="list-group__chevron">${chevronIcon}</span>
           </button>
-          ${!group.collapsed
-            ? html`
+          ${
+            !group.collapsed
+              ? html`
                 <div class="list-group__items">
-                  ${group.items.map((item, index) =>
-                    props.renderItem({ item }, index),
-                  )}
+                  ${group.items.map((item, index) => props.renderItem({ item }, index))}
                 </div>
               `
-            : nothing}
+              : nothing
+          }
         </div>
-      `)}
+      `,
+      )}
     </div>
   `;
 }

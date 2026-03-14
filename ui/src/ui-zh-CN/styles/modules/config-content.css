@@ -1,9 +1,9 @@
 /* ===========================================
    Config Content - 配置内容区
    =========================================== */
-  .config-content {
-    padding: 22px 0px !important;
-  }
+.config-content {
+  padding: 22px 0px !important;
+}
 
 .config-content {
   display: flex;
@@ -990,4 +990,3 @@
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
 }
-

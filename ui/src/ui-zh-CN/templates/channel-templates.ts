@@ -82,15 +82,15 @@ export const CHANNEL_TEMPLATES: ChannelTemplate[] = [
 
 /** 根据通道类型获取模板 */
 export function getChannelTemplates(channelType: string): ChannelTemplate[] {
-  return CHANNEL_TEMPLATES.filter(t => t.channelType === channelType);
+  return CHANNEL_TEMPLATES.filter((t) => t.channelType === channelType);
 }
 
 /** 根据 ID 获取模板 */
 export function getChannelTemplateById(id: string): ChannelTemplate | undefined {
-  return CHANNEL_TEMPLATES.find(t => t.id === id);
+  return CHANNEL_TEMPLATES.find((t) => t.id === id);
 }
 
 /** 获取所有支持的通道类型 */
 export function getSupportedChannelTypes(): string[] {
-  return [...new Set(CHANNEL_TEMPLATES.map(t => t.channelType))];
+  return [...new Set(CHANNEL_TEMPLATES.map((t) => t.channelType))];
 }

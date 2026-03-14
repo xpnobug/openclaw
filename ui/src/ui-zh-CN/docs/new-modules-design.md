@@ -29,6 +29,7 @@ ui-zh-CN/
 **预估总代码量**: ~1900 行
 
 **依赖关系**:
+
 - wizards → validators (步骤验证)
 - wizards → templates (从模板创建)
 - validators 独立，可被其他模块复用
@@ -69,7 +70,7 @@ type AgentWizardProps = {
   onComplete: (config: AgentConfig) => void;
   onCancel: () => void;
   initialData?: Partial<AgentConfig>;
-  templates?: AgentTemplate[];  // 可选：从模板开始
+  templates?: AgentTemplate[]; // 可选：从模板开始
 };
 
 type WizardState = {
@@ -151,7 +152,7 @@ type ChannelWizardProps = {
   onComplete: (config: ChannelConfig) => void;
   onCancel: () => void;
   availableChannels: ChannelType[];
-  existingChannels?: ChannelConfig[];  // 用于检测冲突
+  existingChannels?: ChannelConfig[]; // 用于检测冲突
 };
 ```
 
@@ -165,13 +166,19 @@ type ChannelCredentialField = {
   required: boolean;
   placeholder?: string;
   helpText?: string;
-  helpLink?: string;  // 文档链接
+  helpLink?: string; // 文档链接
 };
 
 const CHANNEL_CREDENTIALS: Record<ChannelType, ChannelCredentialField[]> = {
   telegram: [
-    { key: "botToken", label: "Bot Token", type: "password", required: true, 
-      helpText: "从 @BotFather 获取", helpLink: "https://docs.openclaw.ai/channels/telegram" },
+    {
+      key: "botToken",
+      label: "Bot Token",
+      type: "password",
+      required: true,
+      helpText: "从 @BotFather 获取",
+      helpLink: "https://docs.openclaw.ai/channels/telegram",
+    },
   ],
   discord: [
     { key: "botToken", label: "Bot Token", type: "password", required: true },
@@ -202,7 +209,10 @@ type TestResult = {
   };
 };
 
-async function testChannelConnection(type: ChannelType, credentials: Record<string, string>): Promise<TestResult>;
+async function testChannelConnection(
+  type: ChannelType,
+  credentials: Record<string, string>,
+): Promise<TestResult>;
 ```
 
 ---
@@ -228,7 +238,7 @@ const USER_WIZARD_STEPS: WizardStep[] = [
 type UserWizardProps = {
   onComplete: (user: UserConfig) => void;
   onCancel: () => void;
-  channels: ChannelConfig[];  // 用于选择用户来源
+  channels: ChannelConfig[]; // 用于选择用户来源
   existingUsers?: UserConfig[];
 };
 ```
@@ -238,8 +248,18 @@ type UserWizardProps = {
 ```typescript
 const USER_ROLE_PRESETS = [
   { id: "owner", label: "所有者", description: "完全控制权限", permissions: ["*"] },
-  { id: "admin", label: "管理员", description: "管理配置和用户", permissions: ["config.*", "users.*"] },
-  { id: "user", label: "普通用户", description: "基本使用权限", permissions: ["chat", "tools.safe"] },
+  {
+    id: "admin",
+    label: "管理员",
+    description: "管理配置和用户",
+    permissions: ["config.*", "users.*"],
+  },
+  {
+    id: "user",
+    label: "普通用户",
+    description: "基本使用权限",
+    permissions: ["chat", "tools.safe"],
+  },
   { id: "guest", label: "访客", description: "只读权限", permissions: ["chat.readonly"] },
   { id: "custom", label: "自定义", description: "手动配置权限", permissions: [] },
 ];
@@ -259,10 +279,10 @@ type ValidationResult = {
 };
 
 type ValidationError = {
-  path: string;           // 如 "agents.0.model"
-  code: string;           // 如 "REQUIRED_FIELD"
-  message: string;        // 用户可读消息
-  value?: unknown;        // 当前值
+  path: string; // 如 "agents.0.model"
+  code: string; // 如 "REQUIRED_FIELD"
+  message: string; // 用户可读消息
+  value?: unknown; // 当前值
 };
 
 type ValidationWarning = {
@@ -325,14 +345,12 @@ const VALIDATION_RULES = {
 ```typescript
 // 字段级验证定义
 const AGENT_FIELD_VALIDATORS: Record<string, ValidationRule[]> = {
-  "id": [
+  id: [
     VALIDATION_RULES.required("Agent ID"),
     VALIDATION_RULES.pattern("Agent ID", /^[a-z][a-z0-9-]*$/, "只能包含小写字母、数字和连字符"),
   ],
-  "model": [
-    VALIDATION_RULES.required("模型"),
-  ],
-  "systemPrompt": [
+  model: [VALIDATION_RULES.required("模型")],
+  systemPrompt: [
     {
       code: "PROMPT_TOO_LONG",
       message: "系统提示词超过 32000 字符，可能影响性能",
@@ -357,13 +375,15 @@ class ConfigValidator {
 type FixSuggestion = {
   errorCode: string;
   description: string;
-  autoFix?: () => Partial<OpenClawConfig>;  // 可自动修复
-  manualSteps?: string[];                    // 手动修复步骤
+  autoFix?: () => Partial<OpenClawConfig>; // 可自动修复
+  manualSteps?: string[]; // 手动修复步骤
   docLink?: string;
 };
 
-const FIX_SUGGESTIONS: Record<string, (error: ValidationError, context: ValidationContext) => FixSuggestion> = {
-  
+const FIX_SUGGESTIONS: Record<
+  string,
+  (error: ValidationError, context: ValidationContext) => FixSuggestion
+> = {
   REQUIRED_FIELD: (error) => ({
     errorCode: error.code,
     description: `请填写 ${error.path}`,
@@ -400,11 +420,7 @@ const FIX_SUGGESTIONS: Record<string, (error: ValidationError, context: Validati
   CHANNEL_AUTH_FAILED: (error) => ({
     errorCode: error.code,
     description: "通道认证失败",
-    manualSteps: [
-      "1. 检查 Token/API Key 是否正确",
-      "2. 确认凭据未过期",
-      "3. 检查网络连接",
-    ],
+    manualSteps: ["1. 检查 Token/API Key 是否正确", "2. 确认凭据未过期", "3. 检查网络连接"],
   }),
 };
 
@@ -424,19 +440,23 @@ function renderValidationError(error: ValidationError, suggestion: FixSuggestion
     <div class="validation-error">
       <span class="validation-error__icon">⚠️</span>
       <span class="validation-error__message">${error.message}</span>
-      ${suggestion?.autoFix ? html`
-        <button class="validation-error__fix-btn" @click=${() => applyFix(suggestion)}>
-          自动修复
-        </button>
-      ` : nothing}
-      ${suggestion?.manualSteps ? html`
-        <details class="validation-error__details">
-          <summary>修复步骤</summary>
-          <ol>
-            ${suggestion.manualSteps.map(step => html`<li>${step}</li>`)}
-          </ol>
-        </details>
-      ` : nothing}
+      ${suggestion?.autoFix
+        ? html`
+            <button class="validation-error__fix-btn" @click=${() => applyFix(suggestion)}>
+              自动修复
+            </button>
+          `
+        : nothing}
+      ${suggestion?.manualSteps
+        ? html`
+            <details class="validation-error__details">
+              <summary>修复步骤</summary>
+              <ol>
+                ${suggestion.manualSteps.map((step) => html`<li>${step}</li>`)}
+              </ol>
+            </details>
+          `
+        : nothing}
     </div>
   `;
 }
@@ -605,11 +625,11 @@ const CHANNEL_TEMPLATES: ChannelTemplate[] = [
 
 ## 实现优先级
 
-| 顺序 | 模块 | 理由 |
-|------|------|------|
-| 1 | validators | 基础设施，其他模块依赖 |
-| 2 | templates | 简单，快速出效果 |
-| 3 | wizards | 最复杂，依赖前两者 |
+| 顺序 | 模块       | 理由                   |
+| ---- | ---------- | ---------------------- |
+| 1    | validators | 基础设施，其他模块依赖 |
+| 2    | templates  | 简单，快速出效果       |
+| 3    | wizards    | 最复杂，依赖前两者     |
 
 ---
 

@@ -133,8 +133,8 @@ export function renderAgentFiles(props: AgentFilesProps) {
   const files = convertToWorkspaceFiles(agentFilesList);
 
   // 获取当前选中文件的内容 / Get current selected file content
-  const activeContent = agentFileActive ? agentFileContents[agentFileActive] ?? "" : "";
-  const activeDraft = agentFileActive ? agentFileDrafts[agentFileActive] ?? activeContent : "";
+  const activeContent = agentFileActive ? (agentFileContents[agentFileActive] ?? "") : "";
+  const activeDraft = agentFileActive ? (agentFileDrafts[agentFileActive] ?? activeContent) : "";
 
   // 使用 workspace-content 布局渲染
   // Render using workspace-content layout

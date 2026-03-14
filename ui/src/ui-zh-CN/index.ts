@@ -58,7 +58,4 @@ export type {
 // ============================================
 
 // 从 controllers/model-config 导出函数
-export {
-  loadModelConfig,
-  loadAgentSessions,
-} from "./controllers/model-config";
+export { loadModelConfig, loadAgentSessions } from "./controllers/model-config";

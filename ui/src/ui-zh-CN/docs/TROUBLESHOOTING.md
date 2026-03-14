@@ -74,6 +74,7 @@ echo -e "\n=== 诊断完成 ==="
 ### 问题 1: 服务无法启动
 
 **症状**:
+
 ```bash
 $ systemctl start openclaw
 Job for openclaw.service failed because the control process exited with error code.
@@ -97,13 +98,13 @@ sudo lsof -i :19000
 
 **常见原因**:
 
-| 原因 | 解决方案 |
-|------|----------|
-| 配置文件语法错误 | 使用 JSON 验证器检查 |
-| 端口被占用 | 修改端口或停止占用进程 |
-| 文件权限不足 | `chmod 600 config.json` |
-| 依赖缺失 | `pnpm install` |
-| Node.js 版本不兼容 | 升级到 22.20.0+ |
+| 原因               | 解决方案                |
+| ------------------ | ----------------------- |
+| 配置文件语法错误   | 使用 JSON 验证器检查    |
+| 端口被占用         | 修改端口或停止占用进程  |
+| 文件权限不足       | `chmod 600 config.json` |
+| 依赖缺失           | `pnpm install`          |
+| Node.js 版本不兼容 | 升级到 22.20.0+         |
 
 **解决方案**:
 
@@ -124,6 +125,7 @@ sudo systemctl restart openclaw
 ### 问题 2: 启动后立即退出
 
 **症状**:
+
 ```bash
 $ systemctl status openclaw
 Active: failed (Result: exit-code)
@@ -142,18 +144,19 @@ node dist/gateway/index.js
 
 **常见原因**:
 
-| 原因 | 解决方案 |
-|------|----------|
-| 环境变量缺失 | 检查 `.env` 文件 |
-| 数据库连接失败 | 检查数据库配置 |
-| 依赖版本冲突 | 删除 `node_modules` 重新安装 |
-| 内存不足 | 增加服务器内存 |
+| 原因           | 解决方案                     |
+| -------------- | ---------------------------- |
+| 环境变量缺失   | 检查 `.env` 文件             |
+| 数据库连接失败 | 检查数据库配置               |
+| 依赖版本冲突   | 删除 `node_modules` 重新安装 |
+| 内存不足       | 增加服务器内存               |
 
 ---
 
 ### 问题 3: 构建失败
 
 **症状**:
+
 ```bash
 $ pnpm build
 ERROR: Build failed with 1 error
@@ -183,6 +186,7 @@ pnpm build
 ### 问题 4: WebSocket 连接失败
 
 **症状**:
+
 ```
 浏览器控制台: WebSocket connection to 'ws://localhost:19000' failed
 ```
@@ -205,13 +209,13 @@ sudo ufw status
 
 **常见原因**:
 
-| 原因 | 解决方案 |
-|------|----------|
-| Gateway 未运行 | 启动服务 |
-| 端口未监听 | 检查绑定配置 |
-| 防火墙阻止 | 开放端口 |
+| 原因           | 解决方案            |
+| -------------- | ------------------- |
+| Gateway 未运行 | 启动服务            |
+| 端口未监听     | 检查绑定配置        |
+| 防火墙阻止     | 开放端口            |
 | Nginx 配置错误 | 检查 WebSocket 配置 |
-| 浏览器缓存 | 清除缓存 |
+| 浏览器缓存     | 清除缓存            |
 
 **解决方案**:
 
@@ -231,6 +235,7 @@ sudo systemctl restart nginx
 ### 问题 5: 认证失败
 
 **症状**:
+
 ```
 401 Unauthorized
 ```
@@ -266,6 +271,7 @@ sudo systemctl restart openclaw
 ### 问题 6: CORS 错误
 
 **症状**:
+
 ```
 Access to XMLHttpRequest has been blocked by CORS policy
 ```
@@ -317,18 +323,19 @@ sudo systemctl restart openclaw
 
 **常见原因**:
 
-| 原因 | 解决方案 |
-|------|----------|
-| 未重启服务 | 重启 Gateway |
-| 配置文件路径错误 | 检查工作目录 |
-| 配置被环境变量覆盖 | 检查 `.env` |
-| 配置缓存 | 清除缓存 |
+| 原因               | 解决方案     |
+| ------------------ | ------------ |
+| 未重启服务         | 重启 Gateway |
+| 配置文件路径错误   | 检查工作目录 |
+| 配置被环境变量覆盖 | 检查 `.env`  |
+| 配置缓存           | 清除缓存     |
 
 ---
 
 ### 问题 8: 模型配置错误
 
 **症状**:
+
 ```
 Error: Model not found: openai/gpt-4
 ```
@@ -432,13 +439,13 @@ grep "duration" /var/log/openclaw/gateway.log | awk '$NF > 5000'
 
 **常见原因**:
 
-| 原因 | 解决方案 |
-|------|----------|
-| CPU 不足 | 增加 CPU 核心 |
-| 内存不足 | 增加内存 |
-| 磁盘 I/O 慢 | 使用 SSD |
-| 网络延迟高 | 使用 CDN |
-| 并发请求过多 | 限制并发数 |
+| 原因         | 解决方案      |
+| ------------ | ------------- |
+| CPU 不足     | 增加 CPU 核心 |
+| 内存不足     | 增加内存      |
+| 磁盘 I/O 慢  | 使用 SSD      |
+| 网络延迟高   | 使用 CDN      |
+| 并发请求过多 | 限制并发数    |
 
 **优化方案**:
 
@@ -582,6 +589,7 @@ curl -X POST http://localhost:19000/api/sessions \
 ### 问题 15: 技能安装失败
 
 **症状**:
+
 ```
 Error: Failed to install skill: weather
 ```
@@ -616,12 +624,12 @@ sudo systemctl restart openclaw
 
 ### 日志位置
 
-| 日志类型 | 位置 | 说明 |
-|----------|------|------|
-| **Gateway 日志** | `/var/log/openclaw/gateway.log` | 主日志 |
-| **Systemd 日志** | `journalctl -u openclaw` | 系统日志 |
-| **Nginx 日志** | `/var/log/nginx/openclaw-*.log` | 代理日志 |
-| **错误日志** | `/var/log/openclaw/error.log` | 错误日志 |
+| 日志类型         | 位置                            | 说明     |
+| ---------------- | ------------------------------- | -------- |
+| **Gateway 日志** | `/var/log/openclaw/gateway.log` | 主日志   |
+| **Systemd 日志** | `journalctl -u openclaw`        | 系统日志 |
+| **Nginx 日志**   | `/var/log/nginx/openclaw-*.log` | 代理日志 |
+| **错误日志**     | `/var/log/openclaw/error.log`   | 错误日志 |
 
 ### 日志级别
 
@@ -742,6 +750,7 @@ wireshark openclaw.pcap
 包含以下信息:
 
 1. **系统信息**
+
 ```bash
 uname -a
 node -v
@@ -749,16 +758,19 @@ pnpm -v
 ```
 
 2. **错误日志**
+
 ```bash
 tail -100 /var/log/openclaw/gateway.log
 ```
 
 3. **配置文件** (脱敏)
+
 ```bash
 jq 'del(.models.providers[].apiKey)' config.json
 ```
 
 4. **复现步骤**
+
 - 详细描述操作步骤
 - 预期结果 vs 实际结果
 
@@ -770,5 +782,5 @@ jq 'del(.models.providers[].apiKey)' config.json
 
 ---
 
-*文档生成时间: 2026-02-07*  
-*下次更新: 根据用户反馈*
+_文档生成时间: 2026-02-07_  
+_下次更新: 根据用户反馈_

@@ -5,7 +5,12 @@
  * 处理 Agent 身份、模型配置等操作
  * Handles agent identity, model config operations
  */
-import { invalidateModelConfigDerivedState, type ModelConfigState, type AgentIdentityConfig, type AgentIdentityEntry } from "./state";
+import {
+  invalidateModelConfigDerivedState,
+  type ModelConfigState,
+  type AgentIdentityConfig,
+  type AgentIdentityEntry,
+} from "./state";
 
 type AgentConfigRecord = Record<string, unknown>;
 type AgentConfigList = AgentConfigRecord[];
@@ -33,12 +38,14 @@ function mapAgentListEntries(list: AgentConfigList): AgentIdentityEntry[] {
         name: entry.name as string | undefined,
         default: entry.default as boolean | undefined,
         workspace: entry.workspace as string | undefined,
-        identity: identity ? {
-          name: identity.name as string | undefined,
-          theme: identity.theme as string | undefined,
-          emoji: identity.emoji as string | undefined,
-          avatar: identity.avatar as string | undefined,
-        } : undefined,
+        identity: identity
+          ? {
+              name: identity.name as string | undefined,
+              theme: identity.theme as string | undefined,
+              emoji: identity.emoji as string | undefined,
+              avatar: identity.avatar as string | undefined,
+            }
+          : undefined,
         model: entry.model as string | { primary?: string; fallbacks?: string[] } | undefined,
       };
     });
@@ -56,11 +63,7 @@ export function syncAgentSnapshotState(
 /**
  * 更新 Agent 默认设置
  */
-export function updateAgentDefaults(
-  state: ModelConfigState,
-  path: string[],
-  value: unknown,
-): void {
+export function updateAgentDefaults(state: ModelConfigState, path: string[], value: unknown): void {
   const updated = { ...state.modelConfigAgentDefaults };
 
   if (path.length === 1) {
@@ -118,11 +121,7 @@ function updateNestedConfigValue(
   return next;
 }
 
-export function updateGatewayConfig(
-  state: ModelConfigState,
-  path: string[],
-  value: unknown,
-): void {
+export function updateGatewayConfig(state: ModelConfigState, path: string[], value: unknown): void {
   state.modelConfigGateway = updateNestedConfigValue(
     { ...(state.modelConfigGateway as Record<string, unknown>) },
     path,
@@ -191,7 +190,9 @@ export function updateAgentModelFallbacks(
   agentId: string,
   fallbacks: string[],
 ): void {
-  if (!state.modelConfigFullSnapshot) {return;}
+  if (!state.modelConfigFullSnapshot) {
+    return;
+  }
 
   // 深度复制配置
   const config = cloneJson(state.modelConfigFullSnapshot);
@@ -199,7 +200,9 @@ export function updateAgentModelFallbacks(
 
   // 查找目标 agent
   const agentIndex = list.findIndex((a) => a.id === agentId);
-  if (agentIndex === -1) {return;}
+  if (agentIndex === -1) {
+    return;
+  }
 
   const agent = list[agentIndex];
 
@@ -239,10 +242,7 @@ export function updateAgentModelFallbacks(
 /**
  * 选择要编辑身份的 Agent
  */
-export function selectAgentForIdentity(
-  state: ModelConfigState,
-  agentId: string | null,
-): void {
+export function selectAgentForIdentity(state: ModelConfigState, agentId: string | null): void {
   state.modelConfigSelectedAgentId = agentId;
 }
 
@@ -257,7 +257,9 @@ export function updateAgentIdentity(
 ): void {
   const list = [...state.modelConfigAgentsList];
   const index = list.findIndex((a) => a.id === agentId);
-  if (index === -1) {return;}
+  if (index === -1) {
+    return;
+  }
 
   const agent = { ...list[index] };
   const identity = { ...agent.identity };
@@ -287,10 +289,7 @@ export function updateAgentIdentity(
  * 将指定的 Agent 设为默认，其他 Agent 取消默认标记
  * Set the specified agent as default, remove default flag from others
  */
-export function setDefaultAgent(
-  state: ModelConfigState,
-  agentId: string,
-): void {
+export function setDefaultAgent(state: ModelConfigState, agentId: string): void {
   if (!state.modelConfigFullSnapshot) {
     console.warn("[setDefaultAgent] modelConfigFullSnapshot 为空");
     return;
@@ -336,21 +335,20 @@ export function extractAgentsList(config: Record<string, unknown>): AgentIdentit
 
   // 如果没有 agents.list，创建一个默认的 "main" agent
   // 这样用户仍然可以配置默认 agent 的身份
-  return [{
-    id: "main",
-    name: "Main Agent",
-    default: true,
-  }];
+  return [
+    {
+      id: "main",
+      name: "Main Agent",
+      default: true,
+    },
+  ];
 }
 
 /**
  * 复制 Agent 配置
  * Duplicate agent configuration
  */
-export function duplicateAgent(
-  state: ModelConfigState,
-  agentId: string,
-): string | null {
+export function duplicateAgent(state: ModelConfigState, agentId: string): string | null {
   if (!state.modelConfigFullSnapshot) {
     console.warn("[duplicateAgent] modelConfigFullSnapshot 为空");
     return null;
@@ -387,10 +385,7 @@ export function duplicateAgent(
  * 导出 Agent 配置为 JSON
  * Export agent configuration as JSON
  */
-export function exportAgent(
-  state: ModelConfigState,
-  agentId: string,
-): void {
+export function exportAgent(state: ModelConfigState, agentId: string): void {
   if (!state.modelConfigFullSnapshot) {
     console.warn("[exportAgent] modelConfigFullSnapshot 为空");
     return;
@@ -423,10 +418,7 @@ export function exportAgent(
  * 删除 Agent
  * Delete agent
  */
-export function deleteAgent(
-  state: ModelConfigState,
-  agentId: string,
-): boolean {
+export function deleteAgent(state: ModelConfigState, agentId: string): boolean {
   if (!state.modelConfigFullSnapshot) {
     console.warn("[deleteAgent] modelConfigFullSnapshot 为空");
     return false;

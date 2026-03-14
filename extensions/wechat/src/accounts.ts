@@ -6,8 +6,8 @@
  */
 import type { MoltbotConfig } from "openclaw/plugin-sdk";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "openclaw/plugin-sdk";
-import type { ResolvedWeChatAccount, WeChatAccountConfig, WeChatConfig } from "./types.js";
 import { resolveWeChatToken } from "./token.js";
+import type { ResolvedWeChatAccount, WeChatAccountConfig, WeChatConfig } from "./types.js";
 
 /** 默认 API 地址 */
 const DEFAULT_BASE_URL = "http://localhost:9000";

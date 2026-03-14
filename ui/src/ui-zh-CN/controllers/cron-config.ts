@@ -103,7 +103,12 @@ export async function loadCronJobs(state: CronConfigState): Promise<void> {
 /**
  * 构建调度配置
  */
-export function buildCronSchedule(form: CronFormState): { kind: "at"; at: string } | { kind: "every"; everyMs: number } | { kind: "cron"; expr: string; tz?: string } {
+export function buildCronSchedule(
+  form: CronFormState,
+):
+  | { kind: "at"; at: string }
+  | { kind: "every"; everyMs: number }
+  | { kind: "cron"; expr: string; tz?: string } {
   if (form.scheduleKind === "at") {
     const ms = Date.parse(form.scheduleAt);
     if (!Number.isFinite(ms)) throw new Error("无效的运行时间");
@@ -124,7 +129,11 @@ export function buildCronSchedule(form: CronFormState): { kind: "at"; at: string
 /**
  * 构建负载配置
  */
-export function buildCronPayload(form: CronFormState): { kind: "systemEvent"; text: string } | { kind: "agentTurn"; message: string; timeoutSeconds?: number } {
+export function buildCronPayload(
+  form: CronFormState,
+):
+  | { kind: "systemEvent"; text: string }
+  | { kind: "agentTurn"; message: string; timeoutSeconds?: number } {
   if (form.payloadKind === "systemEvent") {
     const text = form.payloadText.trim();
     if (!text) throw new Error("需要系统事件文本");
@@ -144,7 +153,9 @@ export function buildCronPayload(form: CronFormState): { kind: "systemEvent"; te
 /**
  * 构建投递配置
  */
-export function buildCronDelivery(form: CronFormState): { mode: "none" } | { mode: "announce"; channel: string; to?: string } {
+export function buildCronDelivery(
+  form: CronFormState,
+): { mode: "none" } | { mode: "announce"; channel: string; to?: string } {
   if (form.deliveryMode === "announce") {
     return {
       mode: "announce",
@@ -235,7 +246,11 @@ export async function updateCronJob(state: CronConfigState): Promise<void> {
 /**
  * 切换定时任务启用状态
  */
-export async function toggleCronJob(state: CronConfigState, job: CronJob, enabled: boolean): Promise<void> {
+export async function toggleCronJob(
+  state: CronConfigState,
+  job: CronJob,
+  enabled: boolean,
+): Promise<void> {
   if (!state.client || !state.connected || state.cronBusy) return;
   state.cronBusy = true;
   state.cronError = null;

@@ -3,8 +3,8 @@
  */
 import { html } from "lit";
 import type { ChannelsConfigData } from "../../types/channel-config";
-import { CHANNEL_METADATA } from "./channel-metadata";
 import { getChannelIcon, icons } from "./channel-icons";
+import { CHANNEL_METADATA } from "./channel-metadata";
 
 export type ChannelListProps = {
   channelsConfig: ChannelsConfigData;

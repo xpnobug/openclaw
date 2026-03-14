@@ -15,18 +15,18 @@
 
 ### 模块文件列表
 
-| 文件 | 行数 | 大小 | 用途 |
-|------|------|------|------|
-| base.css | 38 | 693B | 基础布局 |
-| config-content.css | 993 | 17K | 配置内容区 |
-| responsive.css | 236 | 3.5K | 响应式样式 |
-| channels.css | 355 | 5.9K | 通道配置 |
-| permissions.css | 931 | 17K | 权限配置 |
-| sessions.css | 235 | 4.0K | 会话列表 |
-| agent-identity.css | 165 | 2.8K | Agent 身份 |
-| workspace-editor.css | 540 | 9.3K | 工作区编辑器 |
-| skills.css | 3,247 | 58K | 技能管理 |
-| cron.css | 698 | 13K | 定时任务 |
+| 文件                 | 行数  | 大小 | 用途         |
+| -------------------- | ----- | ---- | ------------ |
+| base.css             | 38    | 693B | 基础布局     |
+| config-content.css   | 993   | 17K  | 配置内容区   |
+| responsive.css       | 236   | 3.5K | 响应式样式   |
+| channels.css         | 355   | 5.9K | 通道配置     |
+| permissions.css      | 931   | 17K  | 权限配置     |
+| sessions.css         | 235   | 4.0K | 会话列表     |
+| agent-identity.css   | 165   | 2.8K | Agent 身份   |
+| workspace-editor.css | 540   | 9.3K | 工作区编辑器 |
+| skills.css           | 3,247 | 58K  | 技能管理     |
+| cron.css             | 698   | 13K  | 定时任务     |
 
 **总计**: 7,438 行，131K
 
@@ -37,12 +37,14 @@
 ### 文件结构
 
 **拆分前**:
+
 ```
 styles/
 └── model-config.css (7,438 行, 130K)
 ```
 
 **拆分后**:
+
 ```
 styles/
 ├── model-config.css (兼容层, 173 字节)
@@ -68,9 +70,9 @@ styles/
 
 ```typescript
 // 核心样式 - 首屏必需
-import './modules/base.css';           // 38 行
-import './modules/config-content.css'; // 993 行
-import './modules/responsive.css';     // 236 行
+import "./modules/base.css"; // 38 行
+import "./modules/config-content.css"; // 993 行
+import "./modules/responsive.css"; // 236 行
 ```
 
 **首屏总计**: 1,267 行 (17%)
@@ -81,13 +83,13 @@ import './modules/responsive.css';     // 236 行
 
 ```typescript
 // 功能模块 - 按需加载
-import './modules/channels.css';        // 355 行
-import './modules/permissions.css';     // 931 行
-import './modules/sessions.css';        // 235 行
-import './modules/agent-identity.css';  // 165 行
-import './modules/workspace-editor.css';// 540 行
-import './modules/skills.css';          // 3,247 行
-import './modules/cron.css';            // 698 行
+import "./modules/channels.css"; // 355 行
+import "./modules/permissions.css"; // 931 行
+import "./modules/sessions.css"; // 235 行
+import "./modules/agent-identity.css"; // 165 行
+import "./modules/workspace-editor.css"; // 540 行
+import "./modules/skills.css"; // 3,247 行
+import "./modules/cron.css"; // 698 行
 ```
 
 **按需加载总计**: 6,171 行 (83%)
@@ -132,12 +134,12 @@ $ wc -l modules/*.css
 
 ### 预期效果
 
-| 指标 | 拆分前 | 拆分后 | 改进 |
-|------|--------|--------|------|
-| **首屏 CSS** | 7,438 行 | 1,267 行 | ✅ -83% |
-| **首屏加载** | +200ms | +50ms | ✅ -75% |
-| **文件数量** | 1 个 | 10 个 | ✅ 模块化 |
-| **平均文件大小** | 130K | 13K | ✅ -90% |
+| 指标             | 拆分前   | 拆分后   | 改进      |
+| ---------------- | -------- | -------- | --------- |
+| **首屏 CSS**     | 7,438 行 | 1,267 行 | ✅ -83%   |
+| **首屏加载**     | +200ms   | +50ms    | ✅ -75%   |
+| **文件数量**     | 1 个     | 10 个    | ✅ 模块化 |
+| **平均文件大小** | 130K     | 13K      | ✅ -90%   |
 
 ---
 
@@ -196,5 +198,5 @@ $ wc -l modules/*.css
 
 ---
 
-*执行完成时间: 2026-02-07 20:16*  
-*下一步: 提交代码，更新文档*
+_执行完成时间: 2026-02-07 20:16_  
+_下一步: 提交代码，更新文档_

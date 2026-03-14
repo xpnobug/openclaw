@@ -6,7 +6,11 @@
  * Display basic info, model selection and session management
  */
 import { html, nothing } from "lit";
-import type { AgentsListResult, AgentIdentityResult, AgentsFilesListResult } from "../../../ui/types";
+import type {
+  AgentsListResult,
+  AgentIdentityResult,
+  AgentsFilesListResult,
+} from "../../../ui/types";
 import type { SessionRow, SessionsListResult } from "../../controllers/model-config";
 import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
 
@@ -15,8 +19,21 @@ import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
 // ─────────────────────────────────────────────────────────────────────────────
 
 const icons = {
-  refresh: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>`,
-  trash: html`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
+  refresh: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="23 4 23 10 17 10"></polyline>
+      <polyline points="1 20 1 14 7 14"></polyline>
+      <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+    </svg>
+  `,
+  trash: html`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="3 6 5 6 21 6"></polyline>
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+      <line x1="10" y1="11" x2="10" y2="17"></line>
+      <line x1="14" y1="11" x2="14" y2="17"></line>
+    </svg>
+  `,
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -136,8 +153,12 @@ function resolveWorkspace(
  * Format model label
  */
 function resolveModelLabel(model?: unknown): string {
-  if (!model) {return "-";}
-  if (typeof model === "string") {return model.trim() || "-";}
+  if (!model) {
+    return "-";
+  }
+  if (typeof model === "string") {
+    return model.trim() || "-";
+  }
   if (typeof model === "object" && model) {
     const record = model as { primary?: string; fallbacks?: string[] };
     const primary = record.primary?.trim();
@@ -178,7 +199,9 @@ function resolveAgentEmoji(
  */
 function isLikelyEmoji(value: string): boolean {
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 16) {return false;}
+  if (!trimmed || trimmed.length > 16) {
+    return false;
+  }
 
   let hasNonAscii = false;
   for (let i = 0; i < trimmed.length; i++) {
@@ -187,7 +210,9 @@ function isLikelyEmoji(value: string): boolean {
       break;
     }
   }
-  if (!hasNonAscii) {return false;}
+  if (!hasNonAscii) {
+    return false;
+  }
   if (trimmed.includes("://") || trimmed.includes("/") || trimmed.includes(".")) {
     return false;
   }
@@ -199,7 +224,9 @@ function isLikelyEmoji(value: string): boolean {
  * Resolve model primary
  */
 function resolveModelPrimary(model?: unknown): string | null {
-  if (!model) {return null;}
+  if (!model) {
+    return null;
+  }
   if (typeof model === "string") {
     const trimmed = model.trim();
     return trimmed || null;
@@ -222,11 +249,15 @@ function resolveModelPrimary(model?: unknown): string | null {
  * Resolve model fallbacks
  */
 function resolveModelFallbacks(model?: unknown): string[] | null {
-  if (!model || typeof model === "string") {return null;}
+  if (!model || typeof model === "string") {
+    return null;
+  }
   if (typeof model === "object" && model) {
     const record = model as Record<string, unknown>;
     const fallbacks = Array.isArray(record.fallbacks) ? record.fallbacks : null;
-    return fallbacks ? fallbacks.filter((entry): entry is string => typeof entry === "string") : null;
+    return fallbacks
+      ? fallbacks.filter((entry): entry is string => typeof entry === "string")
+      : null;
   }
   return null;
 }
@@ -259,20 +290,26 @@ function collectAvailableModelOptions(
 
   // 从 models.providers 提取模型列表
   // Extract models from models.providers
-  const modelsNode = (configForm)?.models as Record<string, unknown> | undefined;
+  const modelsNode = configForm?.models as Record<string, unknown> | undefined;
   const providers = modelsNode?.providers as Record<string, unknown> | undefined;
 
   if (providers && typeof providers === "object") {
     for (const [providerKey, providerValue] of Object.entries(providers)) {
-      if (!providerValue || typeof providerValue !== "object") {continue;}
+      if (!providerValue || typeof providerValue !== "object") {
+        continue;
+      }
       const provider = providerValue as Record<string, unknown>;
       const models = provider.models as Array<Record<string, unknown>> | undefined;
-      if (!Array.isArray(models)) {continue;}
+      if (!Array.isArray(models)) {
+        continue;
+      }
 
       for (const model of models) {
         const modelId = (model.id as string)?.trim();
         const modelName = (model.name as string)?.trim();
-        if (!modelId) {continue;}
+        if (!modelId) {
+          continue;
+        }
 
         const fullId = `${providerKey}/${modelId}`;
         const label = modelName && modelName !== modelId ? `${modelName} (${fullId})` : fullId;
@@ -293,11 +330,14 @@ function renderModelOptions(
   current?: string | null,
 ) {
   if (options.length === 0) {
-    return html`<option value="" disabled>无可用模型</option>`;
+    return html`
+      <option value="" disabled>无可用模型</option>
+    `;
   }
 
   return options.map(
-    (opt) => html`<option value=${opt.value} ?selected=${opt.value === (current ?? "")}>${opt.label}</option>`,
+    (opt) =>
+      html`<option value=${opt.value} ?selected=${opt.value === (current ?? "")}>${opt.label}</option>`,
   );
 }
 
@@ -306,7 +346,9 @@ function buildModelOptions(configForm: Record<string, unknown> | null, current?:
 }
 
 function buildSessionModelId(modelProvider?: string | null, model?: string | null): string | null {
-  if (!model) {return null;}
+  if (!model) {
+    return null;
+  }
   return `${modelProvider ?? ""}/${model}`.replace(/^\//, "") || null;
 }
 
@@ -345,18 +387,23 @@ function formatAgo(ts: number): string {
   const now = Date.now();
   const diff = now - ts;
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) {return "刚刚";}
-  if (mins < 60) {return `${mins} 分钟前`;}
+  if (mins < 1) {
+    return "刚刚";
+  }
+  if (mins < 60) {
+    return `${mins} 分钟前`;
+  }
   const hours = Math.floor(mins / 60);
-  if (hours < 24) {return `${hours} 小时前`;}
+  if (hours < 24) {
+    return `${hours} 小时前`;
+  }
   const days = Math.floor(hours / 24);
   return `${days} 天前`;
 }
 
-function getSessionMutationBlockedReason(props: Pick<
-  AgentOverviewProps,
-  "connected" | "configSaving" | "configApplying" | "configDirty"
->): string | null {
+function getSessionMutationBlockedReason(
+  props: Pick<AgentOverviewProps, "connected" | "configSaving" | "configApplying" | "configDirty">,
+): string | null {
   if (!props.connected) {
     return "当前未连接到 Gateway，暂时无法切换或创建会话。";
   }
@@ -409,9 +456,11 @@ function renderSessionRow(
             onNavigate(session.key);
           }}
         >${displayName}</a>
-        ${session.kind !== "direct"
-          ? html`<span class="session-row__kind">${session.kind}</span>`
-          : nothing}
+        ${
+          session.kind !== "direct"
+            ? html`<span class="session-row__kind">${session.kind}</span>`
+            : nothing
+        }
       </div>
       <div class="session-row__model">
         <select
@@ -460,7 +509,9 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
     onSessionCreate,
   } = props;
 
-  if (!sessionCreateShow) {return nothing;}
+  if (!sessionCreateShow) {
+    return nothing;
+  }
 
   const sessionMutationBlockedReason = getSessionMutationBlockedReason(props);
   const handleClose = () => onSessionCreateShow?.(false);
@@ -474,7 +525,9 @@ function renderCreateSessionModal(props: AgentOverviewProps) {
   const handleCreate = () => onSessionCreate?.();
 
   const canCreate =
-    (sessionCreateName?.trim().length ?? 0) > 0 && !sessionCreating && !sessionMutationBlockedReason;
+    (sessionCreateName?.trim().length ?? 0) > 0 &&
+    !sessionCreating &&
+    !sessionMutationBlockedReason;
 
   return html`
     <div class="skills-modal-overlay" @click=${handleClose}>
@@ -600,16 +653,17 @@ function renderSessionsSection(props: AgentOverviewProps) {
         </div>
       </div>
       <div class="mc-card__content">
-        ${sessionMutationBlockedReason
-          ? html`<div class="mc-error" style="margin-bottom: 12px;">${sessionMutationBlockedReason}</div>`
-          : nothing}
-        ${sessionsError
-          ? html`<div class="mc-error">${sessionsError}</div>`
-          : nothing}
+        ${
+          sessionMutationBlockedReason
+            ? html`<div class="mc-error" style="margin-bottom: 12px;">${sessionMutationBlockedReason}</div>`
+            : nothing
+        }
+        ${sessionsError ? html`<div class="mc-error">${sessionsError}</div>` : nothing}
 
         <div class="sessions-list">
-          ${sessions.length > 0
-            ? html`
+          ${
+            sessions.length > 0
+              ? html`
                 <div class="sessions-list__header">
                   <div class="sessions-list__col sessions-list__col--key">${SESSION_LABELS.sessionKey}</div>
                   <div class="sessions-list__col sessions-list__col--model">${SESSION_LABELS.sessionModel}</div>
@@ -631,7 +685,8 @@ function renderSessionsSection(props: AgentOverviewProps) {
                   )}
                 </div>
               `
-            : html`<div class="mc-empty">${sessionsLoading ? SESSION_LABELS.loading : SESSION_LABELS.noSessions}</div>`}
+              : html`<div class="mc-empty">${sessionsLoading ? SESSION_LABELS.loading : SESSION_LABELS.noSessions}</div>`
+          }
         </div>
       </div>
     </div>
@@ -681,7 +736,11 @@ export function renderAgentOverview(props: AgentOverviewProps) {
   const skillFilter = Array.isArray(config.entry?.skills) ? config.entry?.skills : null;
   const skillCount = skillFilter?.length ?? null;
   const isDefault = Boolean(props.defaultId && agent.id === props.defaultId);
-  const identityStatus = agentIdentityLoading ? LABELS.actions.loading : agentIdentityError ? "不可用" : "";
+  const identityStatus = agentIdentityLoading
+    ? LABELS.actions.loading
+    : agentIdentityError
+      ? "不可用"
+      : "";
 
   return html`
     <div class="mc-section">

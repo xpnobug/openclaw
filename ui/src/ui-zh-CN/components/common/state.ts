@@ -44,7 +44,9 @@ const icons = {
   `,
   warning: html`
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+      <path
+        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+      ></path>
       <line x1="12" y1="9" x2="12" y2="13"></line>
       <line x1="12" y1="17" x2="12.01" y2="17"></line>
     </svg>
@@ -94,20 +96,25 @@ export type ErrorStateProps = {
  */
 export function renderErrorState(props?: ErrorStateProps): TemplateResult {
   const title = props?.title ?? "出错了";
-  const message = props?.message ?? (props?.error instanceof Error ? props.error.message : props?.error) ?? "发生未知错误";
+  const message =
+    props?.message ??
+    (props?.error instanceof Error ? props.error.message : props?.error) ??
+    "发生未知错误";
 
   return html`
     <div class="state-container state-container--error ${props?.className ?? ""}">
       <div class="state-icon state-icon--error">${icons.error}</div>
       <div class="state-title">${title}</div>
       <div class="state-message">${message}</div>
-      ${props?.onRetry
-        ? html`
+      ${
+        props?.onRetry
+          ? html`
             <button class="state-action" @click=${props.onRetry}>
               ${props.retryLabel ?? "重试"}
             </button>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -139,13 +146,15 @@ export function renderEmptyState(props?: EmptyStateProps): TemplateResult {
       <div class="state-icon state-icon--empty">${props?.icon ?? icons.empty}</div>
       <div class="state-title">${title}</div>
       ${message ? html`<div class="state-message">${message}</div>` : nothing}
-      ${props?.action
-        ? html`
+      ${
+        props?.action
+          ? html`
             <button class="state-action" @click=${props.action.onClick}>
               ${props.action.label}
             </button>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -186,15 +195,18 @@ export function renderInfoState(props: InfoStateProps): TemplateResult {
         ${props.title ? html`<div class="state-banner__title">${props.title}</div>` : nothing}
         <div class="state-banner__message">${props.message}</div>
       </div>
-      ${props.action
-        ? html`
+      ${
+        props.action
+          ? html`
             <button class="state-banner__action" @click=${props.action.onClick}>
               ${props.action.label}
             </button>
           `
-        : nothing}
-      ${props.dismissible && props.onDismiss
-        ? html`
+          : nothing
+      }
+      ${
+        props.dismissible && props.onDismiss
+          ? html`
             <button class="state-banner__dismiss" @click=${props.onDismiss}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -202,7 +214,8 @@ export function renderInfoState(props: InfoStateProps): TemplateResult {
               </svg>
             </button>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }
@@ -243,13 +256,15 @@ export function renderConnectionState(props: ConnectionStateProps): TemplateResu
       <div class="state-banner__content">
         <div class="state-banner__message">连接已断开</div>
       </div>
-      ${props.onReconnect
-        ? html`
+      ${
+        props.onReconnect
+          ? html`
             <button class="state-banner__action" @click=${props.onReconnect}>
               重新连接
             </button>
           `
-        : nothing}
+          : nothing
+      }
     </div>
   `;
 }

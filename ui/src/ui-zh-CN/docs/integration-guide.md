@@ -18,7 +18,7 @@ export const TAB_GROUPS = [
     tabs: ["overview", "channels", "instances", "sessions", "cron"],
   },
   { label: "Agent", tabs: ["agents", "skills", "nodes"] },
-  { label: "Settings", tabs: ["model-config", "config", "debug", "logs"] },  // <-- 添加 model-config
+  { label: "Settings", tabs: ["model-config", "config", "debug", "logs"] }, // <-- 添加 model-config
 ] as const;
 ```
 
@@ -35,7 +35,7 @@ export type Tab =
   | "skills"
   | "nodes"
   | "chat"
-  | "model-config"  // <-- 添加
+  | "model-config" // <-- 添加
   | "config"
   | "debug"
   | "logs";
@@ -54,7 +54,7 @@ const TAB_PATHS: Record<Tab, string> = {
   skills: "/skills",
   nodes: "/nodes",
   chat: "/chat",
-  "model-config": "/model-config",  // <-- 添加
+  "model-config": "/model-config", // <-- 添加
   config: "/config",
   debug: "/debug",
   logs: "/logs",
@@ -68,7 +68,7 @@ export function iconForTab(tab: Tab): IconName {
   switch (tab) {
     // ... 其他 case
     case "model-config":
-      return "brain";  // <-- 添加
+      return "brain"; // <-- 添加
     // ...
   }
 }
@@ -81,7 +81,7 @@ export function titleForTab(tab: Tab) {
   switch (tab) {
     // ... 其他 case
     case "model-config":
-      return "可视化配置";  // <-- 添加
+      return "可视化配置"; // <-- 添加
     // ...
   }
 }
@@ -94,7 +94,7 @@ export function subtitleForTab(tab: Tab) {
   switch (tab) {
     // ... 其他 case
     case "model-config":
-      return "可视化管理模型供应商、Agent 默认设置和网关配置";  // <-- 添加
+      return "可视化管理模型供应商、Agent 默认设置和网关配置"; // <-- 添加
     // ...
   }
 }
@@ -146,32 +146,32 @@ ${state.tab === "model-config" ? html`
 
 ### 属性（Properties）
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `.client` | `GatewayBrowserClient` | Gateway RPC 客户端实例 |
-| `.connected` | `boolean` | 与 Gateway 的连接状态 |
+| 属性         | 类型                   | 说明                   |
+| ------------ | ---------------------- | ---------------------- |
+| `.client`    | `GatewayBrowserClient` | Gateway RPC 客户端实例 |
+| `.connected` | `boolean`              | 与 Gateway 的连接状态  |
 
 ### 事件（Events）
 
-| 事件 | Detail 类型 | 说明 |
-|------|-------------|------|
-| `session-navigate` | `{ sessionKey: string }` | 请求跳转到指定会话的 Chat 页面 |
-| `navigate-channels` | - | 请求跳转到 Channels 配置页面 |
+| 事件                | Detail 类型              | 说明                           |
+| ------------------- | ------------------------ | ------------------------------ |
+| `session-navigate`  | `{ sessionKey: string }` | 请求跳转到指定会话的 Chat 页面 |
+| `navigate-channels` | -                        | 请求跳转到 Channels 配置页面   |
 
 ---
 
 ## 配置清单
 
-| 文件 | 位置 | 配置项 | 值 |
-|------|------|--------|-----|
-| `navigation.ts` | 第 10 行 | `TAB_GROUPS` | Settings 分组 |
-| `navigation.ts` | 第 23 行 | `Tab` 类型 | `"model-config"` |
-| `navigation.ts` | 第 38 行 | `TAB_PATHS` | `/model-config` |
-| `navigation.ts` | 第 145-146 行 | `iconForTab()` | `"brain"` |
-| `navigation.ts` | 第 178-179 行 | `titleForTab()` | `"可视化配置"` |
-| `navigation.ts` | 第 211-212 行 | `subtitleForTab()` | 副标题描述 |
-| `app-render.ts` | 第 71-73 行 | 导入语句 | `import "../ui-zh-CN"` |
-| `app-render.ts` | 第 998-1018 行 | 组件渲染 | `<openclaw-config-zh>` |
+| 文件            | 位置           | 配置项             | 值                     |
+| --------------- | -------------- | ------------------ | ---------------------- |
+| `navigation.ts` | 第 10 行       | `TAB_GROUPS`       | Settings 分组          |
+| `navigation.ts` | 第 23 行       | `Tab` 类型         | `"model-config"`       |
+| `navigation.ts` | 第 38 行       | `TAB_PATHS`        | `/model-config`        |
+| `navigation.ts` | 第 145-146 行  | `iconForTab()`     | `"brain"`              |
+| `navigation.ts` | 第 178-179 行  | `titleForTab()`    | `"可视化配置"`         |
+| `navigation.ts` | 第 211-212 行  | `subtitleForTab()` | 副标题描述             |
+| `app-render.ts` | 第 71-73 行    | 导入语句           | `import "../ui-zh-CN"` |
+| `app-render.ts` | 第 998-1018 行 | 组件渲染           | `<openclaw-config-zh>` |
 
 ---
 

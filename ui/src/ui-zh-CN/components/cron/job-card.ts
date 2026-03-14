@@ -3,10 +3,10 @@
  * Cron job card component
  */
 import { html, nothing } from "lit";
-import type { CronJob } from "../../../ui/types";
-import type { CronContentProps } from "../../types/cron-config";
 import { formatMs } from "../../../ui/format";
 import { formatCronPayload, formatCronSchedule } from "../../../ui/presenter";
+import type { CronJob } from "../../../ui/types";
+import type { CronContentProps } from "../../types/cron-config";
 import { LABELS, icons } from "./constants";
 import { getSafeCallbacks } from "./utils";
 

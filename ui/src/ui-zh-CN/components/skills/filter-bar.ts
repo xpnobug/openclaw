@@ -21,8 +21,7 @@ export function renderFilterBar(props: SkillsContentProps, total: number, shown:
           class="skills-filter__input"
           placeholder="搜索技能..."
           .value=${props.filter}
-          @input=${(e: Event) =>
-            props.onFilterChange((e.target as HTMLInputElement).value)}
+          @input=${(e: Event) => props.onFilterChange((e.target as HTMLInputElement).value)}
         />
       </div>
       <div class="skills-filter__selects">
@@ -30,9 +29,7 @@ export function renderFilterBar(props: SkillsContentProps, total: number, shown:
           class="skills-filter__select"
           .value=${props.sourceFilter}
           @change=${(e: Event) =>
-            props.onSourceFilterChange(
-              (e.target as HTMLSelectElement).value as SkillSourceFilter,
-            )}
+            props.onSourceFilterChange((e.target as HTMLSelectElement).value as SkillSourceFilter)}
         >
           <option value="all">全部来源</option>
           <option value="bundled">内置技能</option>
@@ -43,9 +40,7 @@ export function renderFilterBar(props: SkillsContentProps, total: number, shown:
           class="skills-filter__select"
           .value=${props.statusFilter}
           @change=${(e: Event) =>
-            props.onStatusFilterChange(
-              (e.target as HTMLSelectElement).value as SkillStatusFilter,
-            )}
+            props.onStatusFilterChange((e.target as HTMLSelectElement).value as SkillStatusFilter)}
         >
           <option value="all">全部状态</option>
           <option value="eligible">可用</option>

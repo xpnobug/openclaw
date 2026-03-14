@@ -63,31 +63,31 @@
 
 ### 硬件要求
 
-| 环境 | CPU | 内存 | 磁盘 | 网络 |
-|------|-----|------|------|------|
-| **开发** | 2 核 | 4GB | 20GB | 10Mbps |
-| **生产** | 4 核 | 8GB | 50GB | 100Mbps |
-| **高负载** | 8 核 | 16GB | 100GB | 1Gbps |
+| 环境       | CPU  | 内存 | 磁盘  | 网络    |
+| ---------- | ---- | ---- | ----- | ------- |
+| **开发**   | 2 核 | 4GB  | 20GB  | 10Mbps  |
+| **生产**   | 4 核 | 8GB  | 50GB  | 100Mbps |
+| **高负载** | 8 核 | 16GB | 100GB | 1Gbps   |
 
 ### 软件要求
 
-| 软件 | 版本 | 说明 |
-|------|------|------|
-| **Node.js** | 22.20.0+ | 必需 |
-| **pnpm** | 9.0.0+ | 包管理器 |
-| **Git** | 2.0+ | 版本控制 |
-| **Nginx** | 1.18+ | 反向代理（可选） |
-| **Docker** | 20.10+ | 容器化（可选） |
+| 软件        | 版本     | 说明             |
+| ----------- | -------- | ---------------- |
+| **Node.js** | 22.20.0+ | 必需             |
+| **pnpm**    | 9.0.0+   | 包管理器         |
+| **Git**     | 2.0+     | 版本控制         |
+| **Nginx**   | 1.18+    | 反向代理（可选） |
+| **Docker**  | 20.10+   | 容器化（可选）   |
 
 ### 操作系统
 
-| 系统 | 版本 | 支持状态 |
-|------|------|----------|
-| **Ubuntu** | 22.04 LTS | ✅ 推荐 |
-| **Debian** | 11+ | ✅ 支持 |
-| **CentOS** | 8+ | ✅ 支持 |
-| **macOS** | 12+ | ✅ 支持 |
-| **Windows** | 10/11 | ⚠️ 部分支持 |
+| 系统        | 版本      | 支持状态    |
+| ----------- | --------- | ----------- |
+| **Ubuntu**  | 22.04 LTS | ✅ 推荐     |
+| **Debian**  | 11+       | ✅ 支持     |
+| **CentOS**  | 8+        | ✅ 支持     |
+| **macOS**   | 12+       | ✅ 支持     |
+| **Windows** | 10/11     | ⚠️ 部分支持 |
 
 ---
 
@@ -216,10 +216,7 @@ nano config.json
       "exec": {
         "security": "allowlist",
         "ask": "on-miss",
-        "allowlist": [
-          "ls", "cat", "grep", "find",
-          "git status", "git diff"
-        ]
+        "allowlist": ["ls", "cat", "grep", "find", "git status", "git diff"]
       }
     }
   }
@@ -330,7 +327,7 @@ CMD ["node", "dist/gateway/index.js"]
 ### docker-compose.yml
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   openclaw:
@@ -422,17 +419,17 @@ server {
     location / {
         proxy_pass http://127.0.0.1:19000;
         proxy_http_version 1.1;
-        
+
         # WebSocket 支持
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection "upgrade";
-        
+
         # 代理头
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-        
+
         # 超时设置
         proxy_connect_timeout 60s;
         proxy_send_timeout 60s;
@@ -516,9 +513,9 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: 'openclaw'
+  - job_name: "openclaw"
     static_configs:
-      - targets: ['localhost:19000']
+      - targets: ["localhost:19000"]
 ```
 
 ### Grafana 仪表板
@@ -536,6 +533,7 @@ scrape_configs:
 **症状**: `systemctl start openclaw` 失败
 
 **排查**:
+
 ```bash
 # 查看详细日志
 sudo journalctl -u openclaw -n 50
@@ -548,6 +546,7 @@ sudo lsof -i :19000
 ```
 
 **解决**:
+
 - 检查配置文件语法
 - 检查端口是否被占用
 - 检查文件权限
@@ -559,6 +558,7 @@ sudo lsof -i :19000
 **症状**: 浏览器无法连接 Gateway
 
 **排查**:
+
 ```bash
 # 测试 WebSocket
 wscat -c ws://localhost:19000
@@ -571,6 +571,7 @@ sudo nginx -t
 ```
 
 **解决**:
+
 - 检查 Gateway 是否运行
 - 检查防火墙规则
 - 检查 Nginx WebSocket 配置
@@ -582,6 +583,7 @@ sudo nginx -t
 **症状**: 响应慢、卡顿
 
 **排查**:
+
 ```bash
 # CPU 使用率
 top -p $(pgrep -f "node.*gateway")
@@ -597,6 +599,7 @@ ping -c 10 api.openai.com
 ```
 
 **解决**:
+
 - 增加服务器资源
 - 优化配置（减少并发）
 - 启用缓存
@@ -609,6 +612,7 @@ ping -c 10 api.openai.com
 **症状**: 401 Unauthorized
 
 **排查**:
+
 ```bash
 # 检查配置
 grep -A 5 "auth" config.json
@@ -618,6 +622,7 @@ echo $GATEWAY_TOKEN
 ```
 
 **解决**:
+
 - 检查 token 是否正确
 - 检查认证是否启用
 - 清除浏览器缓存
@@ -733,6 +738,7 @@ sudo systemctl restart openclaw
 ### 报告问题
 
 提交 Issue 时请包含:
+
 - 系统信息 (`uname -a`)
 - Node.js 版本 (`node -v`)
 - 错误日志
@@ -740,5 +746,5 @@ sudo systemctl restart openclaw
 
 ---
 
-*文档生成时间: 2026-02-07*  
-*下次更新: 根据用户反馈*
+_文档生成时间: 2026-02-07_  
+_下次更新: 根据用户反馈_

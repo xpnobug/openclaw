@@ -2,6 +2,54 @@ import { execFile } from "node:child_process";
 import { writeFile } from "node:fs/promises";
 import { withTempDownloadPath } from "openclaw/plugin-sdk";
 
+/** 默认语音时长毫秒数（ffprobe 不可用时使用）。 */
+export const DEFAULT_VOICE_DURATION_MS = 5000;
+
+/**
+ * 调用 ffprobe 获取音频时长（秒），ffprobe 不可用时返回 undefined。
+ */
+export async function extractAudioDuration(audioPath: string): Promise<number | undefined> {
+  try {
+    const stdout = await new Promise<string>((resolve, reject) => {
+      execFile(
+        "ffprobe",
+        [
+          "-v",
+          "error",
+          "-show_entries",
+          "format=duration",
+          "-of",
+          "default=noprint_wrappers=1:nokey=1",
+          audioPath,
+        ],
+        { timeout: 15_000 },
+        (err, stdout) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve(stdout);
+          }
+        },
+      );
+    });
+    const parsed = Number.parseFloat(stdout.trim());
+    return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * 根据 MIME 类型判断语音编码类型。
+ * - amr → 0
+ * - 其他（mp3/wav 等，桥接服务负责 silk 编码）→ 4
+ */
+export function resolveVoiceType(mime: string): number {
+  const lower = mime.toLowerCase();
+  if (lower.includes("amr")) return 0;
+  return 4;
+}
+
 /**
  * 调用 ffprobe 获取视频时长（秒），ffprobe 不可用时返回 undefined。
  */

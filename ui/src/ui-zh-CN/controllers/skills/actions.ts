@@ -1,10 +1,10 @@
+import { loadSkillsStatus } from "./loader";
+import { getErrorMessage, setSkillMessage } from "./state";
 /**
  * 技能配置控制器 - 技能操作
  * Skills config controller - Skill actions
  */
 import type { SkillsConfigState } from "./types";
-import { getErrorMessage, setSkillMessage } from "./state";
-import { loadSkillsStatus } from "./loader";
 
 // ─── 切换技能启用状态 / Toggle skill enabled ────────────────────────────────
 
@@ -36,10 +36,7 @@ export async function updateSkillEnabled(
 
 // ─── 保存 API Key / Save API key ────────────────────────────────────────────
 
-export async function saveSkillApiKey(
-  state: SkillsConfigState,
-  skillKey: string,
-) {
+export async function saveSkillApiKey(state: SkillsConfigState, skillKey: string) {
   if (!state.client || !state.connected) return;
 
   const edit = state.skillsConfigEdits[skillKey];

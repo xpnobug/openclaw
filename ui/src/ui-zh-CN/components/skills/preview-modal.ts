@@ -41,13 +41,16 @@ export function renderPreviewModal(props: SkillsContentProps) {
 
         <!-- 弹窗内容 -->
         <div class="skill-preview__body">
-          ${previewState.loading
-            ? html`<div class="skill-preview__loading">
-                <div class="skill-preview__spinner"></div>
-                <span>加载中...</span>
-              </div>`
-            : previewState.error
-              ? html`<div class="skill-preview__error">
+          ${
+            previewState.loading
+              ? html`
+                  <div class="skill-preview__loading">
+                    <div class="skill-preview__spinner"></div>
+                    <span>加载中...</span>
+                  </div>
+                `
+              : previewState.error
+                ? html`<div class="skill-preview__error">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="15" y1="9" x2="9" y2="15"></line>
@@ -55,7 +58,8 @@ export function renderPreviewModal(props: SkillsContentProps) {
                   </svg>
                   <span>${previewState.error}</span>
                 </div>`
-              : html`<div class="skill-preview__content">${renderMarkdownPreviewContent(previewState.content)}</div>`}
+                : html`<div class="skill-preview__content">${renderMarkdownPreviewContent(previewState.content)}</div>`
+          }
         </div>
 
         <!-- 弹窗底部 -->
@@ -73,7 +77,9 @@ export function renderPreviewModal(props: SkillsContentProps) {
  */
 export function renderMarkdownPreviewContent(content: string) {
   if (!content.trim()) {
-    return html`<div class="skill-preview__empty">文件内容为空</div>`;
+    return html`
+      <div class="skill-preview__empty">文件内容为空</div>
+    `;
   }
 
   // 简单处理：将内容按行分割，处理标题、代码块、列表等
@@ -113,7 +119,9 @@ export function renderMarkdownPreviewContent(content: string) {
     // 处理代码块
     if (line.startsWith("```")) {
       if (inCodeBlock) {
-        elements.push(html`<pre class="skill-preview__code skill-preview__code--${codeLang || "plain"}">${codeContent}</pre>`);
+        elements.push(
+          html`<pre class="skill-preview__code skill-preview__code--${codeLang || "plain"}">${codeContent}</pre>`,
+        );
         codeContent = "";
         codeLang = "";
         inCodeBlock = false;
@@ -139,20 +147,35 @@ export function renderMarkdownPreviewContent(content: string) {
     } else if (line.startsWith("# ")) {
       elements.push(html`<h2 class="skill-preview__h2">${line.slice(2)}</h2>`);
     } else if (line.startsWith("---") && !frontmatterStarted) {
-      elements.push(html`<hr class="skill-preview__hr" />`);
+      elements.push(
+        html`
+          <hr class="skill-preview__hr" />
+        `,
+      );
     } else if (line.startsWith("- ") || line.startsWith("* ")) {
       elements.push(html`<li class="skill-preview__li">${line.slice(2)}</li>`);
     } else if (/^\d+\.\s/.test(line)) {
-      elements.push(html`<li class="skill-preview__li skill-preview__li--ordered">${line.replace(/^\d+\.\s/, "")}</li>`);
+      elements.push(
+        html`<li class="skill-preview__li skill-preview__li--ordered">${line.replace(/^\d+\.\s/, "")}</li>`,
+      );
     } else if (line.startsWith("> ")) {
-      elements.push(html`<blockquote class="skill-preview__blockquote">${line.slice(2)}</blockquote>`);
+      elements.push(
+        html`<blockquote class="skill-preview__blockquote">${line.slice(2)}</blockquote>`,
+      );
     } else if (line.trim()) {
       // 处理行内代码
-      const processedLine = line.replace(/`([^`]+)`/g, '<code class="skill-preview__inline-code">$1</code>');
+      const processedLine = line.replace(
+        /`([^`]+)`/g,
+        '<code class="skill-preview__inline-code">$1</code>',
+      );
       elements.push(html`<p class="skill-preview__p" .innerHTML=${processedLine}></p>`);
     } else {
       // 空行
-      elements.push(html`<div class="skill-preview__spacer"></div>`);
+      elements.push(
+        html`
+          <div class="skill-preview__spacer"></div>
+        `,
+      );
     }
   }
 

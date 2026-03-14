@@ -4,8 +4,8 @@
  */
 import { html } from "lit";
 import type { ModelConfig } from "./constants";
-import type { ProvidersContentProps } from "./types";
 import { icons, LABELS } from "./constants";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 渲染模型高级配置（成本和兼容性）

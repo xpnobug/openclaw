@@ -50,6 +50,8 @@ export type ChannelDetailProps = {
 const WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS = new Set([
   "name",
   "baseUrl",
+  "apiToken",
+  "tokenFile",
   "robotId",
   "wxid",
   "loginType",
@@ -60,6 +62,9 @@ const WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS = new Set([
   "requireMention",
   "safetyPrefix",
   "longTextThreshold",
+  "longTextTitle",
+  "messageRetentionDays",
+  "markdown",
 ]);
 
 function isWechatIpadAccountScopedField(fieldKey: string): boolean {

@@ -25,31 +25,31 @@ import type {
  * Agent configuration panel types
  */
 export type AgentPanel =
-  | "overview"   // 概览
-  | "files"      // 文件
-  | "tools"      // 工具
-  | "skills"     // 技能
-  | "cron";      // 定时任务
+  | "overview" // 概览
+  | "files" // 文件
+  | "tools" // 工具
+  | "skills" // 技能
+  | "cron"; // 定时任务
 
 /**
  * 全局配置面板类型
  * Global configuration panel types
  */
 export type GlobalPanel =
-  | "providers"  // 模型供应商
-  | "gateway"    // Gateway 配置
-  | "channels"   // 全局通道配置
-  | "agent";     // Agent 默认设置
+  | "providers" // 模型供应商
+  | "gateway" // Gateway 配置
+  | "channels" // 全局通道配置
+  | "agent"; // Agent 默认设置
 
 /**
  * 侧边栏区域类型
  * Sidebar section types
  */
 export type SidebarSection =
-  | "agents"     // Agent 列表（默认）
-  | "providers"  // 模型供应商
-  | "gateway"    // Gateway 配置
-  | "channels";  // 全局通道配置
+  | "agents" // Agent 列表（默认）
+  | "providers" // 模型供应商
+  | "gateway" // Gateway 配置
+  | "channels"; // 全局通道配置
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 中文标签 / Chinese Labels
@@ -323,7 +323,7 @@ export type AgentConfigEntry = {
  * Agent model configuration
  */
 export type AgentModelConfig =
-  | string  // 简单字符串形式: "openai/gpt-4"
+  | string // 简单字符串形式: "openai/gpt-4"
   | {
       primary?: string;
       fallbacks?: string[];
@@ -334,10 +334,10 @@ export type AgentModelConfig =
  * Agent tools configuration
  */
 export type AgentToolsConfig = {
-  profile?: string;        // minimal | coding | messaging | full
-  allow?: string[];        // 允许的工具
-  alsoAllow?: string[];    // 额外允许的工具
-  deny?: string[];         // 禁止的工具
+  profile?: string; // minimal | coding | messaging | full
+  allow?: string[]; // 允许的工具
+  alsoAllow?: string[]; // 额外允许的工具
+  deny?: string[]; // 禁止的工具
 };
 
 /**

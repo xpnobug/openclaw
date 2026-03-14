@@ -1,8 +1,4 @@
 import type { AgentsConfigProps } from "../../views/agents/types";
-/**
- * Agent 选择/侧边栏/向导 回调
- */
-import type { CallbackContext } from "./types";
 import {
   loadAgentSessions,
   loadWorkspaceFiles,
@@ -13,6 +9,10 @@ import {
   deleteAgent,
   syncAgentSnapshotState,
 } from "../model-config";
+/**
+ * Agent 选择/侧边栏/向导 回调
+ */
+import type { CallbackContext } from "./types";
 
 type Pick_ = Pick<
   AgentsConfigProps,

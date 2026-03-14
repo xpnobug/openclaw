@@ -1,4 +1,3 @@
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
 /**
  * Skills 文件操作
  * Skills file operations
@@ -12,6 +11,7 @@ import type { MoltbotConfig } from "openclaw/plugin-sdk";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
+import type { MoltbotConfig } from "openclaw/plugin-sdk";
 
 // ───────────────────────────────────────────────────────────────────────────
 // 常量定义 / Constants

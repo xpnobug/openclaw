@@ -3,14 +3,14 @@
  * Agent configuration page view - Main entry
  */
 import { html, nothing } from "lit";
-import type { GlobalPanel } from "../../types/agents-config";
-import type { AgentsConfigProps } from "./types";
 import { renderAgentSidebar, renderAgentHeader, renderAgentTabs } from "../../components/agent";
 import { AGENT_TEMPLATES, AGENT_CATEGORIES } from "../../templates/index";
+import type { GlobalPanel } from "../../types/agents-config";
 import { LABELS } from "../../types/agents-config";
 import { AgentWizard, type AgentData } from "../../wizards/agent-wizard";
 import { renderStepIndicator, renderWizardFooter, renderField } from "../../wizards/wizard-base";
 import { renderActivePanel, renderGlobalPanel } from "./panel-renderer";
+import type { AgentsConfigProps } from "./types";
 
 // 扩展 AgentData 类型，添加 workspace
 type WizardAgentData = AgentData & { workspace?: string };
@@ -83,16 +83,24 @@ function renderAgentWizard(props: AgentsConfigProps) {
 
   const validateBasic = () => {
     const errs: Record<string, string[]> = {};
-    if (!data.id) {errs.id = ["Agent ID 是必填项"];}
-    else if (!/^[a-z][a-z0-9-]*$/.test(data.id)) {errs.id = ["只能包含小写字母、数字和连字符"];}
-    else if (existingIds.has(data.id)) {errs.id = ["ID 已存在"];}
+    if (!data.id) {
+      errs.id = ["Agent ID 是必填项"];
+    } else if (!/^[a-z][a-z0-9-]*$/.test(data.id)) {
+      errs.id = ["只能包含小写字母、数字和连字符"];
+    } else if (existingIds.has(data.id)) {
+      errs.id = ["ID 已存在"];
+    }
     wizardState.errors = errs;
     return Object.keys(errs).length === 0;
   };
 
   const canProceed = () => {
-    if (step === 1) {return !!data.id && !errors.id?.length;}
-    if (step === 2) {return !!data.model;}
+    if (step === 1) {
+      return !!data.id && !errors.id?.length;
+    }
+    if (step === 2) {
+      return !!data.model;
+    }
     return true;
   };
 
@@ -101,7 +109,9 @@ function renderAgentWizard(props: AgentsConfigProps) {
       updateAndRefresh();
       return;
     }
-    if (step < WIZARD_STEPS.length - 1) {setStep(step + 1);}
+    if (step < WIZARD_STEPS.length - 1) {
+      setStep(step + 1);
+    }
   };
 
   const handleComplete = () => {
@@ -277,13 +287,17 @@ function renderAgentWizard(props: AgentsConfigProps) {
 
   return html`
     <div class="agents-wizard-overlay" @click=${(e: Event) => {
-      if (e.target === e.currentTarget && !wizardState.saving) {handleCancel();}
+      if (e.target === e.currentTarget && !wizardState.saving) {
+        handleCancel();
+      }
     }}>
       <div class="agents-wizard-modal">
         <div class="wizard">
           <div class="wizard__header"><h2 class="wizard__title">创建 Agent</h2></div>
           ${renderStepIndicator(WIZARD_STEPS, step, (i) => {
-            if (i < step && !wizardState.saving) {setStep(i);}
+            if (i < step && !wizardState.saving) {
+              setStep(i);
+            }
           })}
           <div class="wizard__content">
             ${

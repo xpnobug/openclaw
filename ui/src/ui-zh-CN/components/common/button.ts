@@ -27,7 +27,13 @@ export type ButtonProps = {
 // ============================================
 
 const loadingIcon = html`
-  <svg class="btn__loading-icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+  <svg
+    class="btn__loading-icon animate-spin"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    stroke-width="2"
+  >
     <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
     <path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"></path>
   </svg>
@@ -52,15 +58,19 @@ export function renderButton(props: ButtonProps): TemplateResult {
       ?disabled=${isDisabled}
       @click=${props.onClick}
     >
-      ${props.loading
-        ? loadingIcon
-        : props.icon && iconPosition === "left"
-          ? html`<span class="btn__icon">${props.icon}</span>`
-          : nothing}
+      ${
+        props.loading
+          ? loadingIcon
+          : props.icon && iconPosition === "left"
+            ? html`<span class="btn__icon">${props.icon}</span>`
+            : nothing
+      }
       <span class="btn__label">${props.loading ? "处理中..." : props.label}</span>
-      ${!props.loading && props.icon && iconPosition === "right"
-        ? html`<span class="btn__icon">${props.icon}</span>`
-        : nothing}
+      ${
+        !props.loading && props.icon && iconPosition === "right"
+          ? html`<span class="btn__icon">${props.icon}</span>`
+          : nothing
+      }
     </button>
   `;
 }

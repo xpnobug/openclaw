@@ -2,7 +2,13 @@
  * Cron 定时任务配置类型
  * Cron scheduled task configuration types
  */
-import type { CronJob, CronStatus, CronRunLogEntry, ChannelUiMetaEntry, GatewayAgentRow } from "../../ui/types";
+import type {
+  CronJob,
+  CronStatus,
+  CronRunLogEntry,
+  ChannelUiMetaEntry,
+  GatewayAgentRow,
+} from "../../ui/types";
 import type { CronFormState } from "../../ui/ui-types";
 
 export type { CronFormState };

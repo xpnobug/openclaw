@@ -17,9 +17,7 @@ export type CronJobLocal = {
     | { kind: "at"; at: string }
     | { kind: "every"; everyMs: number }
     | { kind: "cron"; expr: string; tz?: string };
-  payload:
-    | { kind: "systemEvent"; text: string }
-    | { kind: "agentTurn"; message: string };
+  payload: { kind: "systemEvent"; text: string } | { kind: "agentTurn"; message: string };
   delivery?: {
     mode: "none" | "deliver" | "reply";
     channel?: string;

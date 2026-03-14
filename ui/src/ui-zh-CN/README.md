@@ -10,18 +10,18 @@
 
 ### Agent 配置
 
-| 文件管理 | 工具权限 |
-|:---:|:---:|
+|                                                             文件管理                                                             |                                                             工具权限                                                             |
+| :------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------: |
 | ![文件管理](https://fastly.jsdelivr.net/gh/bucketio/img7@main/2026/02/05/1770288023563-0a136e31-afa8-46ed-a360-90023195d433.png) | ![工具权限](https://fastly.jsdelivr.net/gh/bucketio/img4@main/2026/02/05/1770288052621-ffc70ae6-c574-4d13-9b45-8a49066ee777.png) |
 
-| 技能管理 | 定时任务 |
-|:---:|:---:|
+|                                                             技能管理                                                             |                                                             定时任务                                                             |
+| :------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------: |
 | ![技能管理](https://fastly.jsdelivr.net/gh/bucketio/img9@main/2026/02/05/1770288079872-4a2246bd-a74e-4e10-81f2-d160a2d80cac.png) | ![定时任务](https://fastly.jsdelivr.net/gh/bucketio/img2@main/2026/02/05/1770288103982-08a3e4f3-87d1-404d-bef1-8aa49c03c1e7.png) |
 
 ### 全局配置
 
-| 模型供应商 | 渠道配置 |
-|:---:|:---:|
+|                                                             模型供应商                                                             |                                                             渠道配置                                                             |
+| :--------------------------------------------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------------------------------------: |
 | ![模型供应商](https://fastly.jsdelivr.net/gh/bucketio/img1@main/2026/02/05/1770288142016-060136a6-89e3-4c09-9b25-de480814cb85.png) | ![渠道配置](https://fastly.jsdelivr.net/gh/bucketio/img4@main/2026/02/05/1770288186075-f3671fb7-af41-4c62-baac-124a77766478.png) |
 
 ---
@@ -35,48 +35,54 @@
 
 ## 功能模块
 
-| 模块 | 说明 |
-|------|------|
-| **Providers** | LLM 提供商和模型管理 |
-| **Agent** | 代理默认参数、身份配置、会话管理 |
-| **Gateway** | 网关网络设置（端口、绑定、认证） |
-| **Channels** | 19+ 消息通道统一配置 |
-| **Workspace** | 工作区文件编辑器（SOUL.md、IDENTITY.md 等） |
-| **Permissions** | 命令执行权限和工具权限管理 |
-| **Skills** | 技能管理和配置 |
-| **Cron** | 定时任务管理 |
+| 模块            | 说明                                        |
+| --------------- | ------------------------------------------- |
+| **Providers**   | LLM 提供商和模型管理                        |
+| **Agent**       | 代理默认参数、身份配置、会话管理            |
+| **Gateway**     | 网关网络设置（端口、绑定、认证）            |
+| **Channels**    | 19+ 消息通道统一配置                        |
+| **Workspace**   | 工作区文件编辑器（SOUL.md、IDENTITY.md 等） |
+| **Permissions** | 命令执行权限和工具权限管理                  |
+| **Skills**      | 技能管理和配置                              |
+| **Cron**        | 定时任务管理                                |
 
 ---
 
 ## 📚 文档导航
 
 ### 快速开始
+
 - [项目说明](README.md) - 本文档
 - [集成指南](docs/integration-guide.md) - 如何集成到主 UI
 - [部署指南](docs/DEPLOYMENT.md) - 本地、生产、Docker 部署
 
 ### 架构设计
+
 - [技术架构](docs/ARCHITECTURE.md) - 分层架构、技术栈、数据流
 - [数据模型](docs/DATA_MODEL.md) - 状态管理、RPC 通信、缓存策略
 - [组件库](docs/COMPONENT_LIBRARY.md) - 设计系统、组件分类、API 规范
 
 ### 开发指南
+
 - [代码度量](docs/CODE_METRICS.md) - 代码规模、文件分布、复杂度分析
 - [开发规范](docs/CONTRIBUTING.md) - 代码规范、Git 规范、测试规范
 - [测试策略](docs/TESTING.md) - 测试框架、覆盖率目标、实施计划
 - [优化建议](docs/OPTIMIZATION.md) - 已完成优化、待优化项
 
 ### 用户体验
+
 - [UX 分析](docs/UX_ANALYSIS.md) - 用户画像、痛点分析、优化建议
 - [功能路线图](docs/ROADMAP.md) - 核心刚需、交互优化、实施计划
 
 ### 运维支持
+
 - [部署指南](docs/DEPLOYMENT.md) - 环境要求、部署流程、监控告警
 - [故障排查](docs/TROUBLESHOOTING.md) - 常见问题、诊断流程、解决方案
 - [安全设计](docs/SECURITY.md) - 安全架构、威胁模型、最佳实践
 - [性能优化](docs/PERFORMANCE.md) - 性能瓶颈、优化策略、实施方案
 
 ### 项目管理
+
 - [项目总结](docs/PROJECT_SUMMARY.md) - 项目概览、成就、规划
 - [更新日志](CHANGELOG.md) - 版本历史、变更记录
 - [文档索引](docs/INDEX.md) - 完整的文档导航
@@ -207,6 +213,7 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
 ```
 
 **好处**：
+
 - 仅需修改两个文件 navigation.ts，app-render.ts
 - 同步上游代码时，只需保留 `ui-zh-CN` 整个目录
 - 外部只通过 `import "../ui-zh-CN"` 导入
@@ -222,52 +229,49 @@ Gateway RPC ──► Controller ──► State ──► View (props) ──�
 
 #### 快速配置清单
 
-| 文件 | 配置项 |
-|------|--------|
-| `navigation.ts` | `TAB_GROUPS` - 添加到 Settings 分组 |
-| `navigation.ts` | `Tab` 类型 - 添加 `"model-config"` |
+| 文件            | 配置项                                 |
+| --------------- | -------------------------------------- |
+| `navigation.ts` | `TAB_GROUPS` - 添加到 Settings 分组    |
+| `navigation.ts` | `Tab` 类型 - 添加 `"model-config"`     |
 | `navigation.ts` | `TAB_PATHS` - 路径映射 `/model-config` |
-| `navigation.ts` | `iconForTab()` - 图标 `"brain"` |
-| `navigation.ts` | `titleForTab()` - 标题 `"可视化配置"` |
-| `navigation.ts` | `subtitleForTab()` - 副标题描述 |
-| `app-render.ts` | 导入 `import "../ui-zh-CN"` |
-| `app-render.ts` | 渲染 `<openclaw-config-zh>` 组件 |
+| `navigation.ts` | `iconForTab()` - 图标 `"brain"`        |
+| `navigation.ts` | `titleForTab()` - 标题 `"可视化配置"`  |
+| `navigation.ts` | `subtitleForTab()` - 副标题描述        |
+| `app-render.ts` | 导入 `import "../ui-zh-CN"`            |
+| `app-render.ts` | 渲染 `<openclaw-config-zh>` 组件       |
 
 ### 在 HTML 中使用
 
 ```html
-<openclaw-config-zh
-  .client=${gatewayClient}
-  .connected=${isConnected}
-></openclaw-config-zh>
+<openclaw-config-zh .client="${gatewayClient}" .connected="${isConnected}"></openclaw-config-zh>
 ```
 
 ### 组件属性
 
-| 属性 | 类型 | 说明 |
-|------|------|------|
-| `.client` | `GatewayBrowserClient` | Gateway RPC 客户端实例 |
-| `.connected` | `boolean` | 与 Gateway 的连接状态 |
+| 属性         | 类型                   | 说明                   |
+| ------------ | ---------------------- | ---------------------- |
+| `.client`    | `GatewayBrowserClient` | Gateway RPC 客户端实例 |
+| `.connected` | `boolean`              | 与 Gateway 的连接状态  |
 
 ### 事件监听
 
 ```typescript
 // 会话导航事件
-element.addEventListener('session-navigate', (e) => {
+element.addEventListener("session-navigate", (e) => {
   const { sessionKey } = e.detail;
   // 跳转到对应会话
 });
 
 // 通道导航事件
-element.addEventListener('navigate-channels', () => {
+element.addEventListener("navigate-channels", () => {
   // 跳转到通道配置页面
 });
 ```
 
-| 事件 | Detail 类型 | 说明 |
-|------|-------------|------|
-| `session-navigate` | `{ sessionKey: string }` | 请求跳转到指定会话 |
-| `navigate-channels` | - | 请求跳转到 Channels 页面 |
+| 事件                | Detail 类型              | 说明                     |
+| ------------------- | ------------------------ | ------------------------ |
+| `session-navigate`  | `{ sessionKey: string }` | 请求跳转到指定会话       |
+| `navigate-channels` | -                        | 请求跳转到 Channels 页面 |
 
 ---
 
@@ -337,37 +341,37 @@ git commit -m "merge: 解决合并冲突"
 
 ## 技术栈
 
-| 技术 | 用途 |
-|------|------|
-| **Lit** | Web Components 框架 |
-| **TypeScript** | 类型系统 |
-| **Vite** | 构建工具 |
-| **WebSocket RPC** | 与 Gateway 通信 |
+| 技术              | 用途                |
+| ----------------- | ------------------- |
+| **Lit**           | Web Components 框架 |
+| **TypeScript**    | 类型系统            |
+| **Vite**          | 构建工具            |
+| **WebSocket RPC** | 与 Gateway 通信     |
 
 ---
 
 ## Gateway RPC 方法
 
-| 方法 | 说明 |
-|------|------|
-| `config.get` | 获取完整配置快照 |
-| `config.set` | 保存配置 |
-| `config.apply` | 保存并应用配置 |
-| `agents.list` | 获取 Agent 列表 |
-| `sessions.list` | 获取会话列表 |
-| `sessions.patch` | 更新会话配置 |
-| `cron.list` | 获取定时任务列表 |
-| `cron.add` | 添加定时任务 |
-| `cron.update` | 更新定时任务 |
-| `cron.remove` | 删除定时任务 |
-| `exec.approvals.get` | 获取执行权限配置 |
-| `exec.approvals.set` | 保存执行权限配置 |
+| 方法                   | 说明               |
+| ---------------------- | ------------------ |
+| `config.get`           | 获取完整配置快照   |
+| `config.set`           | 保存配置           |
+| `config.apply`         | 保存并应用配置     |
+| `agents.list`          | 获取 Agent 列表    |
+| `sessions.list`        | 获取会话列表       |
+| `sessions.patch`       | 更新会话配置       |
+| `cron.list`            | 获取定时任务列表   |
+| `cron.add`             | 添加定时任务       |
+| `cron.update`          | 更新定时任务       |
+| `cron.remove`          | 删除定时任务       |
+| `exec.approvals.get`   | 获取执行权限配置   |
+| `exec.approvals.set`   | 保存执行权限配置   |
 | `workspace.files.list` | 获取工作区文件列表 |
-| `workspace.file.read` | 读取工作区文件 |
-| `workspace.file.write` | 写入工作区文件 |
-| `skills.files.list` | 获取技能文件列表 |
-| `skills.file.read` | 读取技能文件 |
-| `skills.file.write` | 写入技能文件 |
+| `workspace.file.read`  | 读取工作区文件     |
+| `workspace.file.write` | 写入工作区文件     |
+| `skills.files.list`    | 获取技能文件列表   |
+| `skills.file.read`     | 读取技能文件       |
+| `skills.file.write`    | 写入技能文件       |
 
 ---
 

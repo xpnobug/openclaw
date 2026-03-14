@@ -51,10 +51,7 @@ const closeIcon = html`
 /**
  * 渲染通用弹窗
  */
-export function renderModal(
-  props: ModalProps,
-  content: TemplateResult,
-): TemplateResult {
+export function renderModal(props: ModalProps, content: TemplateResult): TemplateResult {
   if (!props.open) return html``;
 
   const size = props.size ?? "medium";
@@ -67,29 +64,31 @@ export function renderModal(
       }
     }}>
       <div class="modal modal--${size} ${props.className ?? ""}">
-        ${props.title || closable
-          ? html`
+        ${
+          props.title || closable
+            ? html`
               <div class="modal__header">
                 <div class="modal__title-group">
                   ${props.title ? html`<h3 class="modal__title">${props.title}</h3>` : nothing}
                   ${props.subtitle ? html`<p class="modal__subtitle">${props.subtitle}</p>` : nothing}
                 </div>
-                ${closable && props.onClose
-                  ? html`
+                ${
+                  closable && props.onClose
+                    ? html`
                       <button class="modal__close" @click=${props.onClose}>
                         ${closeIcon}
                       </button>
                     `
-                  : nothing}
+                    : nothing
+                }
               </div>
             `
-          : nothing}
+            : nothing
+        }
         <div class="modal__body">
           ${content}
         </div>
-        ${props.footer
-          ? html`<div class="modal__footer">${props.footer}</div>`
-          : nothing}
+        ${props.footer ? html`<div class="modal__footer">${props.footer}</div>` : nothing}
       </div>
     </div>
   `;

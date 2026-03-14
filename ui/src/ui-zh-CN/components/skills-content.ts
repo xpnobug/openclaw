@@ -6,7 +6,6 @@
  */
 import { html, nothing } from "lit";
 import type { SkillsContentProps } from "../types/skills-config";
-
 // 从 skills/ 模块导入组件
 import {
   groupSkillsBySource,
@@ -41,7 +40,9 @@ function renderPriorityExplanation() {
           </svg>
         </span>
         <span class="skills-priority-info__title">技能加载优先级</span>
-        <span class="skills-priority-info__subtitle">当多个来源存在同名技能时，高优先级来源会覆盖低优先级来源的技能定义：</span>
+        <span class="skills-priority-info__subtitle"
+          >当多个来源存在同名技能时，高优先级来源会覆盖低优先级来源的技能定义：</span
+        >
       </div>
       <div class="skills-priority-info__content">
         <ol class="skills-priority-info__list skills-priority-info__list--horizontal">
@@ -59,10 +60,14 @@ function renderPriorityExplanation() {
           </li>
           <li>
             <span class="skills-priority-info__source">工作区技能</span>
-            <span class="skills-priority-info__priority skills-priority-info__priority--high">最高优先级</span>
+            <span class="skills-priority-info__priority skills-priority-info__priority--high"
+              >最高优先级</span
+            >
           </li>
         </ol>
-        <p class="skills-priority-info__note">例如：如果内置技能和工作区技能都定义了 "git" 技能，Agent 将使用工作区版本。</p>
+        <p class="skills-priority-info__note">
+          例如：如果内置技能和工作区技能都定义了 "git" 技能，Agent 将使用工作区版本。
+        </p>
       </div>
     </div>
   `;
@@ -90,13 +95,15 @@ export function renderSkillsContent(props: SkillsContentProps) {
           <button class="mc-btn mc-btn--sm" ?disabled=${props.loading} @click=${props.onRefresh}>
             ${props.loading ? "加载中..." : "刷新"}
           </button>
-          ${props.hasChanges
-            ? html`
+          ${
+            props.hasChanges
+              ? html`
                 <button class="mc-btn mc-btn--sm primary" ?disabled=${props.saving} @click=${props.onSave}>
                   ${props.saving ? "保存中..." : "保存配置"}
                 </button>
               `
-            : nothing}
+              : nothing
+          }
         </div>
       </div>
 
@@ -116,11 +123,17 @@ export function renderSkillsContent(props: SkillsContentProps) {
       ${props.error ? html`<div class="skills-error">${props.error}</div>` : nothing}
 
       <!-- 技能列表 -->
-      ${props.loading && !props.report
-        ? html`<div class="skills-loading">正在加载技能列表...</div>`
-        : groups.length === 0
-          ? html`<div class="skills-empty">没有找到匹配的技能</div>`
-          : renderSkillTabs(groups, props)}
+      ${
+        props.loading && !props.report
+          ? html`
+              <div class="skills-loading">正在加载技能列表...</div>
+            `
+          : groups.length === 0
+            ? html`
+                <div class="skills-empty">没有找到匹配的技能</div>
+              `
+            : renderSkillTabs(groups, props)
+      }
     </div>
 
     <!-- 技能详情弹窗 -->

@@ -162,6 +162,8 @@ export type WechatIpadInboundContentType =
   | "link"
   | "quote"
   | "card"
+  | "emoji"
+  | "location"
   | "system"
   | "status"
   | "unknown";
@@ -187,8 +189,21 @@ export type WechatIpadLinkCard = {
   thumbUrl?: string;
 };
 
+export type WechatIpadEmojiData = {
+  md5: string;
+  totalLen: number;
+};
+
+export type WechatIpadCdnForward = {
+  type: "image" | "video" | "file";
+  /** 原始 CDN XML 内容 */
+  content: string;
+};
+
 export type WechatIpadChannelData = {
   linkCard?: WechatIpadLinkCard;
+  emoji?: WechatIpadEmojiData;
+  cdnForward?: WechatIpadCdnForward;
 };
 
 export type WechatIpadInboundMessage = {

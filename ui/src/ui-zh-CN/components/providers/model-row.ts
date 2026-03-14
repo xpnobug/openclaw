@@ -4,9 +4,9 @@
  */
 import { html } from "lit";
 import type { ModelConfig } from "./constants";
-import type { ProvidersContentProps } from "./types";
 import { icons, LABELS } from "./constants";
 import { renderModelAdvanced } from "./model-advanced";
+import type { ProvidersContentProps } from "./types";
 
 /**
  * 渲染模型行
@@ -56,7 +56,12 @@ export function renderModelRow(
               class="mc-input mc-input--sm"
               .value=${model.name}
               @input=${(e: Event) =>
-                props.onModelUpdate(providerKey, index, "name", (e.target as HTMLInputElement).value)}
+                props.onModelUpdate(
+                  providerKey,
+                  index,
+                  "name",
+                  (e.target as HTMLInputElement).value,
+                )}
             />
           </label>
         </div>
@@ -68,7 +73,12 @@ export function renderModelRow(
               class="mc-input mc-input--sm"
               .value=${String(model.contextWindow)}
               @input=${(e: Event) =>
-                props.onModelUpdate(providerKey, index, "contextWindow", Number((e.target as HTMLInputElement).value))}
+                props.onModelUpdate(
+                  providerKey,
+                  index,
+                  "contextWindow",
+                  Number((e.target as HTMLInputElement).value),
+                )}
             />
           </label>
         </div>
@@ -80,7 +90,12 @@ export function renderModelRow(
               class="mc-input mc-input--sm"
               .value=${String(model.maxTokens)}
               @input=${(e: Event) =>
-                props.onModelUpdate(providerKey, index, "maxTokens", Number((e.target as HTMLInputElement).value))}
+                props.onModelUpdate(
+                  providerKey,
+                  index,
+                  "maxTokens",
+                  Number((e.target as HTMLInputElement).value),
+                )}
             />
           </label>
         </div>
@@ -115,7 +130,12 @@ export function renderModelRow(
                 type="checkbox"
                 .checked=${model.reasoning}
                 @change=${(e: Event) =>
-                  props.onModelUpdate(providerKey, index, "reasoning", (e.target as HTMLInputElement).checked)}
+                  props.onModelUpdate(
+                    providerKey,
+                    index,
+                    "reasoning",
+                    (e.target as HTMLInputElement).checked,
+                  )}
               />
               <span class="mc-toggle__track"></span>
             </div>
