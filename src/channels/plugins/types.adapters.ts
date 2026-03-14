@@ -252,6 +252,7 @@ export type ChannelLoginWithQrStartResult = {
 export type ChannelLoginWithQrWaitResult = {
   connected: boolean;
   message: string;
+  wxid?: string;
 };
 
 export type ChannelLogoutContext<ResolvedAccount = unknown> = {
@@ -280,6 +281,7 @@ export type ChannelGatewayAdapter<ResolvedAccount = unknown> = {
     force?: boolean;
     timeoutMs?: number;
     verbose?: boolean;
+    loginType?: "ipad" | "win" | "mac" | "car";
   }) => Promise<ChannelLoginWithQrStartResult>;
   loginWithQrWait?: (params: {
     accountId?: string;
