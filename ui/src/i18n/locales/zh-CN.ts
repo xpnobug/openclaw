@@ -33,7 +33,7 @@ export const zh_CN: TranslationMap = {
     sessions: "会话",
     usage: "使用情况",
     cron: "定时任务",
-    modelConfig: "模型配置",
+    modelConfig: "可视化配置",
     skills: "技能",
     nodes: "节点",
     chat: "聊天",
