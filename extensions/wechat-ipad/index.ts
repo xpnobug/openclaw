@@ -5,7 +5,9 @@ import type {
 } from "openclaw/plugin-sdk";
 import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
 import {
+  startWechatIpadLoginGatewayMethod,
   submitWechatIpadVerificationGatewayMethod,
+  waitWechatIpadLoginGatewayMethod,
   wechatIpadDock,
   wechatIpadPlugin,
 } from "./src/channel.js";
@@ -19,6 +21,45 @@ const plugin = {
   register(api: OpenClawPluginApi) {
     setWechatIpadRuntime(api.runtime);
     api.registerChannel({ plugin: wechatIpadPlugin, dock: wechatIpadDock });
+
+    const loginStartHandler: GatewayRequestHandler = async ({
+      params,
+      respond,
+    }: GatewayRequestHandlerOptions) => {
+      try {
+        const result = await startWechatIpadLoginGatewayMethod({
+          accountId: typeof params.accountId === "string" ? params.accountId : undefined,
+          force: params.force === true,
+          timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : undefined,
+          verbose: params.verbose === true,
+          loginType: typeof params.loginType === "string" ? params.loginType : undefined,
+        });
+        respond(true, result);
+      } catch (error) {
+        respond(false, undefined, {
+          code: "UNAVAILABLE",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    const loginWaitHandler: GatewayRequestHandler = async ({
+      params,
+      respond,
+    }: GatewayRequestHandlerOptions) => {
+      try {
+        const result = await waitWechatIpadLoginGatewayMethod({
+          accountId: typeof params.accountId === "string" ? params.accountId : undefined,
+          timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : undefined,
+        });
+        respond(true, result);
+      } catch (error) {
+        respond(false, undefined, {
+          code: "UNAVAILABLE",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
 
     const submitVerificationHandler: GatewayRequestHandler = async ({
       params,
@@ -45,6 +86,8 @@ const plugin = {
       }
     };
 
+    api.registerGatewayMethod("wechat-ipad.login.start", loginStartHandler);
+    api.registerGatewayMethod("wechat-ipad.login.wait", loginWaitHandler);
     api.registerGatewayMethod(
       "wechat-ipad.login.submitVerificationCode",
       submitVerificationHandler,

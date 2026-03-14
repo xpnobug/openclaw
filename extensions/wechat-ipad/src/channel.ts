@@ -233,6 +233,48 @@ export async function submitWechatIpadVerificationGatewayMethod(input: {
   };
 }
 
+/**
+ * 独立的 gateway 方法：发起 wechat-ipad 扫码登录。
+ * 通过 api.registerGatewayMethod("wechat-ipad.login.start", handler) 注册，
+ * 绕过核心 web.login.start 的单 provider 限制。
+ */
+export async function startWechatIpadLoginGatewayMethod(input: {
+  accountId?: string;
+  force?: boolean;
+  timeoutMs?: number;
+  verbose?: boolean;
+  loginType?: string;
+}): Promise<{ qrDataUrl?: string; message: string; data62?: string }> {
+  const loginTypeOverride = input.loginType as "ipad" | "win" | "mac" | "car" | undefined;
+  return wechatIpadPlugin.gateway!.loginWithQrStart!({
+    accountId: input.accountId,
+    force: input.force,
+    timeoutMs: input.timeoutMs,
+    verbose: input.verbose,
+    loginType: loginTypeOverride,
+  });
+}
+
+/**
+ * 独立的 gateway 方法：等待 wechat-ipad 扫码结果。
+ */
+export async function waitWechatIpadLoginGatewayMethod(input: {
+  accountId?: string;
+  timeoutMs?: number;
+}): Promise<{
+  connected: boolean;
+  message: string;
+  requiresVerification?: boolean;
+  ticket?: string;
+  data62?: string;
+  wxid?: string;
+}> {
+  return wechatIpadPlugin.gateway!.loginWithQrWait!({
+    accountId: input.accountId,
+    timeoutMs: input.timeoutMs,
+  });
+}
+
 async function waitForLoginUntil(params: {
   account: ResolvedWechatIpadAccount;
   cfg: OpenClawConfig;
@@ -412,7 +454,11 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     blockStreaming: true,
   },
   reload: { configPrefixes: ["channels.wechat-ipad"] },
-  gatewayMethods: ["web.login.start", "web.login.wait", "wechat-ipad.login.submitVerificationCode"],
+  gatewayMethods: [
+    "wechat-ipad.login.start",
+    "wechat-ipad.login.wait",
+    "wechat-ipad.login.submitVerificationCode",
+  ],
   configSchema: buildChannelConfigSchema(WechatIpadConfigSchema),
   config: {
     listAccountIds: (cfg) => listWechatIpadAccountIds(cfg as OpenClawConfig),

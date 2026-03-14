@@ -443,8 +443,7 @@ export function createChannelCallbacks(
         ticket?: string;
         data62?: string;
         wxid?: string;
-      }>("web.login.wait", {
-        channel: "wechat-ipad",
+      }>("wechat-ipad.login.wait", {
         timeoutMs: 120000,
         accountId,
       });
@@ -776,8 +775,7 @@ export function createChannelCallbacks(
           qrDataUrl?: string;
           data62?: string;
           expiredTime?: unknown;
-        }>("web.login.start", {
-          channel: "wechat-ipad",
+        }>("wechat-ipad.login.start", {
           force,
           timeoutMs: 30000,
           accountId,
