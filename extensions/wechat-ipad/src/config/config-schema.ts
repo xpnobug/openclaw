@@ -81,7 +81,7 @@ export const WechatIpadConfigSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["defaultAccount"],
-          message: `channels.wechat-ipad.defaultAccount="${defaultAccount}" does not match a configured account key`,
+          message: `channels.wechat-ipad.defaultAccount="${defaultAccount}" 未匹配到已配置的账号`,
         });
       }
     }
@@ -93,7 +93,7 @@ export const WechatIpadConfigSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: [field],
-          message: `channels.wechat-ipad.${field} has moved to channels.wechat-ipad.accounts.<accountId>.${field}; migrate to the account map model`,
+          message: `channels.wechat-ipad.${field} 已迁移至 channels.wechat-ipad.accounts.<accountId>.${field}，请使用账号配置模式`,
         });
       }
     }

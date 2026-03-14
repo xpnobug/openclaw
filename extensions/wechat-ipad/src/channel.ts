@@ -68,10 +68,10 @@ import type {
 const meta = {
   id: "wechat-ipad",
   label: "WeChat iPad",
-  selectionLabel: "WeChat iPad (HTTP bridge)",
+  selectionLabel: "WeChat iPad（HTTP 桥接）",
   docsPath: "/channels/wechat-ipad",
   docsLabel: "wechat-ipad",
-  blurb: "WeChat iPad bridge via external HTTP API.",
+  blurb: "通过外部 HTTP API 桥接 WeChat iPad 协议。",
   aliases: ["wxipad", "wechatipad"],
   order: 86,
   quickstartAllowFrom: true,
@@ -598,7 +598,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         cfg: cfg as OpenClawConfig,
       });
       if (!sendResult.ok) {
-        throw new Error(sendResult.error ?? "wechat-ipad notify approval failed");
+        throw new Error(sendResult.error ?? "wechat-ipad 通知审批失败");
       }
     },
   },
@@ -610,7 +610,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         if (!trimmed) return false;
         return /^wxid_[a-z0-9]+$/i.test(trimmed) || /@chatroom$/i.test(trimmed);
       },
-      hint: "<wxid|chatRoomId>",
+      hint: "<wxid|群聊ID>",
     },
   },
   outbound: {
@@ -679,7 +679,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
           channel: "wechat-ipad",
           ok: false,
           messageId: "",
-          error: new Error("mediaUrl is required"),
+          error: new Error("mediaUrl 不能为空"),
         };
       }
       const result = await sendWechatIpadMedia(to, mediaUrl, text ?? "", {
@@ -700,7 +700,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       const account = resolveWechatIpadAccount({ cfg, accountId: resolvedAccountId });
 
       if (!account.baseUrl?.trim()) {
-        throw new Error("wechat-ipad login requires baseUrl");
+        throw new Error("wechat-ipad 登录需要配置 baseUrl");
       }
 
       const loginType = resolveLoginType(cfg, resolvedAccountId);
@@ -767,7 +767,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
     buildAccountSnapshot: ({ account, runtime }) => {
       const configured = Boolean(account.baseUrl?.trim());
       const loginReady = Boolean(account.config.wxid?.trim());
-      const wxidHint = `wxid not ready; scan QR first or set channels.wechat-ipad.accounts.${account.accountId}.wxid`;
+      const wxidHint = `wxid 未就绪，请先扫码登录或设置 channels.wechat-ipad.accounts.${account.accountId}.wxid`;
       return {
         accountId: account.accountId,
         name: account.name,
@@ -796,7 +796,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       const account = resolveWechatIpadAccount({ cfg, accountId: resolvedAccountId });
 
       if (!account.baseUrl?.trim()) {
-        throw new Error("wechat-ipad login requires baseUrl");
+        throw new Error("wechat-ipad 登录需要配置 baseUrl");
       }
 
       const loginType = resolveLoginType(cfg, resolvedAccountId, loginTypeOverride);
@@ -887,27 +887,16 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
       const { cfg, accountId, account, abortSignal, setStatus, getStatus } = ctx;
 
       if (!account.baseUrl?.trim()) {
-        throw new Error("wechat-ipad account baseUrl not configured");
+        throw new Error("wechat-ipad 账号未配置 baseUrl");
       }
 
       const pluginRuntime = getWechatIpadRuntime();
-      const wxid = resolveWechatIpadRuntimeWxid(accountId, account.config.wxid);
-
-      if (!wxid) {
-        setStatus({
-          ...getStatus(),
-          running: false,
-          lastStartAt: Date.now(),
-          lastError: "wxid not ready; waiting for QR login",
-        });
-        return null;
-      }
 
       clearWechatIpadPoller(accountId);
       clearWechatIpadWebhookRegistration(accountId);
       clearWechatIpadMessageStore(accountId);
 
-      // 初始化消息持久化存储
+      // 初始化消息持久化存储（必须在 wxid 检查之前，以便从 DB 恢复 login session）
       const stateDir = pluginRuntime.state.resolveStateDir();
       const dbPath = join(stateDir, "workspace", "wechat-ipad-data", accountId, "messages.db");
       const retentionDays = account.config.messageRetentionDays ?? 0;
@@ -934,7 +923,7 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
           // 恢复失败不阻塞
         }
 
-        // 从 DB 恢复 login session
+        // 从 DB 恢复 login session（在 wxid 检查之前，确保网关重启后能恢复 wxid）
         try {
           const sessionJson = messageStore.getMeta("login_session");
           if (sessionJson && !getWechatIpadLoginSession(accountId)) {
@@ -951,13 +940,25 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
         }
       }
 
+      const wxid = resolveWechatIpadRuntimeWxid(accountId, account.config.wxid);
+
+      if (!wxid) {
+        setStatus({
+          ...getStatus(),
+          running: false,
+          lastStartAt: Date.now(),
+          lastError: "wxid 未就绪，请先扫码登录",
+        });
+        return null;
+      }
+
       if (account.inbound.mode === "webhook") {
         if (account.inbound.webhook.authMode !== "none" && !account.inbound.webhook.secret.trim()) {
           setStatus({
             ...getStatus(),
             running: false,
             lastStartAt: Date.now(),
-            lastError: "webhook secret not configured",
+            lastError: "webhook 密钥未配置",
           });
           return null;
         }

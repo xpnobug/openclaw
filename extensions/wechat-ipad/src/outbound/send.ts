@@ -184,20 +184,20 @@ export async function sendWechatIpadText(
 
   const target = normalizeWechatIpadTarget(to);
   if (!target) {
-    return { ok: false, error: "No target specified" };
+    return { ok: false, error: "未指定发送目标" };
   }
 
   const wxid = ctx.wxid?.trim();
   if (!wxid) {
     return {
       ok: false,
-      error: "No WeChat iPad wxid configured (channels.wechat-ipad.accounts.<accountId>.wxid)",
+      error: "WeChat iPad wxid 未配置（channels.wechat-ipad.accounts.<accountId>.wxid）",
     };
   }
 
   const payload = text.trim();
   if (!payload) {
-    return { ok: false, error: "No message content provided" };
+    return { ok: false, error: "未提供消息内容" };
   }
 
   const longTextThreshold = ctx.account?.config.longTextThreshold ?? DEFAULT_LONG_TEXT_THRESHOLD;
@@ -318,27 +318,27 @@ export async function sendWechatIpadLinkCard(
 
   const target = normalizeWechatIpadTarget(to);
   if (!target) {
-    return { ok: false, error: "No target specified" };
+    return { ok: false, error: "未指定发送目标" };
   }
 
   const wxid = ctx.wxid?.trim();
   if (!wxid) {
     return {
       ok: false,
-      error: "No WeChat iPad wxid configured (channels.wechat-ipad.accounts.<accountId>.wxid)",
+      error: "WeChat iPad wxid 未配置（channels.wechat-ipad.accounts.<accountId>.wxid）",
     };
   }
 
   const title = card.title.trim();
   const url = card.url.trim();
   if (!title || !url) {
-    return { ok: false, error: "wechat-ipad link card requires title and url" };
+    return { ok: false, error: "wechat-ipad 链接卡片需要 title 和 url" };
   }
   if (!isValidHttpUrl(url)) {
-    return { ok: false, error: "wechat-ipad link card url must be http or https" };
+    return { ok: false, error: "wechat-ipad 链接卡片 url 必须为 http 或 https" };
   }
   if (card.thumbUrl?.trim() && !isValidHttpUrl(card.thumbUrl)) {
-    return { ok: false, error: "wechat-ipad link card thumbUrl must be http or https" };
+    return { ok: false, error: "wechat-ipad 链接卡片 thumbUrl 必须为 http 或 https" };
   }
 
   try {
@@ -430,19 +430,19 @@ export async function sendWechatIpadMedia(
 
   const target = normalizeWechatIpadTarget(to);
   if (!target) {
-    return { ok: false, error: "No target specified" };
+    return { ok: false, error: "未指定发送目标" };
   }
 
   const wxid = ctx.wxid?.trim();
   if (!wxid) {
     return {
       ok: false,
-      error: "No WeChat iPad wxid configured (channels.wechat-ipad.accounts.<accountId>.wxid)",
+      error: "WeChat iPad wxid 未配置（channels.wechat-ipad.accounts.<accountId>.wxid）",
     };
   }
 
   if (!mediaUrl.trim()) {
-    return { ok: false, error: "No media content provided" };
+    return { ok: false, error: "未提供媒体内容" };
   }
 
   try {

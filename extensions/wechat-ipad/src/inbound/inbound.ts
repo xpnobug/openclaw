@@ -256,7 +256,7 @@ export async function handleWechatIpadInboundMessage(
   if (effectivePolicy === "pairing" && !normalizedAllowFrom.includes(senderId)) {
     const pairingSenderId = msg.chatType === "group" ? msg.chatId : senderId;
     const pairingSenderName =
-      msg.chatType === "group" ? `Group ${msg.chatId}` : (msg.senderName ?? senderId);
+      msg.chatType === "group" ? `群聊 ${msg.chatId}` : (msg.senderName ?? senderId);
     const { code } = await runtime.channel.pairing.upsertPairingRequest({
       channel: "wechat-ipad",
       accountId,
@@ -266,7 +266,7 @@ export async function handleWechatIpadInboundMessage(
 
     const pairingReply = runtime.channel.pairing.buildPairingReply({
       channel: "wechat-ipad",
-      idLine: `Your WeChat iPad user id: ${pairingSenderId}`,
+      idLine: `你的 WeChat iPad 用户 ID：${pairingSenderId}`,
       code,
     });
 
@@ -429,7 +429,7 @@ export async function handleWechatIpadInboundMessage(
         if (!result.ok) {
           emitWechatIpadLog(
             deps,
-            `${logPrefix}: 回复发送失败：kind=${info.kind}，目标=${targetLabel}，错误=${result.error ?? "unknown error"}`,
+            `${logPrefix}: 回复发送失败：kind=${info.kind}，目标=${targetLabel}，错误=${result.error ?? "未知错误"}`,
           );
         }
       },

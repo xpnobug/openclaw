@@ -19,8 +19,8 @@ export function collectWechatIpadStatusIssues(
         channel: "wechat-ipad",
         accountId,
         kind: "config",
-        message: "WeChat iPad account is not fully configured.",
-        fix: `Set channels.wechat-ipad.accounts.${accountId}.baseUrl and channels.wechat-ipad.accounts.${accountId}.apiToken. wxid can be obtained after QR login.`,
+        message: "WeChat iPad 账号配置不完整。",
+        fix: `请设置 channels.wechat-ipad.accounts.${accountId}.baseUrl 和 channels.wechat-ipad.accounts.${accountId}.apiToken。wxid 可在扫码登录后获取。`,
       });
     }
 
@@ -29,8 +29,8 @@ export function collectWechatIpadStatusIssues(
         channel: "wechat-ipad",
         accountId,
         kind: "config",
-        message: 'wechat-ipad dmPolicy is "open" and may allow untrusted users to chat.',
-        fix: 'Prefer dmPolicy="pairing" or "allowlist" in production.',
+        message: 'wechat-ipad dmPolicy 为 "open"，可能允许不受信任的用户聊天。',
+        fix: '生产环境建议使用 dmPolicy="pairing" 或 "allowlist"。',
       });
     }
   }

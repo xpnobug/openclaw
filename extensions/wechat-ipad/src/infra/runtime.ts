@@ -33,7 +33,7 @@ export function setWechatIpadRuntime(next: PluginRuntime): void {
 
 export function getWechatIpadRuntime(): PluginRuntime {
   if (!runtime) {
-    throw new Error("WeChat iPad runtime not initialized");
+    throw new Error("WeChat iPad 运行时未初始化");
   }
   return runtime;
 }

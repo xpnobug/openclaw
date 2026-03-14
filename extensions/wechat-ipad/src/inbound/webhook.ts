@@ -342,7 +342,7 @@ export async function handleWechatIpadWebhookRequest(
           error?: (message: string) => void;
         };
         runtimeWithOptionalError.error?.(
-          `wechat-ipad[${target.accountId}] webhook failed: ${message}`,
+          `wechat-ipad[${target.accountId}] webhook 处理失败：${message}`,
         );
       });
       return true;

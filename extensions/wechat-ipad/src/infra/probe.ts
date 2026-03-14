@@ -11,10 +11,10 @@ export async function probeWechatIpad(
   timeoutMs = 5000,
 ): Promise<WechatIpadProbeResult> {
   if (!baseUrl.trim()) {
-    return { ok: false, elapsedMs: 0, message: "No baseUrl provided" };
+    return { ok: false, elapsedMs: 0, message: "未提供 baseUrl" };
   }
   if (!apiToken.trim()) {
-    return { ok: false, elapsedMs: 0, message: "No apiToken provided" };
+    return { ok: false, elapsedMs: 0, message: "未提供 apiToken" };
   }
 
   const start = Date.now();

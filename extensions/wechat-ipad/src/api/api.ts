@@ -199,14 +199,14 @@ async function request<T>(params: {
 
         if (success === false) {
           throw new WechatIpadApiError(
-            message ?? "Wechat iPad API returned unsuccessful result",
+            message ?? "WeChat iPad API 返回不成功结果",
             code,
             responseText,
           );
         }
         if (typeof code === "number" && code !== 0 && code !== 200 && code !== 1) {
           throw new WechatIpadApiError(
-            message ?? "Wechat iPad API returned non-success code",
+            message ?? "WeChat iPad API 返回非成功状态码",
             code,
             responseText,
           );
@@ -767,7 +767,7 @@ export async function sendLinkCardViaApi(
   const title = params.title.trim();
   const url = params.url.trim();
   if (!title || !url) {
-    throw new WechatIpadApiError("wechat-ipad link card requires title and url");
+    throw new WechatIpadApiError("wechat-ipad 链接卡片需要 title 和 url");
   }
   const raw = await requestFn({
     options: params.options,
@@ -812,7 +812,7 @@ export async function sendQuoteTextViaApi(
   const text = params.text.trim();
   if (!replyMsgId || !replyMsgSeq || !replySenderWxid || !replyBody || !text) {
     throw new WechatIpadApiError(
-      "wechat-ipad quote reply requires msgId, msgSeq, sender wxid, quoted body, and text",
+      "wechat-ipad 引用回复需要 msgId、msgSeq、发送者 wxid、引用内容和文本",
     );
   }
   // 查询持久化存储获取原始消息元数据
@@ -851,7 +851,7 @@ export async function sendLongTextViaApi(
 ): Promise<{ messageId?: string }> {
   const text = params.text.trim();
   if (!text) {
-    throw new WechatIpadApiError("wechat-ipad long text requires text");
+    throw new WechatIpadApiError("wechat-ipad 长文本发送需要文本内容");
   }
   const xml = buildWechatIpadLongTextXml({
     wxid: params.wxid,
@@ -1041,7 +1041,7 @@ export async function requestLoginQr(
     undefined;
 
   if (!uuid) {
-    throw new WechatIpadApiError("wechat-ipad login QR response missing uuid");
+    throw new WechatIpadApiError("wechat-ipad 登录二维码响应缺少 uuid");
   }
 
   return {
