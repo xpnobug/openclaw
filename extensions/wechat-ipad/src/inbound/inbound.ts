@@ -10,10 +10,14 @@ import {
   downloadVoiceViaApi,
   downloadVoiceViaToolsApi,
   fetchContactDetailViaApi,
+  friendPassVerifyViaApi,
   parseCardXml,
   parseEmojiXml,
   parseFileXml,
+  parseFriendVerifyXml,
   parseLocationXml,
+  parseNewMemberXml,
+  parsePatXml,
   parseRevokeMsgXml,
   parseImageXml,
   parseVideoXml,
@@ -425,6 +429,11 @@ export async function handleWechatIpadInboundMessage(
 
   const logPrefix = buildLogPrefix(accountId);
 
+  emitWechatIpadLog(
+    deps,
+    `${logPrefix}: 收到入站消息：id=${msg.id}，类型=${msg.contentType}(${msg.messageType})，发送者=${msg.senderId}，会话=${msg.chatId}(${msg.chatType})`,
+  );
+
   // 解析发送者昵称标签（优先读缓存，缓存未命中时触发 API 查询）
   const rawSenderId = msg.senderId || msg.from;
   const senderLabel = await resolveContactLabel(rawSenderId, deps);
@@ -457,9 +466,12 @@ export async function handleWechatIpadInboundMessage(
     }
   }
 
-  // 撤回消息处理（messageType=10002）：解析被撤回的消息 ID 并标记
+  // 系统消息处理（messageType=10002）：撤回、拍一拍、新成员入群
   if (msg.contentType === "system" && msg.messageType === 10002) {
-    const revokeMeta = parseRevokeMsgXml(msg.rawContent ?? msg.body);
+    const rawXml = msg.rawContent ?? msg.body;
+
+    // 撤回消息：解析被撤回的消息 ID 并标记
+    const revokeMeta = parseRevokeMsgXml(rawXml);
     if (revokeMeta && messageStore) {
       const revokedMsgId = revokeMeta.newMsgId || revokeMeta.msgId;
       if (revokedMsgId) {
@@ -473,8 +485,73 @@ export async function handleWechatIpadInboundMessage(
           // 标记失败不阻塞
         }
       }
+      return;
     }
-    // 撤回消息不需要继续传递给 agent
+
+    // 拍一拍消息
+    const patInfo = parsePatXml(rawXml);
+    if (patInfo) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 拍一拍：${patInfo.fromusername} 拍了 ${patInfo.pattedusername}${patInfo.patsuffix ? `（${patInfo.patsuffix}）` : ""}`,
+      );
+      return;
+    }
+
+    // 新成员入群
+    const newMember = parseNewMemberXml(rawXml);
+    if (newMember) {
+      emitWechatIpadLog(deps, `${logPrefix}: 新成员入群：${newMember.memberWxids.join(", ")}`);
+      return;
+    }
+
+    // 其他系统消息不传递给 agent
+    return;
+  }
+
+  // 纯系统通知（messageType=10000，如 "你已添加了 xxx"）不传递给 agent
+  if (msg.contentType === "system" && msg.messageType === 10000) {
+    emitWechatIpadLog(deps, `${logPrefix}: 系统通知：${msg.body?.substring(0, 100) ?? ""}`);
+    return;
+  }
+
+  // 过滤机器人自身发出的消息，防止自循环
+  if (msg.isFromSelf) {
+    return;
+  }
+
+  // 过滤状态/初始化消息（messageType=51 等），不传递给 agent
+  if (msg.contentType === "status") {
+    return;
+  }
+
+  // 好友验证请求处理（messageType=37）：解析 XML 并自动通过
+  if (msg.contentType === "verify" && msg.messageType === 37) {
+    const verifyInfo = parseFriendVerifyXml(msg.rawContent ?? msg.body);
+    if (verifyInfo) {
+      emitWechatIpadLog(
+        deps,
+        `${logPrefix}: 收到好友验证请求：昵称=${verifyInfo.fromnickname}，wxid=${verifyInfo.fromusername}，来源=${verifyInfo.scene}`,
+      );
+      // dmPolicy=open 时自动通过好友请求
+      if (dmPolicy === "open") {
+        try {
+          const wxid =
+            deps.wxid?.trim() || getWechatIpadLoginSession(accountId)?.wxid?.trim() || robotId;
+          await friendPassVerifyViaApi({
+            options: { baseUrl, apiToken, robotId },
+            wxid,
+            v1: verifyInfo.encryptusername,
+            v2: verifyInfo.ticket,
+            scene: Number.parseInt(verifyInfo.scene, 10) || 14,
+          });
+          emitWechatIpadLog(deps, `${logPrefix}: 已自动通过好友验证：${verifyInfo.fromnickname}`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          emitWechatIpadLog(deps, `${logPrefix}: 自动通过好友验证失败：${message}`);
+        }
+      }
+    }
     return;
   }
 
@@ -693,7 +770,22 @@ export async function handleWechatIpadInboundMessage(
                       const loc = parseLocationXml(msg.rawContent ?? msg.body);
                       return `[位置] ${loc?.poiname || loc?.label || ""}`;
                     })()
-                  : `${effectiveSafetyPrefix}${msg.body}`;
+                  : msg.contentType === "link"
+                    ? (() => {
+                        // 解析链接卡片 XML，提取 title 和 url
+                        const titleMatch = /<title>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/title>/i.exec(
+                          msg.rawContent ?? msg.body,
+                        );
+                        const urlMatch = /<url>(?:<!\[CDATA\[)?(.*?)(?:\]\]>)?<\/url>/i.exec(
+                          msg.rawContent ?? msg.body,
+                        );
+                        const title = titleMatch?.[1]?.trim() ?? "";
+                        const url = urlMatch?.[1]?.trim() ?? "";
+                        return url ? `[链接] ${title} - ${url}` : `[链接] ${title || msg.body}`;
+                      })()
+                    : msg.contentType === "text" || msg.contentType === "quote"
+                      ? `${effectiveSafetyPrefix}${msg.body}`
+                      : msg.body;
 
   const body = runtime.channel.reply.formatInboundEnvelope({
     channel: "WeChat iPad",

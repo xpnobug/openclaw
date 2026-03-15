@@ -244,17 +244,22 @@ async function processWechatIpadWebhookMessages(params: {
   }
 }
 
+import { getWechatIpadPluginRegistry } from "../infra/runtime.js";
+
 export function registerWechatIpadWebhookTarget(target: WechatIpadWebhookTarget): () => void {
   return registerWebhookTargetWithPluginRoute({
     targetsByPath: webhookTargets,
     target,
     route: {
-      auth: "plugin",
+      auth: "plugin" as const,
       pluginId: "wechat-ipad",
       source: `extensions/wechat-ipad:${target.accountId}`,
       accountId: target.accountId,
       log: target.log,
       handler: (req, res) => handleWechatIpadWebhookRequest(req, res),
+      registry: getWechatIpadPluginRegistry() as Parameters<
+        typeof registerWebhookTargetWithPluginRoute
+      >[0]["route"]["registry"],
     },
   }).unregister;
 }
@@ -288,6 +293,7 @@ export async function handleWechatIpadWebhookRequest(
       const rateLimiter = getRateLimiter(target.account.inbound.webhook.rateLimitPerMinute);
       const rateLimitKey = `${path}:${req.socket.remoteAddress ?? "unknown"}`;
       if (rateLimiter.isRateLimited(rateLimitKey, Date.now())) {
+        emitWechatIpadWebhookLog(target, `wechat-ipad[${target.accountId}]: webhook 速率限制`);
         res.statusCode = 429;
         res.end("Too Many Requests");
         return true;
@@ -318,6 +324,10 @@ export async function handleWechatIpadWebhookRequest(
 
       const payloadWxid = readEnvelopeWxid(payload);
       if (payloadWxid && payloadWxid !== target.wxid) {
+        emitWechatIpadWebhookLog(
+          target,
+          `wechat-ipad[${target.accountId}]: webhook wxid 不匹配（${payloadWxid} ≠ ${target.wxid}）`,
+        );
         res.statusCode = 403;
         res.end("Forbidden");
         return true;
@@ -333,7 +343,7 @@ export async function handleWechatIpadWebhookRequest(
 
       emitWechatIpadWebhookLog(
         target,
-        `wechat-ipad[${target.accountId}]: webhook 收到 ${String(messages.length)} 条消息（path=${path}）`,
+        `wechat-ipad[${target.accountId}]: webhook 收到 ${String(messages.length)} 条消息`,
       );
       processWechatIpadWebhookMessages({ target, messages }).catch((error) => {
         const message = error instanceof Error ? error.message : String(error);

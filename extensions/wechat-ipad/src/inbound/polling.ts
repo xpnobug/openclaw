@@ -30,6 +30,8 @@ const SUPPORTED_INBOUND_CONTENT_TYPES = new Set([
   "emoji",
   "card",
   "location",
+  "verify",
+  "system",
 ]);
 
 function buildSeenKey(accountId: string, chatId: string, id: string): string {

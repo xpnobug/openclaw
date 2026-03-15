@@ -11,7 +11,9 @@ import {
   wechatIpadDock,
   wechatIpadPlugin,
 } from "./src/channel.js";
-import { setWechatIpadRuntime } from "./src/infra/runtime.js";
+import { setWechatIpadRuntime, setWechatIpadPluginRegistry } from "./src/infra/runtime.js";
+
+const REGISTRY_STATE_KEY = Symbol.for("openclaw.pluginRegistryState");
 
 const plugin = {
   id: "wechat-ipad",
@@ -20,6 +22,13 @@ const plugin = {
   configSchema: emptyPluginConfigSchema(),
   register(api: OpenClawPluginApi) {
     setWechatIpadRuntime(api.runtime);
+
+    // 捕获当前 active plugin registry（此时与网关使用的是同一个实例）
+    const globalState = (globalThis as Record<symbol, { registry?: unknown }>)[REGISTRY_STATE_KEY];
+    if (globalState?.registry) {
+      setWechatIpadPluginRegistry(globalState.registry);
+    }
+
     api.registerChannel({ plugin: wechatIpadPlugin, dock: wechatIpadDock });
 
     const loginStartHandler: GatewayRequestHandler = async ({

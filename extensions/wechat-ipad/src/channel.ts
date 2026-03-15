@@ -1019,12 +1019,15 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
           wxid,
         }).catch(() => undefined);
 
+        // 解析 webhook 路径（支持 {wxid} 占位符自动替换为扫码登录的 wxid）
+        const resolvedWebhookPath = account.inbound.webhook.path.replace(/\{wxid\}/g, wxid);
+
         const unregister = registerWechatIpadWebhookTarget({
           accountId,
           account,
           cfg: cfg as OpenClawConfig,
           runtime: pluginRuntime,
-          path: account.inbound.webhook.path,
+          path: resolvedWebhookPath,
           secret: account.inbound.webhook.secret,
           authMode: account.inbound.webhook.authMode,
           wxid,
@@ -1042,6 +1045,10 @@ export const wechatIpadPlugin: ChannelPlugin<ResolvedWechatIpadAccount> = {
             ctx.log?.info(message);
           },
         });
+
+        ctx.log?.info(
+          `wechat-ipad[${accountId}]: webhook 已启动（wxid=${wxid}，路由=${resolvedWebhookPath}）`,
+        );
         setWechatIpadWebhookRegistration(accountId, { unregister });
         setStatus({
           ...getStatus(),

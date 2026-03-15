@@ -559,6 +559,6 @@ describe("WechatIpadMessagePoller", () => {
     await vi.runOnlyPendingTimersAsync();
     poller.stop();
 
-    expect(received).toEqual(["wxid_a:102"]);
+    expect(received).toEqual(["wxid_a:100", "wxid_a:102"]);
   });
 });

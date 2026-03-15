@@ -1118,15 +1118,17 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         key: "inbound.webhook.path",
         label: "Webhook 路径",
         type: "text",
-        placeholder: "/plugins/wechat-ipad/webhook/main",
-        section: "polling",
+        placeholder: "/api/v1/wechat-client/{wxid}/sync-message",
+        section: "webhook",
+        description:
+          "iPad 协议服务的回调路径。支持 {wxid} 占位符，启动时自动替换为扫码登录的 wxid。",
       },
       {
         key: "inbound.webhook.secret",
         label: "Webhook Secret",
         type: "password",
         placeholder: "secret-token",
-        section: "polling",
+        section: "webhook",
       },
       {
         key: "inbound.webhook.authMode",
@@ -1137,14 +1139,14 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
           { value: "query", label: "Query" },
           { value: "none", label: "None" },
         ],
-        section: "polling",
+        section: "webhook",
       },
       {
         key: "inbound.webhook.maxBodyBytes",
         label: "Webhook 最大请求体 (字节)",
         type: "number",
         placeholder: "1048576",
-        section: "polling",
+        section: "webhook",
         description: "Webhook 请求体最大字节数，默认 1MB。",
       },
       {
@@ -1152,7 +1154,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         label: "Webhook 去重窗口 (ms)",
         type: "number",
         placeholder: "300000",
-        section: "polling",
+        section: "webhook",
         description: "Webhook 消息去重时间窗口，默认 5 分钟。",
       },
       {
@@ -1160,7 +1162,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         label: "Webhook 速率限制 (次/分钟)",
         type: "number",
         placeholder: "120",
-        section: "polling",
+        section: "webhook",
         description: "Webhook 每分钟最大请求数，默认 120。",
       },
       {

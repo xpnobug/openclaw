@@ -22,9 +22,9 @@ const DEFAULT_POLLING: Required<WechatIpadPollingConfig> = {
 };
 
 const DEFAULT_WEBHOOK: Required<WechatIpadWebhookConfig> = {
-  path: "/plugins/wechat-ipad/webhook",
+  path: "/api/v1/wechat-client/{wxid}/sync-message",
   secret: "",
-  authMode: "header",
+  authMode: "none",
   maxBodyBytes: 1024 * 1024,
   dedupeWindowMs: 5 * 60_000,
   rateLimitPerMinute: 120,

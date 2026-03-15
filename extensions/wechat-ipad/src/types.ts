@@ -15,6 +15,7 @@ export type WechatIpadPollingConfig = {
 export type WechatIpadWebhookAuthMode = "header" | "query" | "none";
 
 export type WechatIpadWebhookConfig = {
+  /** webhook 路由路径，支持 {wxid} 占位符。默认 /api/v1/wechat-client/{wxid}/sync-message */
   path?: string;
   secret?: string;
   authMode?: WechatIpadWebhookAuthMode;
@@ -164,6 +165,7 @@ export type WechatIpadInboundContentType =
   | "card"
   | "emoji"
   | "location"
+  | "verify"
   | "system"
   | "status"
   | "unknown";

@@ -34,31 +34,35 @@ const DEFAULT_TIMEOUT_MS = 10000;
 // ─── 客户端侧速率限制（参考 Go 端 client.go:52-57 令牌桶） ───
 
 /**
- * 简单令牌桶限速器。
- * Go 端使用 rate.NewLimiter(rate.Every(time.Second), 1) 对所有发送操作限速。
- * 此处实现同样的 1 次/秒 策略，防止高频调用被微信风控。
+ * 串行化令牌桶限速器。
+ * 使用 Promise 链确保并发调用排队等待，避免竞态条件。
  */
 class TokenBucketLimiter {
   private lastRequestTime = 0;
   private readonly intervalMs: number;
+  private pending: Promise<void> = Promise.resolve();
 
   constructor(intervalMs: number) {
     this.intervalMs = intervalMs;
   }
 
   async wait(): Promise<void> {
-    const now = Date.now();
-    const elapsed = now - this.lastRequestTime;
-    if (elapsed < this.intervalMs) {
-      const delay = this.intervalMs - elapsed;
-      await new Promise<void>((resolve) => setTimeout(resolve, delay));
-    }
-    this.lastRequestTime = Date.now();
+    this.pending = this.pending.then(async () => {
+      const elapsed = Date.now() - this.lastRequestTime;
+      if (elapsed < this.intervalMs) {
+        await new Promise<void>((resolve) => setTimeout(resolve, this.intervalMs - elapsed));
+      }
+      this.lastRequestTime = Date.now();
+    });
+    return this.pending;
   }
 }
 
-/** 发送类 API 限速器：每秒最多 1 次（与 Go 端一致） */
+/** 发送类 API 限速器：每秒最多 1 次（与 Go 端 limiter 一致） */
 const sendLimiter = new TokenBucketLimiter(1000);
+
+/** 自动操作限速器：每 15 秒最多 1 次（与 Go 端 autoLimiter 一致，用于好友验证、群邀请等） */
+export const autoLimiter = new TokenBucketLimiter(15000);
 
 export class WechatIpadApiError extends Error {
   constructor(
@@ -174,9 +178,7 @@ async function request<T>(params: {
   try {
     // 发送类 API 自动限速：每秒最多 1 次，防止被微信风控
     // 覆盖范围与 Go 端 limiter 一致（除 Sync 外的所有 Msg/ 端点）
-    const isRateLimited =
-      params.rateLimited ??
-      (/\/api\/Msg\/(?!Sync)/.test(endpoint) || /\/api\/Msg\/SendCDN/.test(endpoint));
+    const isRateLimited = params.rateLimited ?? /\/api\/Msg\/(?!Sync)/.test(endpoint);
     if (isRateLimited) {
       await sendLimiter.wait();
     }
@@ -618,6 +620,10 @@ function resolveInboundContentType(
   if (messageType === 48) {
     return "location";
   }
+  // 好友验证请求
+  if (messageType === 37) {
+    return "verify";
+  }
   if (messageType === 51) {
     return "status";
   }
@@ -653,20 +659,33 @@ export function normalizeWechatIpadSyncAddMsg(
 ): WechatIpadInboundMessage | null {
   const fromUser = record.FromUserName?.string?.trim();
   const toUser = record.ToUserName?.string?.trim();
-  const rawContent = record.Content?.string?.trim();
-  if (!fromUser || !toUser || !rawContent) {
+  const rawContentOriginal = record.Content?.string?.trim();
+  if (!fromUser || !toUser) {
     return null;
   }
+  // 系统消息/好友验证/状态消息允许空 content
+  const messageTypeRaw =
+    typeof record.MsgType === "number" && Number.isFinite(record.MsgType)
+      ? record.MsgType
+      : undefined;
+  const allowEmptyContent =
+    messageTypeRaw === 10000 ||
+    messageTypeRaw === 10002 ||
+    messageTypeRaw === 37 ||
+    messageTypeRaw === 51;
+  if (!rawContentOriginal && !allowEmptyContent) {
+    return null;
+  }
+  // 内部处理用空字符串（extractGroupSender 等函数需要 string 入参），
+  // 返回对象中保留 rawContentOriginal（可能 undefined）以维持 msg.rawContent ?? msg.body 回退语义
+  const rawContent = rawContentOriginal ?? "";
 
   const isGroup = fromUser.endsWith("@chatroom") || toUser.endsWith("@chatroom");
   const chatType = isGroup ? "group" : "direct";
   const chatId = isGroup ? (fromUser.endsWith("@chatroom") ? fromUser : toUser) : fromUser;
   const parsedGroup = isGroup ? extractGroupSender(rawContent) : null;
   const senderId = isGroup ? (parsedGroup?.senderId ?? fromUser) : fromUser;
-  const messageType =
-    typeof record.MsgType === "number" && Number.isFinite(record.MsgType)
-      ? record.MsgType
-      : undefined;
+  const messageType = messageTypeRaw;
   const parsedQuotedMessage = messageType === 49 ? parseQuotedMessage(rawContent) : null;
   const appMessageType = messageType === 49 ? resolveAppMessageType(rawContent) : undefined;
   const body =
@@ -719,7 +738,7 @@ export function normalizeWechatIpadSyncAddMsg(
     appMessageType,
     contentType: resolveInboundContentType(messageType, appMessageType, parsedQuotedMessage),
     quotedMessage: parsedQuotedMessage,
-    rawContent,
+    rawContent: rawContentOriginal,
   };
 }
 
@@ -1330,8 +1349,14 @@ function detectImageFormat(buf: Buffer): { contentType: string; extension: strin
   // WebP: RIFF....WEBP
   if (
     buf.length >= 12 &&
-    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
-    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x57 &&
+    buf[9] === 0x45 &&
+    buf[10] === 0x42 &&
+    buf[11] === 0x50
   ) {
     return { contentType: "image/webp", extension: ".webp" };
   }
@@ -1366,6 +1391,69 @@ export async function enableAutoHeartbeat(params: {
   });
 }
 
+/** 向桥接服务注册 HTTP 回调地址，桥接服务收到新消息后会 POST 到此地址。 */
+export async function setHttpCallbackUrlViaApi(params: {
+  options: WechatIpadApiCallOptions;
+  httpUrl: string;
+  token?: string;
+}): Promise<void> {
+  if (!params.httpUrl.trim()) return;
+  await request<Record<string, unknown>>({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/SetHttpCallbackUrl",
+    body: {
+      HttpUrl: params.httpUrl.trim(),
+      Token: params.token?.trim() ?? "",
+    },
+  });
+}
+
+/** 关闭自动心跳（退出/注销时调用）。 */
+export async function disableAutoHeartbeatViaApi(params: {
+  options: WechatIpadApiCallOptions;
+  wxid: string;
+}): Promise<void> {
+  if (!params.wxid.trim()) return;
+  const endpoint = new URL("/api/Login/CloseAutoHeartBeat", params.options.baseUrl);
+  endpoint.searchParams.set("wxid", params.wxid.trim());
+  await request<Record<string, unknown>>({
+    options: params.options,
+    method: "POST",
+    endpoint: `${endpoint.pathname}${endpoint.search}`,
+  });
+}
+
+/** 主动登出微信。 */
+export async function logoutViaApi(params: {
+  options: WechatIpadApiCallOptions;
+  wxid: string;
+}): Promise<void> {
+  if (!params.wxid.trim()) return;
+  const endpoint = new URL("/api/Login/LogOut", params.options.baseUrl);
+  endpoint.searchParams.set("wxid", params.wxid.trim());
+  await request<Record<string, unknown>>({
+    options: params.options,
+    method: "POST",
+    endpoint: `${endpoint.pathname}${endpoint.search}`,
+  });
+}
+
+/** 掉线后二次自动认证登录（重连）。 */
+export async function loginTwiceAutoAuthViaApi(params: {
+  options: WechatIpadApiCallOptions;
+  wxid: string;
+}): Promise<void> {
+  if (!params.wxid.trim()) return;
+  const endpoint = new URL("/api/Login/LoginTwiceAutoAuth", params.options.baseUrl);
+  endpoint.searchParams.set("wxid", params.wxid.trim());
+  await request<Record<string, unknown>>({
+    options: params.options,
+    method: "POST",
+    endpoint: `${endpoint.pathname}${endpoint.search}`,
+  });
+}
+
 // ─── 语音消息发送 ───
 
 export async function sendVoiceViaApi(
@@ -1388,7 +1476,7 @@ export async function sendVoiceViaApi(
       ToWxid: params.toWxid,
       Base64: params.base64,
       VoiceTime: params.voiceTime,
-      VoiceType: params.voiceType,
+      Type: params.voiceType, // AMR=0, SPEEX=1, MP3=2, WAVE=3, SILK=4
     },
   });
 
@@ -1445,10 +1533,74 @@ export async function revokeMessageViaApi(
     endpoint: "/api/Msg/Revoke",
     body: {
       Wxid: params.wxid,
-      ToWxid: params.toWxid,
+      ToUserName: params.toWxid,
       ClientMsgId: params.clientMsgId,
       NewMsgId: params.newMsgId,
       CreateTime: params.createTime,
+    },
+  });
+}
+
+// ─── 好友验证 ───
+
+/** 解析好友添加请求 XML（messageType=37），提取关键字段。 */
+export function parseFriendVerifyXml(xml: string): {
+  fromusername: string;
+  encryptusername: string;
+  fromnickname: string;
+  content: string;
+  ticket: string;
+  scene: string;
+  alias: string;
+  bigheadimgurl: string;
+  smallheadimgurl: string;
+  sourceusername: string;
+  sourcenickname: string;
+} | null {
+  if (!xml) return null;
+  const attr = (name: string): string => {
+    const m = new RegExp(`${name}="([^"]*)"`, "i").exec(xml);
+    return m?.[1] ?? "";
+  };
+  const fromusername = attr("fromusername");
+  const encryptusername = attr("encryptusername");
+  if (!fromusername && !encryptusername) return null;
+  return {
+    fromusername,
+    encryptusername,
+    fromnickname: attr("fromnickname"),
+    content: attr("content"),
+    ticket: attr("ticket"),
+    scene: attr("scene"),
+    alias: attr("alias"),
+    bigheadimgurl: attr("bigheadimgurl"),
+    smallheadimgurl: attr("smallheadimgurl"),
+    sourceusername: attr("sourceusername"),
+    sourcenickname: attr("sourcenickname"),
+  };
+}
+
+/** 通过好友验证请求。V1=encryptUsername, V2=ticket, Scene=来源场景（int）。 */
+export async function friendPassVerifyViaApi(
+  params: {
+    options: WechatIpadApiCallOptions;
+    wxid: string;
+    v1: string;
+    v2: string;
+    scene: number;
+  },
+  requestFn: typeof request<Record<string, unknown>> = request,
+): Promise<void> {
+  await autoLimiter.wait();
+  await requestFn({
+    options: params.options,
+    method: "POST",
+    endpoint: "/api/Friend/PassVerify",
+    body: {
+      Wxid: params.wxid,
+      V1: params.v1,
+      V2: params.v2,
+      Scene: params.scene,
     },
   });
 }
@@ -1712,6 +1864,43 @@ export function parseRevokeMsgXml(xml: string): WechatIpadParsedRevokeMsgXml | n
   const replaceMsg = extractXmlTagText(revokeSection, "replacemsg") ?? "";
   if (!newMsgId && !msgId) return null;
   return { session, msgId, newMsgId, replaceMsg };
+}
+
+/** 解析拍一拍系统消息 XML（sysmsg type="pat"）。 */
+export function parsePatXml(xml: string): {
+  fromusername: string;
+  chatusername: string;
+  pattedusername: string;
+  patsuffix: string;
+  template: string;
+} | null {
+  if (!xml.includes("<pat>")) return null;
+  const patSection = extractXmlSection(xml, "pat");
+  if (!patSection) return null;
+  return {
+    fromusername: extractXmlTagText(patSection, "fromusername") ?? "",
+    chatusername: extractXmlTagText(patSection, "chatusername") ?? "",
+    pattedusername: extractXmlTagText(patSection, "pattedusername") ?? "",
+    patsuffix: extractXmlTagText(patSection, "patsuffix") ?? "",
+    template: extractXmlTagText(patSection, "template") ?? "",
+  };
+}
+
+/** 解析新成员入群系统消息 XML（sysmsgtemplate 中含 "加入了群聊"）。 */
+export function parseNewMemberXml(xml: string): { memberWxids: string[]; template: string } | null {
+  if (!xml.includes("加入了群聊") && !xml.includes("invited") && !xml.includes("join")) {
+    return null;
+  }
+  const template = extractXmlTagText(xml, "template") ?? "";
+  // 提取 memberlist > member > username
+  const memberWxids: string[] = [];
+  const usernameRegex = /<username>([^<]+)<\/username>/g;
+  let match: RegExpExecArray | null;
+  while ((match = usernameRegex.exec(xml)) !== null) {
+    const wxid = match[1]?.trim();
+    if (wxid) memberWxids.push(wxid);
+  }
+  return memberWxids.length > 0 ? { memberWxids, template } : null;
 }
 
 // ─── 入站语音/视频下载 ───

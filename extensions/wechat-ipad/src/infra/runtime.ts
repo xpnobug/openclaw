@@ -13,6 +13,12 @@ export type WechatIpadWebhookRegistration = {
 
 let runtime: PluginRuntime | null = null;
 
+/**
+ * 插件初始化时捕获的 plugin registry 引用。
+ * 必须在 register() 回调中设置，以确保与网关使用的是同一个实例。
+ */
+let capturedPluginRegistry: unknown = null;
+
 const loginSessions = new Map<string, WechatIpadLoginSession>();
 const pollers = new Map<string, WechatIpadMessagePoller>();
 const webhookRegistrations = new Map<string, WechatIpadWebhookRegistration>();
@@ -29,6 +35,14 @@ function resolveSessionKey(accountId: string): string {
 
 export function setWechatIpadRuntime(next: PluginRuntime): void {
   runtime = next;
+}
+
+export function setWechatIpadPluginRegistry(registry: unknown): void {
+  capturedPluginRegistry = registry;
+}
+
+export function getWechatIpadPluginRegistry(): unknown {
+  return capturedPluginRegistry;
 }
 
 export function getWechatIpadRuntime(): PluginRuntime {
