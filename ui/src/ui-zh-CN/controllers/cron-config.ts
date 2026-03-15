@@ -81,7 +81,9 @@ export function createInitialCronState(): CronConfigState {
  * 加载定时任务列表
  */
 export async function loadCronJobs(state: CronConfigState): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   state.cronLoading = true;
   state.cronError = null;
@@ -111,18 +113,24 @@ export function buildCronSchedule(
   | { kind: "cron"; expr: string; tz?: string } {
   if (form.scheduleKind === "at") {
     const ms = Date.parse(form.scheduleAt);
-    if (!Number.isFinite(ms)) {throw new Error("无效的运行时间");}
+    if (!Number.isFinite(ms)) {
+      throw new Error("无效的运行时间");
+    }
     return { kind: "at", at: new Date(ms).toISOString() };
   }
   if (form.scheduleKind === "every") {
     const amount = parseInt(form.everyAmount, 10) || 0;
-    if (amount <= 0) {throw new Error("无效的间隔时间");}
+    if (amount <= 0) {
+      throw new Error("无效的间隔时间");
+    }
     const unit = form.everyUnit;
     const mult = unit === "minutes" ? 60_000 : unit === "hours" ? 3_600_000 : 86_400_000;
     return { kind: "every", everyMs: amount * mult };
   }
   const expr = form.cronExpr.trim();
-  if (!expr) {throw new Error("需要 Cron 表达式");}
+  if (!expr) {
+    throw new Error("需要 Cron 表达式");
+  }
   return { kind: "cron", expr, tz: form.cronTz.trim() || undefined };
 }
 
@@ -136,17 +144,23 @@ export function buildCronPayload(
   | { kind: "agentTurn"; message: string; timeoutSeconds?: number } {
   if (form.payloadKind === "systemEvent") {
     const text = form.payloadText.trim();
-    if (!text) {throw new Error("需要系统事件文本");}
+    if (!text) {
+      throw new Error("需要系统事件文本");
+    }
     return { kind: "systemEvent", text };
   }
   const message = form.payloadText.trim();
-  if (!message) {throw new Error("需要 Agent 消息");}
+  if (!message) {
+    throw new Error("需要 Agent 消息");
+  }
   const payload: { kind: "agentTurn"; message: string; timeoutSeconds?: number } = {
     kind: "agentTurn",
     message,
   };
   const timeoutSeconds = parseInt(form.timeoutSeconds, 10) || 0;
-  if (timeoutSeconds > 0) {payload.timeoutSeconds = timeoutSeconds;}
+  if (timeoutSeconds > 0) {
+    payload.timeoutSeconds = timeoutSeconds;
+  }
   return payload;
 }
 
@@ -170,7 +184,9 @@ export function buildCronDelivery(
  * 添加定时任务
  */
 export async function addCronJob(state: CronConfigState): Promise<void> {
-  if (!state.client || !state.connected || state.cronBusy) {return;}
+  if (!state.client || !state.connected || state.cronBusy) {
+    return;
+  }
   state.cronBusy = true;
   state.cronError = null;
 
@@ -191,7 +207,9 @@ export async function addCronJob(state: CronConfigState): Promise<void> {
       payload,
       delivery,
     };
-    if (!job.name) {throw new Error("需要任务名称");}
+    if (!job.name) {
+      throw new Error("需要任务名称");
+    }
 
     await state.client.request("cron.add", job);
     state.cronShowCreateModal = false;
@@ -209,7 +227,9 @@ export async function addCronJob(state: CronConfigState): Promise<void> {
  */
 export async function updateCronJob(state: CronConfigState): Promise<void> {
   const jobId = state.cronEditJobId;
-  if (!state.client || !state.connected || state.cronBusy || !jobId) {return;}
+  if (!state.client || !state.connected || state.cronBusy || !jobId) {
+    return;
+  }
   state.cronBusy = true;
   state.cronError = null;
 
@@ -230,7 +250,9 @@ export async function updateCronJob(state: CronConfigState): Promise<void> {
       payload,
       delivery,
     };
-    if (!patch.name) {throw new Error("需要任务名称");}
+    if (!patch.name) {
+      throw new Error("需要任务名称");
+    }
 
     await state.client.request("cron.update", { id: jobId, patch });
     state.cronShowCreateModal = false;
@@ -251,7 +273,9 @@ export async function toggleCronJob(
   job: CronJob,
   enabled: boolean,
 ): Promise<void> {
-  if (!state.client || !state.connected || state.cronBusy) {return;}
+  if (!state.client || !state.connected || state.cronBusy) {
+    return;
+  }
   state.cronBusy = true;
   state.cronError = null;
 
@@ -269,7 +293,9 @@ export async function toggleCronJob(
  * 立即运行定时任务
  */
 export async function runCronJob(state: CronConfigState, job: CronJob): Promise<void> {
-  if (!state.client || !state.connected || state.cronBusy) {return;}
+  if (!state.client || !state.connected || state.cronBusy) {
+    return;
+  }
   state.cronBusy = true;
   state.cronError = null;
 
@@ -287,7 +313,9 @@ export async function runCronJob(state: CronConfigState, job: CronJob): Promise<
  * 删除定时任务
  */
 export async function removeCronJob(state: CronConfigState, job: CronJob): Promise<void> {
-  if (!state.client || !state.connected || state.cronBusy) {return;}
+  if (!state.client || !state.connected || state.cronBusy) {
+    return;
+  }
   state.cronBusy = true;
   state.cronError = null;
 
@@ -310,7 +338,9 @@ export async function removeCronJob(state: CronConfigState, job: CronJob): Promi
  * 加载任务运行记录
  */
 export async function loadCronRuns(state: CronConfigState, jobId: string): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   try {
     const res = await state.client.request<{ entries?: CronRunLogEntry[] }>("cron.runs", {

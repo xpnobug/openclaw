@@ -139,8 +139,8 @@ export type WechatIpadAccountConfig = BaseChannelConfig & {
   longTextTitle?: string;
   /** 消息保留天数，0 表示永久保留，默认 0 */
   messageRetentionDays?: number;
-  /** Markdown 渲染开关 */
-  markdown?: boolean;
+  /** Markdown 渲染配置 */
+  markdown?: { tables?: "off" | "bullets" | "code" };
   baseUrl?: string;
   apiToken?: string;
   tokenFile?: string;

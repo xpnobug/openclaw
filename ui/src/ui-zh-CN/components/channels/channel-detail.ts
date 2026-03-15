@@ -64,11 +64,14 @@ const WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS = new Set([
   "longTextThreshold",
   "longTextTitle",
   "messageRetentionDays",
-  "markdown",
 ]);
 
 function isWechatIpadAccountScopedField(fieldKey: string): boolean {
-  return WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS.has(fieldKey) || fieldKey.startsWith("inbound.");
+  return (
+    WECHAT_IPAD_ACCOUNT_SCOPED_FIELDS.has(fieldKey) ||
+    fieldKey.startsWith("inbound.") ||
+    fieldKey.startsWith("markdown.")
+  );
 }
 
 function resolveWechatIpadConfigFieldPath(fieldKey: string, accountId: string | null): string {

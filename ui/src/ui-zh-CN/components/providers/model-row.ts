@@ -28,7 +28,9 @@ export function renderModelRow(
       newInput = [...new Set([...currentInput, type])];
     } else {
       newInput = currentInput.filter((t) => t !== type);
-      if (newInput.length === 0) {newInput = ["text"];} // 至少保留文本
+      if (newInput.length === 0) {
+        newInput = ["text"];
+      } // 至少保留文本
     }
     props.onModelUpdate(providerKey, index, "input", newInput);
   };

@@ -117,7 +117,9 @@ export function renderButtonGroup(
   const gap = options?.gap ?? "medium";
   const validButtons = buttons.filter((b): b is ButtonProps => b != null);
 
-  if (validButtons.length === 0) {return html``;}
+  if (validButtons.length === 0) {
+    return html``;
+  }
 
   return html`
     <div class="btn-group btn-group--${align} btn-group--gap-${gap} ${options?.className ?? ""}">

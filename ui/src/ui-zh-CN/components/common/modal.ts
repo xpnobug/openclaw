@@ -52,7 +52,9 @@ const closeIcon = html`
  * 渲染通用弹窗
  */
 export function renderModal(props: ModalProps, content: TemplateResult): TemplateResult {
-  if (!props.open) {return html``;}
+  if (!props.open) {
+    return html``;
+  }
 
   const size = props.size ?? "medium";
   const closable = props.closable !== false;
@@ -98,7 +100,9 @@ export function renderModal(props: ModalProps, content: TemplateResult): Templat
  * 渲染确认弹窗
  */
 export function renderConfirmModal(props: ConfirmModalProps): TemplateResult {
-  if (!props.open) {return html``;}
+  if (!props.open) {
+    return html``;
+  }
 
   const confirmLabel = props.confirmLabel ?? "确认";
   const cancelLabel = props.cancelLabel ?? "取消";

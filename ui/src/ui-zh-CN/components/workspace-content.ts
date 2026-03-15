@@ -233,15 +233,23 @@ function getFileDescription(fileName: string): string {
 
 /** 格式化文件大小 / Format file size */
 function formatSize(bytes: number): string {
-  if (bytes === 0) {return "0 B";}
-  if (bytes < 1024) {return `${bytes} B`;}
-  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
+  if (bytes === 0) {
+    return "0 B";
+  }
+  if (bytes < 1024) {
+    return `${bytes} B`;
+  }
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /** 格式化时间 / Format time */
 function formatTime(ts: number | null): string {
-  if (!ts) {return "-";}
+  if (!ts) {
+    return "-";
+  }
   const d = new Date(ts);
   return d.toLocaleString("zh-CN", {
     month: "2-digit",
@@ -257,7 +265,9 @@ function formatTime(ts: number | null): string {
  * 支持标题、粗体、斜体、代码块、列表
  */
 function renderMarkdownToHtml(md: string): string {
-  if (!md) {return '<p class="ws-preview__empty">文件为空</p>';}
+  if (!md) {
+    return '<p class="ws-preview__empty">文件为空</p>';
+  }
 
   let result = md
     // 转义 HTML / Escape HTML

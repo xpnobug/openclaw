@@ -30,9 +30,7 @@ export function renderToolsPermissionsSection(props: PermissionsContentProps) {
 
   // 档案选择 Props
   const profileProps = {
-    profileValue: isGlobal
-      ? currentConfig.profile
-      : ((currentConfig.profile ?? "__default__")),
+    profileValue: isGlobal ? currentConfig.profile : (currentConfig.profile ?? "__default__"),
     isGlobal,
     globalProfile: globalConfig.profile,
     saving: props.saving,

@@ -1013,6 +1013,7 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         type: "text",
         placeholder: "我的微信 iPad",
         section: "api",
+        description: "多账户时用于区分不同微信账号，单账户可留空。",
       },
       {
         key: "baseUrl",
@@ -1230,10 +1231,16 @@ export const CHANNEL_METADATA: ChannelMeta[] = [
         section: "messaging",
       },
       {
-        key: "markdown",
-        label: "Markdown 渲染",
-        type: "toggle",
-        description: "启用后将对出站消息进行 Markdown 渲染处理。",
+        key: "markdown.tables",
+        label: "Markdown 表格渲染",
+        type: "select",
+        options: [
+          { value: "off", label: "关闭" },
+          { value: "bullets", label: "项目符号" },
+          { value: "code", label: "代码块" },
+        ],
+        description:
+          "出站消息中 Markdown 表格的渲染方式：关闭（直接移除）、项目符号（转为列表）、代码块（保持原样）。",
         section: "messaging",
       },
     ],

@@ -58,10 +58,14 @@ export function getPermissionsAgents(state: ModelConfigState): AgentOption[] {
   const configAgents: AgentOption[] = [];
 
   list.forEach((entry) => {
-    if (!entry || typeof entry !== "object") {return;}
+    if (!entry || typeof entry !== "object") {
+      return;
+    }
     const record = entry as Record<string, unknown>;
     const id = typeof record.id === "string" ? record.id.trim() : "";
-    if (!id) {return;}
+    if (!id) {
+      return;
+    }
     const name = typeof record.name === "string" ? record.name.trim() : undefined;
     const isDefault = record.default === true;
     configAgents.push({ id, name: name || undefined, isDefault });
@@ -72,7 +76,9 @@ export function getPermissionsAgents(state: ModelConfigState): AgentOption[] {
   const merged = new Map<string, AgentOption>();
   configAgents.forEach((agent) => merged.set(agent.id, agent));
   approvalsAgents.forEach((id) => {
-    if (merged.has(id)) {return;}
+    if (merged.has(id)) {
+      return;
+    }
     merged.set(id, { id });
   });
 
@@ -83,8 +89,12 @@ export function getPermissionsAgents(state: ModelConfigState): AgentOption[] {
 
   // 排序：默认 agent 在前
   agents.sort((a, b) => {
-    if (a.isDefault && !b.isDefault) {return -1;}
-    if (!a.isDefault && b.isDefault) {return 1;}
+    if (a.isDefault && !b.isDefault) {
+      return -1;
+    }
+    if (!a.isDefault && b.isDefault) {
+      return 1;
+    }
     const aLabel = a.name?.trim() ? a.name : a.id;
     const bLabel = b.name?.trim() ? b.name : b.id;
     return aLabel.localeCompare(bLabel);
@@ -106,8 +116,12 @@ export async function loadPermissions(
   state: ModelConfigState,
   target?: { kind: "gateway" } | { kind: "node"; nodeId: string },
 ): Promise<void> {
-  if (!state.client || !state.connected) {return;}
-  if (state.permissionsLoading) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
+  if (state.permissionsLoading) {
+    return;
+  }
 
   // 如果是 node 目标，必须有 nodeId
   if (target?.kind === "node" && !target.nodeId) {
@@ -193,7 +207,9 @@ export async function savePermissions(
   state: ModelConfigState,
   target?: { kind: "gateway" } | { kind: "node"; nodeId: string },
 ): Promise<void> {
-  if (!state.client || !state.connected) {return;}
+  if (!state.client || !state.connected) {
+    return;
+  }
 
   // 如果是 node 目标，必须有 nodeId
   if (target?.kind === "node" && !target.nodeId) {
@@ -258,7 +274,9 @@ export function updatePermissionsFormValue(
   let current: unknown = base;
   for (let i = 0; i < path.length - 1; i++) {
     const key = path[i];
-    if (current == null || typeof current !== "object") {break;}
+    if (current == null || typeof current !== "object") {
+      break;
+    }
     const obj = current as Record<string | number, unknown>;
     if (obj[key] == null || typeof obj[key] !== "object") {
       obj[key] = typeof path[i + 1] === "number" ? [] : {};
@@ -290,7 +308,9 @@ export function removePermissionsFormValue(
   let current: unknown = base;
   for (let i = 0; i < path.length - 1; i++) {
     const key = path[i];
-    if (current == null || typeof current !== "object") {return;}
+    if (current == null || typeof current !== "object") {
+      return;
+    }
     current = (current as Record<string | number, unknown>)[key];
   }
 
@@ -344,7 +364,9 @@ export function removePermissionsAllowlistEntry(
   ) as ExecApprovalsFile;
 
   const allowlist = base.agents?.[agentId]?.allowlist;
-  if (!allowlist || !Array.isArray(allowlist)) {return;}
+  if (!allowlist || !Array.isArray(allowlist)) {
+    return;
+  }
 
   if (allowlist.length <= 1) {
     // 如果只剩一个条目，删除整个 allowlist

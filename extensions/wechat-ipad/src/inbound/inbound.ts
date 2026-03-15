@@ -14,6 +14,7 @@ import {
   parseEmojiXml,
   parseFileXml,
   parseLocationXml,
+  parseRevokeMsgXml,
   parseImageXml,
   parseVideoXml,
   parseVoiceXml,
@@ -454,6 +455,27 @@ export async function handleWechatIpadInboundMessage(
     } catch {
       // 存储失败不阻塞消息处理
     }
+  }
+
+  // 撤回消息处理（messageType=10002）：解析被撤回的消息 ID 并标记
+  if (msg.contentType === "system" && msg.messageType === 10002) {
+    const revokeMeta = parseRevokeMsgXml(msg.rawContent ?? msg.body);
+    if (revokeMeta && messageStore) {
+      const revokedMsgId = revokeMeta.newMsgId || revokeMeta.msgId;
+      if (revokedMsgId) {
+        try {
+          messageStore.markRevoked?.(revokedMsgId);
+          emitWechatIpadLog(
+            deps,
+            `${logPrefix}: 消息已撤回：msgId=${revokedMsgId}，${revokeMeta.replaceMsg || ""}`,
+          );
+        } catch {
+          // 标记失败不阻塞
+        }
+      }
+    }
+    // 撤回消息不需要继续传递给 agent
+    return;
   }
 
   if (msg.chatType === "group" && requireMention && !msg.isAtMe) {

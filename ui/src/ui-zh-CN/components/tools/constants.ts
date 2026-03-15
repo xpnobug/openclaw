@@ -135,7 +135,9 @@ export function getTotalToolsCount(): number {
  */
 export function isToolDenied(toolId: string, denyList: string[]): boolean {
   // 直接禁用
-  if (denyList.includes(toolId)) {return true;}
+  if (denyList.includes(toolId)) {
+    return true;
+  }
   // 通过分组禁用
   for (const [groupId, group] of Object.entries(TOOL_GROUPS)) {
     if (group.tools.includes(toolId) && denyList.includes(groupId)) {

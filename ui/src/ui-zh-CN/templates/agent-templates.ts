@@ -171,7 +171,9 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
 
 /** 根据分类获取模板 */
 export function getTemplatesByCategory(category: string): AgentTemplate[] {
-  if (category === "all") {return AGENT_TEMPLATES;}
+  if (category === "all") {
+    return AGENT_TEMPLATES;
+  }
   return AGENT_TEMPLATES.filter((t) => t.category === category);
 }
 

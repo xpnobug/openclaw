@@ -406,7 +406,7 @@ function resolveMediaKind(mime: string): MediaKind {
 }
 
 type ResolvedMedia =
-  | { kind: "video"; buffer: Buffer; dataUrl: string }
+  | { kind: "video"; buffer: Buffer; dataUrl: string; mime: string }
   | { kind: "audio"; buffer: Buffer; dataUrl: string }
   | { kind: "image" | "other"; dataUrl: string };
 
@@ -417,7 +417,7 @@ async function resolveMediaContent(mediaUrl: string): Promise<ResolvedMedia> {
   if (trimmed.startsWith("data:")) {
     const parsed = parseDataUrl(trimmed);
     if (parsed && resolveMediaKind(parsed.mime) === "video") {
-      return { kind: "video", buffer: parsed.buffer, dataUrl: trimmed };
+      return { kind: "video", buffer: parsed.buffer, dataUrl: trimmed, mime: parsed.mime };
     }
     if (parsed && resolveMediaKind(parsed.mime) === "audio") {
       return { kind: "audio", buffer: parsed.buffer, dataUrl: trimmed };
@@ -434,7 +434,7 @@ async function resolveMediaContent(mediaUrl: string): Promise<ResolvedMedia> {
       const result = await loadOutboundMediaFromUrl(trimmed);
       if (result.kind === "video") {
         const base64 = `data:${result.contentType ?? "video/mp4"};base64,${result.buffer.toString("base64")}`;
-        return { kind: "video", buffer: result.buffer, dataUrl: base64 };
+        return { kind: "video", buffer: result.buffer, dataUrl: base64, mime: result.contentType ?? "video/mp4" };
       }
       const contentType = result.contentType ?? "application/octet-stream";
       const mediaKind = resolveMediaKind(contentType);
@@ -484,7 +484,7 @@ export async function sendWechatIpadMedia(
     let result: { messageId?: string };
 
     if (media.kind === "video") {
-      const payload = await prepareVideoPayload(media.buffer, options.log);
+      const payload = await prepareVideoPayload(media.buffer, options.log, media.mime);
       result = await sendVideoViaApi({
         options: ctx,
         wxid,
@@ -566,7 +566,9 @@ export async function sendWechatIpadVoice(
         await writeFile(audioPath, parsed.buffer);
 
         const duration = await extractAudioDuration(audioPath);
-        const voiceTimeMs = duration ? duration * 1000 : DEFAULT_VOICE_DURATION_MS;
+        // 微信语音上限 59 秒（Go 端 robot.go:629-633 同样截断）
+        const rawMs = duration ? duration * 1000 : DEFAULT_VOICE_DURATION_MS;
+        const voiceTimeMs = Math.min(rawMs, 59_000);
         const voiceType = resolveVoiceType(parsed.mime);
         const base64 = parsed.buffer.toString("base64");
 

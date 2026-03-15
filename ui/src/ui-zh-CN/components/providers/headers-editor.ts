@@ -36,7 +36,9 @@ export function renderHeadersEditor(
     const newHeaders: Record<string, string> = {};
     for (const [k, v] of Object.entries(headers ?? {})) {
       if (k === oldKey) {
-        if (newKey) {newHeaders[newKey] = value;}
+        if (newKey) {
+          newHeaders[newKey] = value;
+        }
       } else {
         newHeaders[k] = v;
       }

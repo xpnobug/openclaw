@@ -31,6 +31,35 @@ export function collectInboundContactIds(items: WechatIpadInboundMessage[]): str
 
 const DEFAULT_TIMEOUT_MS = 10000;
 
+// ─── 客户端侧速率限制（参考 Go 端 client.go:52-57 令牌桶） ───
+
+/**
+ * 简单令牌桶限速器。
+ * Go 端使用 rate.NewLimiter(rate.Every(time.Second), 1) 对所有发送操作限速。
+ * 此处实现同样的 1 次/秒 策略，防止高频调用被微信风控。
+ */
+class TokenBucketLimiter {
+  private lastRequestTime = 0;
+  private readonly intervalMs: number;
+
+  constructor(intervalMs: number) {
+    this.intervalMs = intervalMs;
+  }
+
+  async wait(): Promise<void> {
+    const now = Date.now();
+    const elapsed = now - this.lastRequestTime;
+    if (elapsed < this.intervalMs) {
+      const delay = this.intervalMs - elapsed;
+      await new Promise<void>((resolve) => setTimeout(resolve, delay));
+    }
+    this.lastRequestTime = Date.now();
+  }
+}
+
+/** 发送类 API 限速器：每秒最多 1 次（与 Go 端一致） */
+const sendLimiter = new TokenBucketLimiter(1000);
+
 export class WechatIpadApiError extends Error {
   constructor(
     message: string,
@@ -133,6 +162,8 @@ async function request<T>(params: {
   body?: Record<string, unknown>;
   timeoutMs?: number;
   unwrapEnvelope?: boolean;
+  /** 是否在请求前等待发送限速器（发送类 API 应设为 true） */
+  rateLimited?: boolean;
 }): Promise<T> {
   const { options, method, endpoint, body } = params;
   const url = new URL(endpoint, options.baseUrl);
@@ -141,6 +172,14 @@ async function request<T>(params: {
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    // 发送类 API 自动限速：每秒最多 1 次，防止被微信风控
+    // 覆盖范围与 Go 端 limiter 一致（除 Sync 外的所有 Msg/ 端点）
+    const isRateLimited =
+      params.rateLimited ??
+      (/\/api\/Msg\/(?!Sync)/.test(endpoint) || /\/api\/Msg\/SendCDN/.test(endpoint));
+    if (isRateLimited) {
+      await sendLimiter.wait();
+    }
     const response = await fetch(url.toString(), {
       method,
       headers: {
@@ -203,6 +242,10 @@ async function request<T>(params: {
             code,
             responseText,
           );
+        }
+        // Go 端 client.go:45: Code=-7 表示已退出登录
+        if (code === -7) {
+          throw new WechatIpadApiError(message ?? "微信已退出登录，请重新扫码", code, responseText);
         }
         if (typeof code === "number" && code !== 0 && code !== 200 && code !== 1) {
           throw new WechatIpadApiError(
@@ -582,14 +625,23 @@ function resolveInboundContentType(
     return "system";
   }
   if (messageType === 49) {
+    // AppMsgType=74: 文件上传中，Go 端过滤不入库
+    if (appMessageType === 74) {
+      return "status";
+    }
     if (quotedMessage || appMessageType === 57) {
       return "quote";
     }
     if (appMessageType === 6) {
       return "file";
     }
-    if (appMessageType === 5) {
+    if (appMessageType === 5 || appMessageType === 3) {
+      // appMessageType=5: 链接/文章；appMessageType=3: 音频/音乐卡片
       return "link";
+    }
+    if (appMessageType === 17) {
+      // 实时位置共享
+      return "location";
     }
   }
   return "unknown";
@@ -845,7 +897,13 @@ export async function sendQuoteTextViaApi(
   const storedMessage = params.messageStore?.lookup(replyMsgId) ?? null;
   const referType = storedMessage?.msgType ?? 1;
   const referContent = storedMessage?.rawContent ?? storedMessage?.body ?? replyBody;
-  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>${referType}</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(params.wxid)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(referContent)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource></refermsg></appmsg><fromusername></fromusername>`;
+  // Go 端 chatusr 为聊天对象（群 ID 或对方 wxid），不是机器人自身 wxid
+  const chatUsr = params.toWxid;
+  // Go 端 ReferMessage.CreateTime 为被引用消息的创建时间戳（秒）
+  const createTime = replyMeta?.createTime
+    ? Math.trunc(replyMeta.createTime)
+    : Math.trunc(Date.now() / 1000);
+  const xml = `<appmsg appid="" sdkver="0"><title>${escapeXmlText(text)}</title><des></des><action></action><type>57</type><showtype>0</showtype><soundtype>0</soundtype><mediatagname></mediatagname><messageext></messageext><messageaction></messageaction><content></content><contentattr>0</contentattr><url></url><lowurl></lowurl><dataurl></dataurl><lowdataurl></lowdataurl><songalbumurl></songalbumurl><songlyric></songlyric><appattach><totallen>0</totallen><attachid></attachid><emoticonmd5></emoticonmd5><fileext></fileext><cdnthumbaeskey></cdnthumbaeskey><aeskey></aeskey></appattach><extinfo></extinfo><sourceusername></sourceusername><sourcedisplayname></sourcedisplayname><thumburl></thumburl><md5></md5><statextstr></statextstr><directshare>0</directshare><refermsg><type>${referType}</type><svrid>${escapeXmlText(replyMsgId)}</svrid><fromusr>${escapeXmlText(replySenderWxid)}</fromusr><chatusr>${escapeXmlText(chatUsr)}</chatusr><displayname>${escapeXmlText(replySender)}</displayname><content>${escapeXmlText(referContent)}</content><msgsource>&lt;msgsource&gt;&lt;sequence_id&gt;${escapeXmlText(replyMsgSeq)}&lt;/sequence_id&gt;&lt;/msgsource&gt;</msgsource><createtime>${createTime}</createtime></refermsg></appmsg><fromusername></fromusername>`;
   const raw = await requestFn({
     options: params.options,
     method: "POST",
@@ -911,6 +969,8 @@ export async function pollInboundMessages(
   },
   requestFn: typeof request<Record<string, unknown>> = request,
 ): Promise<{ items: WechatIpadInboundMessage[]; contactIds: string[] }> {
+  // Go 参考实现：SyncMessage 始终发送 Synckey=""，单次请求
+  // ContinueFlag 仅用于朋友圈同步，普通消息同步不做循环
   const raw = await requestFn({
     options: params.options,
     method: "POST",
@@ -1251,8 +1311,43 @@ export async function downloadImageViaApi(
 
   const buffer = Buffer.from(base64, "base64");
 
-  // 默认 image/jpeg，后续由调用方通过 detectMime 覆盖
-  return { buffer, contentType: "image/jpeg", extension: ".jpg" };
+  // magic bytes 检测实际图片格式
+  const { contentType, extension } = detectImageFormat(buffer);
+  return { buffer, contentType, extension };
+}
+
+/** 通过文件头 magic bytes 检测图片格式，默认 JPEG。 */
+function detectImageFormat(buf: Buffer): { contentType: string; extension: string } {
+  if (buf.length < 4) return { contentType: "image/jpeg", extension: ".jpg" };
+  // PNG: 89 50 4E 47
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    return { contentType: "image/png", extension: ".png" };
+  }
+  // GIF: 47 49 46 38
+  if (buf[0] === 0x47 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x38) {
+    return { contentType: "image/gif", extension: ".gif" };
+  }
+  // WebP: RIFF....WEBP
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 && buf[1] === 0x49 && buf[2] === 0x46 && buf[3] === 0x46 &&
+    buf[8] === 0x57 && buf[9] === 0x45 && buf[10] === 0x42 && buf[11] === 0x50
+  ) {
+    return { contentType: "image/webp", extension: ".webp" };
+  }
+  // BMP: 42 4D
+  if (buf[0] === 0x42 && buf[1] === 0x4d) {
+    return { contentType: "image/bmp", extension: ".bmp" };
+  }
+  // TIFF: 49 49 2A 00 (little-endian) or 4D 4D 00 2A (big-endian)
+  if (
+    (buf[0] === 0x49 && buf[1] === 0x49 && buf[2] === 0x2a && buf[3] === 0x00) ||
+    (buf[0] === 0x4d && buf[1] === 0x4d && buf[2] === 0x00 && buf[3] === 0x2a)
+  ) {
+    return { contentType: "image/tiff", extension: ".tiff" };
+  }
+  // 默认 JPEG (FF D8 FF 或其他未知格式)
+  return { contentType: "image/jpeg", extension: ".jpg" };
 }
 
 export async function enableAutoHeartbeat(params: {
@@ -1595,6 +1690,30 @@ export function parseLocationXml(xml: string): WechatIpadParsedLocationXml | nul
   return { x, y, label, poiname, scale: Number.isFinite(scale) ? scale : 14 };
 }
 
+export type WechatIpadParsedRevokeMsgXml = {
+  session: string;
+  msgId: string;
+  newMsgId: string;
+  replaceMsg: string;
+};
+
+/**
+ * 解析撤回消息 XML（messageType=10002）。
+ * Go 端 SystemMessage.RevokeMsg 结构：session, msgid, newmsgid, replacemsg。
+ */
+export function parseRevokeMsgXml(xml: string): WechatIpadParsedRevokeMsgXml | null {
+  // 撤回消息 XML 格式：<sysmsg type="revokemsg"><revokemsg>...<newmsgid>xxx</newmsgid>...</revokemsg></sysmsg>
+  if (!xml.includes("revokemsg")) return null;
+  const revokeSection = extractXmlSection(xml, "revokemsg");
+  if (!revokeSection) return null;
+  const session = extractXmlTagText(revokeSection, "session") ?? "";
+  const msgId = extractXmlTagText(revokeSection, "msgid") ?? "";
+  const newMsgId = extractXmlTagText(revokeSection, "newmsgid") ?? "";
+  const replaceMsg = extractXmlTagText(revokeSection, "replacemsg") ?? "";
+  if (!newMsgId && !msgId) return null;
+  return { session, msgId, newMsgId, replaceMsg };
+}
+
 // ─── 入站语音/视频下载 ───
 
 /** 调用桥接服务 CDN 下载语音，如端点不存在则返回 null。 */
@@ -1881,56 +2000,62 @@ export async function fetchContactDetailViaApi(
     return [];
   }
 
-  try {
-    const raw = await requestFn({
-      options: params.options,
-      method: "POST",
-      endpoint: "/api/Friend/GetContractDetail",
-      body: {
-        Wxid: wxid,
-        Towxids: targets.join(","),
-        ChatRoom: params.chatRoom?.trim() ?? "",
-      },
-    });
+  // 桥接服务每次最多查询 20 个联系人，超出需分批
+  const BATCH_SIZE = 20;
+  const allResults: WechatIpadContactInfo[] = [];
 
-    const contactList = Array.isArray(raw.ContactList)
-      ? raw.ContactList
-      : Array.isArray(raw.contactList)
-        ? raw.contactList
-        : [];
-
-    const results: WechatIpadContactInfo[] = [];
-    const now = Date.now();
-
-    for (const item of contactList) {
-      const record = asRecord(item);
-      if (!record) continue;
-
-      const contactWxid =
-        readWrappedStringField(record.UserName ?? record.userName) ??
-        readStringField(record, ["UserName", "userName", "Wxid", "wxid"]);
-      if (!contactWxid) continue;
-
-      const nickname = readWrappedStringField(record.NickName ?? record.nickName) ?? "";
-      const remark = readWrappedStringField(record.Remark ?? record.remark) ?? "";
-      const alias =
-        readWrappedStringField(record.Alias ?? record.alias) ??
-        readStringField(record, ["Alias", "alias"]) ??
-        "";
-
-      results.push({
-        wxid: contactWxid,
-        nickname,
-        remark,
-        alias,
-        fetchedAt: now,
+  for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+    const batch = targets.slice(i, i + BATCH_SIZE);
+    try {
+      const raw = await requestFn({
+        options: params.options,
+        method: "POST",
+        endpoint: "/api/Friend/GetContractDetail",
+        body: {
+          Wxid: wxid,
+          Towxids: batch.join(","),
+          ChatRoom: params.chatRoom?.trim() ?? "",
+        },
       });
-    }
 
-    return results;
-  } catch {
-    return [];
+      const contactList = Array.isArray(raw.ContactList)
+        ? raw.ContactList
+        : Array.isArray(raw.contactList)
+          ? raw.contactList
+          : [];
+
+      const now = Date.now();
+
+      for (const item of contactList) {
+        const record = asRecord(item);
+        if (!record) continue;
+
+        const contactWxid =
+          readWrappedStringField(record.UserName ?? record.userName) ??
+          readStringField(record, ["UserName", "userName", "Wxid", "wxid"]);
+        if (!contactWxid) continue;
+
+        const nickname = readWrappedStringField(record.NickName ?? record.nickName) ?? "";
+        const remark = readWrappedStringField(record.Remark ?? record.remark) ?? "";
+        const alias =
+          readWrappedStringField(record.Alias ?? record.alias) ??
+          readStringField(record, ["Alias", "alias"]) ??
+          "";
+
+        allResults.push({
+          wxid: contactWxid,
+          nickname,
+          remark,
+          alias,
+          fetchedAt: now,
+        });
+      }
+    } catch {
+      // 单批失败不阻塞后续批次
+    }
   }
+
+  return allResults;
 }
 
 // ─── 文件分片上传 ───
