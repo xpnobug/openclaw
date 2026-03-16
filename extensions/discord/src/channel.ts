@@ -9,6 +9,11 @@ import {
   formatAllowFromLowercase,
 } from "openclaw/plugin-sdk/compat";
 import {
+  buildAgentSessionKey,
+  resolveThreadSessionKeys,
+  type RoutePeer,
+} from "openclaw/plugin-sdk/core";
+import {
   buildComputedAccountStatusSnapshot,
   buildChannelConfigSchema,
   buildTokenChannelStatusSummary,
@@ -36,11 +41,6 @@ import {
   type OpenClawConfig,
   type ResolvedDiscordAccount,
 } from "openclaw/plugin-sdk/discord";
-import {
-  buildAgentSessionKey,
-  resolveThreadSessionKeys,
-  type RoutePeer,
-} from "openclaw/plugin-sdk/routing";
 import { resolveOutboundSendDep } from "../../../src/infra/outbound/send-deps.js";
 import { normalizeMessageChannel } from "../../../src/utils/message-channel.js";
 import {
