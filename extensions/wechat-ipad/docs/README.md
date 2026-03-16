@@ -1,6 +1,6 @@
 # WeChat iPad 扩展模块
 
-WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提供微信消息通道能力，支持多账号独立配置、双路消息接入（轮询 / Webhook）、多种消息类型发送，以及完整的登录与安全策略管理。
+WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提供微信消息通道能力，支持多账号独立配置、双路消息接入（轮询 / Webhook）、多种消息类型收发（文本、图片、语音、视频、文件、表情、名片、位置、链接卡片等），以及完整的登录、安全策略与状态持久化管理。
 
 ---
 
@@ -11,10 +11,17 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 - [消息接收（Inbound）](#消息接收inbound)
   - [轮询模式](#轮询模式)
   - [Webhook 模式](#webhook-模式)
+  - [入站媒体下载](#入站媒体下载)
 - [消息发送（Outbound）](#消息发送outbound)
+  - [长文本处理](#长文本处理)
+  - [文本分片](#文本分片)
+  - [视频与音频处理](#视频与音频处理)
 - [消息持久化](#消息持久化)
 - [登录流程](#登录流程)
-- [机器人资料缓存](#机器人资料缓存)
+- [运行时缓存](#运行时缓存)
+  - [机器人资料缓存](#机器人资料缓存)
+  - [联系人缓存](#联系人缓存)
+  - [状态持久化与恢复](#状态持久化与恢复)
 - [安全策略](#安全策略)
 - [状态监控](#状态监控)
 - [桥接服务 API](#桥接服务-api)
@@ -32,7 +39,7 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 │  Gateway     │  REST API    │  wechat-robot-*   │              │          │
 └──────────────┘              └──────────────────┘              └──────────┘
        │
-       ├── 轮询模式: 定时 GET /api/Msg/Sync
+       ├── 轮询模式: 定时 POST /api/Msg/Sync
        └── Webhook 模式: 桥接服务 POST → Gateway HTTP 端点
 ```
 
@@ -87,14 +94,14 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 
 桥接服务主动将新消息 POST 到 Gateway 注册的 HTTP 端点。
 
-| 配置项               | 类型                            | 默认值                                     | 说明                 |
-| -------------------- | ------------------------------- | ------------------------------------------ | -------------------- |
-| `path`               | `string`                        | `/plugins/wechat-ipad/webhook/<accountId>` | 接收路径             |
-| `secret`             | `string`                        | `""`                                       | 认证密钥             |
-| `authMode`           | `"header" \| "query" \| "none"` | `"header"`                                 | 认证方式             |
-| `maxBodyBytes`       | `number`                        | `1048576` (1MB)                            | 请求体大小上限       |
-| `dedupeWindowMs`     | `number`                        | `300000` (5分钟)                           | 消息去重窗口         |
-| `rateLimitPerMinute` | `number`                        | `2`                                        | 每 IP 每分钟请求限制 |
+| 配置项               | 类型                            | 默认值                                     | 说明                             |
+| -------------------- | ------------------------------- | ------------------------------------------ | -------------------------------- |
+| `path`               | `string`                        | `/plugins/wechat-ipad/webhook/<accountId>` | 接收路径（支持 `{wxid}` 占位符） |
+| `secret`             | `string`                        | `""`                                       | 认证密钥                         |
+| `authMode`           | `"header" \| "query" \| "none"` | `"header"`                                 | 认证方式                         |
+| `maxBodyBytes`       | `number`                        | `1048576` (1MB)                            | 请求体大小上限                   |
+| `dedupeWindowMs`     | `number`                        | `300000` (5分钟)                           | 消息去重窗口                     |
+| `rateLimitPerMinute` | `number`                        | `2`                                        | 每 IP 每分钟请求限制             |
 
 **安全机制**:
 
@@ -107,19 +114,40 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 
 **联系人过滤**: Webhook 模式同样支持 `pollContactIds` 白名单过滤，空列表表示接收所有消息。
 
+**Webhook 启动流程**: 启动时自动调用 `enableAutoHeartbeat` 开启桥接服务端的自动心跳，并通过 `registerWechatIpadWebhookTarget` 注册路由。
+
+### 入站媒体下载
+
+入站消息处理器会自动识别媒体类型并下载保存到本地，所有下载操作失败均记日志但不阻塞消息处理：
+
+| 媒体类型 | 处理函数                      | 下载 API                                                             | 存储路径                                         |
+| -------- | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------ |
+| 图片     | `downloadAndSaveInboundImage` | `POST /api/Tools/CdnDownloadImage`                                   | `<accountDir>/images/<contactId>/<ts>_<msgId>.*` |
+| 视频     | `downloadAndSaveInboundVideo` | `POST /api/Tools/CdnDownloadVideo` / `POST /api/Tools/DownloadVideo` | `<accountDir>/images/<contactId>/<ts>_<msgId>.*` |
+| 语音     | `downloadAndSaveInboundVoice` | `POST /api/Tools/CdnDownloadVoice` / `POST /api/Tools/DownloadVoice` | `<accountDir>/images/<contactId>/<ts>_<msgId>.*` |
+| 文件     | `downloadAndSaveInboundFile`  | `POST /api/Tools/DownloadFile`                                       | `<accountDir>/images/<contactId>/<ts>_<msgId>.*` |
+
 ---
 
 ## 消息发送（Outbound）
 
 ### 支持的发送类型
 
-| 类型     | 函数                     | 桥接 API                             | 说明                  |
-| -------- | ------------------------ | ------------------------------------ | --------------------- |
-| 文本     | `sendWechatIpadText`     | `POST /api/Msg/SendTxt`              | 自动分片 + 长文本转换 |
-| 长文本   | `sendLongTextViaApi`     | `POST /api/Msg/SendAppMsg (Type=19)` | 聊天记录卡片格式      |
-| 媒体     | `sendWechatIpadMedia`    | `POST /api/Msg/UploadImg`            | 图片/文件             |
-| 链接卡片 | `sendWechatIpadLinkCard` | `POST /api/Msg/SendAppMsg (Type=5)`  | 带缩略图的 URL 卡片   |
-| 引用回复 | via `sendTextViaApi`     | `POST /api/Msg/SendTxt`              | 带引用 XML 的文本     |
+| 类型      | 函数                      | 桥接 API                                                     | 说明                                      |
+| --------- | ------------------------- | ------------------------------------------------------------ | ----------------------------------------- |
+| 文本      | `sendWechatIpadText`      | `POST /api/Msg/SendTxt`                                      | 自动分片 + 长文本转换                     |
+| 长文本    | `sendLongTextViaApi`      | `POST /api/Msg/SendApp (Type=19)`                            | 聊天记录卡片格式                          |
+| 图片/媒体 | `sendWechatIpadMedia`     | `POST /api/Msg/UploadImg`                                    | 图片上传；视频自动走 SendVideo            |
+| 视频      | `sendVideoViaApi`         | `POST /api/Msg/SendVideo`                                    | 含缩略图和播放时长                        |
+| 语音      | `sendWechatIpadVoice`     | `POST /api/Msg/SendVoice`                                    | 自动提取时长，上限 59 秒                  |
+| 文件      | `sendWechatIpadFile`      | `POST /api/Tools/UploadAppAttachStream` + `SendApp (Type=6)` | 分片上传，失败降级到 UploadImg / 链接卡片 |
+| 表情      | `sendWechatIpadEmoji`     | `POST /api/Msg/SendEmoji`                                    | 基于 md5 + totalLen 发送                  |
+| 链接卡片  | `sendWechatIpadLinkCard`  | `POST /api/Msg/SendApp (Type=5)`                             | 带缩略图的 URL 卡片                       |
+| 引用回复  | `sendQuoteTextViaApi`     | `POST /api/Msg/SendTxt`                                      | 带引用 XML 的文本                         |
+| 名片分享  | `sendShareCardViaApi`     | `POST /api/Msg/ShareCard`                                    | 分享微信联系人名片                        |
+| 位置分享  | `sendShareLocationViaApi` | `POST /api/Msg/ShareLocation`                                | 分享地理位置坐标                          |
+| CDN 转发  | `forwardWechatIpadCdn`    | `POST /api/Msg/SendCDN{Img,Video,File}`                      | 转发图片/视频/文件的 CDN XML              |
+| 消息撤回  | `revokeWechatIpadMessage` | `POST /api/Msg/Revoke`                                       | 撤回已发送的消息                          |
 
 ### 长文本处理
 
@@ -133,11 +161,24 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 
 超长文本按 `DEFAULT_TEXT_CHUNK_LIMIT` 字符分片发送，每片之间按顺序依次发出。
 
+### 视频与音频处理
+
+`outbound/video.ts` 提供视频和音频的预处理能力：
+
+| 函数                    | 说明                                   |
+| ----------------------- | -------------------------------------- |
+| `extractVideoDuration`  | 通过 ffprobe 提取视频时长（秒）        |
+| `extractAudioDuration`  | 通过 ffprobe 提取音频时长（秒）        |
+| `extractVideoThumbnail` | 提取视频首帧为 JPEG 缩略图             |
+| `transcodeToMp4`        | 将非 MP4 视频转码为 MP4 格式           |
+| `prepareVideoPayload`   | 组装发送视频所需的完整载荷（含缩略图） |
+| `resolveVoiceType`      | 根据 MIME 类型识别语音编码格式         |
+
 ---
 
 ## 消息持久化
 
-模块使用 `node:sqlite`（Node 22+ 内置）将收发消息存入本地 SQLite 数据库，用于引用回复时还原原始消息类型和内容。
+模块使用 `node:sqlite`（Node 22+ 内置）将收发消息存入本地 SQLite 数据库，用于引用回复时还原原始消息类型和内容，以及 bot profile / 登录会话的持久化恢复。
 
 ### 存储路径
 
@@ -159,6 +200,15 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 | 出站 | `sendWechatIpadText` 发送成功后                       | msgId（API 返回）、wxid、target、body                           |
 
 入站消息在策略检查之前存储，确保即使被过滤的消息也能被后续引用回复查询到。
+
+### 元数据存储
+
+消息数据库同时提供 `getMeta` / `setMeta` 键值接口，用于持久化运行时状态：
+
+| 元数据键        | 用途                                        |
+| --------------- | ------------------------------------------- |
+| `bot_profile`   | 缓存机器人昵称和头像，重启后自动恢复        |
+| `login_session` | 缓存登录会话（含 wxid），重启后无需重新扫码 |
 
 ### 保留策略
 
@@ -200,44 +250,56 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 ## 登录流程
 
 ```
-请求二维码 → 用户扫码 → 轮询检查 → [可选] 验证码 → 连接成功 → 心跳保活 → 资料预热
+请求二维码 → 用户扫码 → 轮询检查 → [可选] 验证码 → 连接成功 → 自动心跳 → 资料预热 → 状态持久化
 ```
 
 ### 登录类型
 
-| 类型   | 说明              |
-| ------ | ----------------- |
-| `ipad` | iPad 协议（默认） |
-| `win`  | Windows 协议      |
-| `mac`  | macOS 协议        |
-| `car`  | 车载协议          |
+| 类型   | 二维码端点                 | 说明              |
+| ------ | -------------------------- | ----------------- |
+| `ipad` | `/api/Login/LoginGetQR`    | iPad 协议（默认） |
+| `win`  | `/api/Login/LoginGetQRWin` | Windows 协议      |
+| `mac`  | `/api/Login/LoginGetQRMac` | macOS 协议        |
+| `car`  | `/api/Login/LoginGetQRCar` | 车载协议          |
 
 ### 登录阶段
 
-1. **请求二维码**: `POST /api/Login/GetQR` → 返回 UUID、二维码 DataURL
-2. **扫码轮询**: `POST /api/Login/CheckLogin` → 状态检查
-3. **验证码**（可选）: `POST /api/Login/SendSMSCode` + `POST /api/Login/SubmitSMSVerify`
-4. **连接成功**: 获取 `wxid`、`nickname`，启动心跳
-5. **心跳保活**: `POST /api/Login/Heartbeat`，周期性发送
+1. **请求二维码**: `POST /api/Login/LoginGetQR{,Win,Mac,Car}` → 返回 UUID、二维码 DataURL、deviceId、data62
+2. **扫码轮询**: `POST /api/Login/LoginCheckQR` → 状态检查（connected / requiresVerification）
+3. **验证码**（可选）: `POST /api/Login/YPayVerificationcode` → 提交安全验证码
+4. **连接成功**: 获取 `wxid`、`nickname`，持久化登录会话到 SQLite
+5. **自动心跳**: `POST /api/Login/AutoHeartBeat` → 启用桥接服务端自动心跳
+6. **资料预热**: 异步获取 bot profile（昵称、头像）并缓存
+
+### 其他登录操作
+
+| 操作         | 端点                                 | 说明                     |
+| ------------ | ------------------------------------ | ------------------------ |
+| 退出登录     | `POST /api/Login/LogOut`             | 清除桥接服务端的登录状态 |
+| 二次自动认证 | `POST /api/Login/LoginTwiceAutoAuth` | 二次验证自动通过         |
+| 关闭自动心跳 | `POST /api/Login/CloseAutoHeartBeat` | 停止桥接服务端的自动心跳 |
 
 ### 登录会话
 
-登录状态以 `WechatIpadLoginSession` 存储在内存中，包含 UUID、设备信息、wxid、连接时间等。
+登录状态以 `WechatIpadLoginSession` 存储在内存中并持久化到 SQLite（通过 `message-store.setMeta("login_session", ...)`），包含 UUID、设备信息、wxid、连接时间等。网关重启时自动从数据库恢复，避免重复扫码。
 
 ---
 
-## 机器人资料缓存
+## 运行时缓存
+
+### 机器人资料缓存
 
 用于获取机器人自身的昵称和头像，服务于长文本消息卡片的显示。
 
-### 策略
+**策略**:
 
 - **登录后预热**: 登录成功后异步调用 `fetchBotProfileViaApi` 填充缓存
 - **发送时读缓存**: 长文本发送从缓存读取 nickname 和 headImgUrl
-- **过期后台刷新**: 缓存过期（TTL 30 分钟）后，后台 fire-and-forget 刷新，不阻塞发送
+- **过期后台刷新**: 缓存过期（TTL `BOT_PROFILE_TTL_MS` = 30 分钟）后，后台 fire-and-forget 刷新，不阻塞发送
 - **并发防护**: `pendingProfileFetches` Set 防止重复请求
+- **持久化**: 缓存同步写入 SQLite（`bot_profile` 元数据键），重启后自动恢复
 
-### 降级策略
+**降级策略**:
 
 | 场景             | nickname                | headImgUrl           |
 | ---------------- | ----------------------- | -------------------- |
@@ -245,6 +307,23 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 | 缓存命中但过期   | 旧值 + 后台刷新         | 旧值                 |
 | 缓存不存在       | `loginSession.nickname` | `""`                 |
 | fetch 失败       | 不影响当前值            | 不影响当前值         |
+
+### 联系人缓存
+
+用于解析消息发送者的昵称、备注名等信息，支持入站消息处理中的发送者标签格式化。
+
+- **缓存 TTL**: `CONTACT_CACHE_TTL_MS`
+- **数据来源**: `POST /api/Friend/GetContractDetail`
+- **缓存类型**: `WechatIpadContactInfo`（wxid、nickname、remark、alias、fetchedAt）
+- **过期检测**: `isWechatIpadContactStale` 判断是否需要重新获取
+
+### 状态持久化与恢复
+
+网关启动账号时（`startAccount`），在 wxid 检查之前执行以下恢复操作：
+
+1. 初始化 SQLite 消息数据库
+2. 从 `getMeta("bot_profile")` 恢复机器人资料缓存
+3. 从 `getMeta("login_session")` 恢复登录会话（含 wxid），确保重启后无需重新扫码
 
 ---
 
@@ -289,20 +368,64 @@ WeChat iPad 扩展通过外部 HTTP 桥接服务（Go 实现）为 OpenClaw 提�
 
 模块调用的桥接服务端点汇总：
 
-| 端点                           | 方法 | 用途                            |
-| ------------------------------ | ---- | ------------------------------- |
-| `/api/Login/GetQR`             | POST | 获取登录二维码                  |
-| `/api/Login/GetQRiPad`         | POST | 获取 iPad 登录二维码            |
-| `/api/Login/CheckLogin`        | POST | 检查登录状态                    |
-| `/api/Login/Heartbeat`         | POST | 心跳保活                        |
-| `/api/Login/SendSMSCode`       | POST | 发送短信验证码                  |
-| `/api/Login/SubmitSMSVerify`   | POST | 提交短信验证码                  |
-| `/api/Msg/Sync`                | POST | 同步消息（轮询模式）            |
-| `/api/Msg/SendTxt`             | POST | 发送文本消息                    |
-| `/api/Msg/SendAppMsg`          | POST | 发送应用消息（长文本/链接卡片） |
-| `/api/Msg/UploadImg`           | POST | 上传图片/媒体                   |
-| `/api/User/GetContractProfile` | POST | 获取用户资料（昵称/头像）       |
-| `/api/Contact/GetContactList`  | POST | 获取联系人列表                  |
+### 登录相关
+
+| 端点                              | 方法 | 用途                    |
+| --------------------------------- | ---- | ----------------------- |
+| `/api/Login/LoginGetQR`           | POST | 获取 iPad 登录二维码    |
+| `/api/Login/LoginGetQRWin`        | POST | 获取 Windows 登录二维码 |
+| `/api/Login/LoginGetQRMac`        | POST | 获取 macOS 登录二维码   |
+| `/api/Login/LoginGetQRCar`        | POST | 获取车载登录二维码      |
+| `/api/Login/LoginCheckQR`         | POST | 检查扫码登录状态        |
+| `/api/Login/YPayVerificationcode` | POST | 提交安全验证码          |
+| `/api/Login/AutoHeartBeat`        | POST | 启用自动心跳            |
+| `/api/Login/CloseAutoHeartBeat`   | POST | 关闭自动心跳            |
+| `/api/Login/LogOut`               | POST | 退出登录                |
+| `/api/Login/LoginTwiceAutoAuth`   | POST | 二次自动认证            |
+
+### 消息收发
+
+| 端点                     | 方法 | 用途                                                           |
+| ------------------------ | ---- | -------------------------------------------------------------- |
+| `/api/Msg/Sync`          | POST | 同步消息（轮询模式）                                           |
+| `/api/Msg/SendTxt`       | POST | 发送文本消息 / 引用回复                                        |
+| `/api/Msg/SendApp`       | POST | 发送应用消息（长文本 Type=19 / 链接卡片 Type=5 / 文件 Type=6） |
+| `/api/Msg/UploadImg`     | POST | 上传图片/媒体                                                  |
+| `/api/Msg/SendVideo`     | POST | 发送视频消息                                                   |
+| `/api/Msg/SendVoice`     | POST | 发送语音消息                                                   |
+| `/api/Msg/SendEmoji`     | POST | 发送表情消息                                                   |
+| `/api/Msg/Revoke`        | POST | 撤回消息                                                       |
+| `/api/Msg/ShareCard`     | POST | 分享联系人名片                                                 |
+| `/api/Msg/ShareLocation` | POST | 分享地理位置                                                   |
+| `/api/Msg/SendCDNImg`    | POST | CDN 图片转发                                                   |
+| `/api/Msg/SendCDNVideo`  | POST | CDN 视频转发                                                   |
+| `/api/Msg/SendCDNFile`   | POST | CDN 文件转发                                                   |
+
+### 文件上传与下载
+
+| 端点                               | 方法 | 用途                        |
+| ---------------------------------- | ---- | --------------------------- |
+| `/api/Tools/UploadAppAttachStream` | POST | 分片上传文件（multipart）   |
+| `/api/Tools/CdnDownloadImage`      | POST | CDN 下载图片                |
+| `/api/Tools/CdnDownloadVoice`      | POST | CDN 下载语音                |
+| `/api/Tools/CdnDownloadVideo`      | POST | CDN 下载视频                |
+| `/api/Tools/DownloadVideo`         | POST | 下载视频（非 CDN 降级路径） |
+| `/api/Tools/DownloadVoice`         | POST | 下载语音（非 CDN 降级路径） |
+| `/api/Tools/DownloadFile`          | POST | 下载文件                    |
+
+### 联系人与好友
+
+| 端点                            | 方法 | 用途                             |
+| ------------------------------- | ---- | -------------------------------- |
+| `/api/Friend/GetContractList`   | POST | 获取联系人列表                   |
+| `/api/Friend/GetContractDetail` | POST | 获取联系人详情（昵称/头像/备注） |
+| `/api/Friend/PassVerify`        | POST | 通过好友验证请求                 |
+
+### 回调配置
+
+| 端点                      | 方法 | 用途               |
+| ------------------------- | ---- | ------------------ |
+| `/api/SetHttpCallbackUrl` | POST | 设置 HTTP 回调 URL |
 
 ---
 
@@ -469,6 +592,25 @@ type WechatIpadLinkCard = {
   desc?: string;
   thumbUrl?: string;
 };
+
+// 表情数据
+type WechatIpadEmojiData = {
+  md5: string;
+  totalLen: number;
+};
+
+// CDN 转发
+type WechatIpadCdnForward = {
+  type: "image" | "video" | "file";
+  content: string; // 原始 CDN XML 内容
+};
+
+// 通道附加数据（用于 sendPayload 路由）
+type WechatIpadChannelData = {
+  linkCard?: WechatIpadLinkCard;
+  emoji?: WechatIpadEmojiData;
+  cdnForward?: WechatIpadCdnForward;
+};
 ```
 
 ### 运行时类型
@@ -496,6 +638,15 @@ type WechatIpadBotProfile = {
   fetchedAt: number;
 };
 
+// 联系人信息缓存
+type WechatIpadContactInfo = {
+  wxid: string;
+  nickname: string; // 微信昵称
+  remark: string; // 好友备注名
+  alias: string; // 微信号
+  fetchedAt: number; // 缓存时间戳
+};
+
 // 探测结果
 type WechatIpadProbeResult = {
   ok: boolean;
@@ -513,23 +664,23 @@ type WechatIpadProbeResult = {
 extensions/wechat-ipad/
 ├── index.ts                          # npm 包入口
 ├── src/
-│   ├── channel.ts                    # 插件入口 & 登录流程
+│   ├── channel.ts                    # 插件入口 & 登录流程 & Gateway 生命周期
 │   ├── channel.test.ts               # 插件入口单元测试
 │   ├── types.ts                      # 所有类型定义
 │   │
 │   ├── api/                          # API 通信层
-│   │   ├── api.ts                    # 桥接服务 API 封装（登录、消息同步、发送、资料获取）
+│   │   ├── api.ts                    # 桥接服务 API 封装（登录、消息收发、媒体上传下载、联系人、心跳等）
 │   │   ├── api.test.ts               # API 层单元测试
 │   │   └── api.polling-send.test.ts  # 轮询+发送集成测试
 │   │
 │   ├── outbound/                     # 出站消息
-│   │   ├── send.ts                   # 出站消息发送（文本/长文本/媒体/链接卡片/引用回复）
+│   │   ├── send.ts                   # 出站消息发送（文本/长文本/媒体/视频/语音/文件/表情/链接卡片/名片/位置/CDN转发/撤回）
 │   │   ├── send.test.ts              # 发送层单元测试
-│   │   ├── video.ts                  # 视频元数据提取（ffprobe/缩略图）
+│   │   ├── video.ts                  # 视频/音频处理（时长提取、缩略图、转码、语音类型识别）
 │   │   └── video.test.ts             # 视频处理单元测试
 │   │
 │   ├── inbound/                      # 入站消息
-│   │   ├── inbound.ts                # 入站消息处理（标准化 → 安全策略 → 路由到 Gateway）
+│   │   ├── inbound.ts                # 入站消息处理（标准化 → 媒体下载 → 安全策略 → 路由到 Gateway）
 │   │   ├── inbound.test.ts           # 入站处理单元测试
 │   │   ├── polling.ts                # 轮询模式实现
 │   │   ├── polling.test.ts           # 轮询模式单元测试
@@ -542,8 +693,8 @@ extensions/wechat-ipad/
 │   │   └── config-schema.ts          # Zod 配置校验 schema
 │   │
 │   └── infra/                        # 基础设施
-│       ├── runtime.ts                # 运行时状态管理（登录会话、轮询器、Webhook 注册、Bot Profile 缓存）
-│       ├── message-store.ts          # SQLite 消息持久化（入站+出站消息存储与查询）
+│       ├── runtime.ts                # 运行时状态管理（登录会话、轮询器、Webhook 注册、Bot Profile 缓存、联系人缓存）
+│       ├── message-store.ts          # SQLite 消息持久化（消息存储与查询 + 元数据键值存储）
 │       ├── message-store.test.ts     # 消息持久化单元测试
 │       ├── probe.ts                  # 桥接服务连通性探测
 │       └── status-issues.ts          # 状态健康检查
@@ -554,14 +705,14 @@ extensions/wechat-ipad/
 
 ### 分组说明
 
-| 文件夹      | 职责                                             |
-| ----------- | ------------------------------------------------ |
-| `api/`      | 所有与桥接服务 HTTP 通信相关的代码               |
-| `outbound/` | 出站消息编排：文本分片、媒体类型分发、视频元数据 |
-| `inbound/`  | 入站消息：处理器、轮询器、Webhook 接收           |
-| `config/`   | 配置校验、账户解析、Token 读取                   |
-| `infra/`    | 运行时全局状态、SQLite 消息存储、探活、状态检查  |
-| （根目录）  | 插件入口 (`channel.ts`) + 共享类型 (`types.ts`)  |
+| 文件夹      | 职责                                                                       |
+| ----------- | -------------------------------------------------------------------------- |
+| `api/`      | 所有与桥接服务 HTTP 通信相关的代码（登录、消息收发、媒体上传下载、联系人） |
+| `outbound/` | 出站消息编排：文本分片、媒体类型分发、视频/音频处理、CDN 转发、消息撤回    |
+| `inbound/`  | 入站消息：处理器、媒体下载保存、轮询器、Webhook 接收                       |
+| `config/`   | 配置校验、账户解析、Token 读取                                             |
+| `infra/`    | 运行时全局状态、SQLite 消息存储/元数据、联系人缓存、探活、状态检查         |
+| （根目录）  | 插件入口 (`channel.ts`) + 共享类型 (`types.ts`)                            |
 
 ### 模块间依赖关系
 
@@ -572,18 +723,20 @@ channel.ts ──► api/api.ts ──► 桥接服务
     │        │
     │        └──► inbound/inbound.ts ──► Gateway 路由
     │                 │
+    │                 ├──► api/api.ts (downloadImageViaApi / downloadVideoViaApi / ...)
     │                 └──► infra/message-store.ts (入站消息入库)
     │
     ├──► inbound/webhook.ts ──► inbound/inbound.ts ──► Gateway 路由
     │
-    ├──► outbound/send.ts ──► api/api.ts (sendTextViaApi / sendLongTextViaApi / ...)
+    ├──► outbound/send.ts ──► api/api.ts (sendTextViaApi / sendVideoViaApi / sendVoiceViaApi / ...)
     │       │
+    │       ├──► outbound/video.ts (视频缩略图/时长/转码、音频时长)
     │       ├──► infra/runtime.ts (bot profile 缓存)
     │       └──► infra/message-store.ts (出站消息入库 + 引用回复查询)
     │
-    ├──► infra/message-store.ts (生命周期管理：创建/关闭)
+    ├──► infra/message-store.ts (生命周期管理：创建/关闭 + 元数据恢复)
     │
-    ├──► infra/runtime.ts (登录会话、轮询器注册、消息存储注册)
+    ├──► infra/runtime.ts (登录会话、轮询器注册、消息存储注册、联系人缓存)
     │
     └──► config/accounts.ts (配置解析)
              │
