@@ -4,7 +4,7 @@ import type {
   ChannelGatewayContext,
   ChannelPlugin,
   MoltbotConfig,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,
@@ -15,7 +15,7 @@ import {
   normalizeAccountId,
   PAIRING_APPROVED_MESSAGE,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat";
 import {
   listWeChatAccountIds,
   resolveDefaultWeChatAccountId,

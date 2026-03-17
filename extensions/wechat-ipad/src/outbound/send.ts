@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wechat-ipad";
+import { loadOutboundMediaFromUrl } from "openclaw/plugin-sdk/wechat-ipad";
 import {
   fetchBotProfileViaApi,
   revokeMessageViaApi,
@@ -434,7 +434,12 @@ async function resolveMediaContent(mediaUrl: string): Promise<ResolvedMedia> {
       const result = await loadOutboundMediaFromUrl(trimmed);
       if (result.kind === "video") {
         const base64 = `data:${result.contentType ?? "video/mp4"};base64,${result.buffer.toString("base64")}`;
-        return { kind: "video", buffer: result.buffer, dataUrl: base64, mime: result.contentType ?? "video/mp4" };
+        return {
+          kind: "video",
+          buffer: result.buffer,
+          dataUrl: base64,
+          mime: result.contentType ?? "video/mp4",
+        };
       }
       const contentType = result.contentType ?? "application/octet-stream";
       const mediaKind = resolveMediaKind(contentType);

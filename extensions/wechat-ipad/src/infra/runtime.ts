@@ -1,4 +1,4 @@
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { PluginRuntime } from "openclaw/plugin-sdk/wechat-ipad";
 import type { WechatIpadMessagePoller } from "../inbound/polling.js";
 import type {
   WechatIpadBotProfile,

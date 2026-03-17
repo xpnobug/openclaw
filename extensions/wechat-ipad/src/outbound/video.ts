@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
-import { withTempDownloadPath } from "openclaw/plugin-sdk";
+import { withTempDownloadPath } from "openclaw/plugin-sdk/wechat-ipad";
 
 /** 默认语音时长毫秒数（ffprobe 不可用时使用）。 */
 export const DEFAULT_VOICE_DURATION_MS = 5000;

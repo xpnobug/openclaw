@@ -1,5 +1,5 @@
-import { normalizeAccountId } from "openclaw/plugin-sdk";
-import { MarkdownConfigSchema } from "openclaw/plugin-sdk";
+import { normalizeAccountId } from "openclaw/plugin-sdk/wechat-ipad";
+import { MarkdownConfigSchema } from "openclaw/plugin-sdk/wechat-ipad";
 import { z } from "zod";
 
 const pollingConfigSchema = z.object({

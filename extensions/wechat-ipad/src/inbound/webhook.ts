@@ -9,7 +9,7 @@ import {
   withResolvedWebhookRequestPipeline,
   type OpenClawConfig,
   type PluginRuntime,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat-ipad";
 import { normalizeWechatIpadSyncAddMsg, type WechatIpadSyncMessageRecord } from "../api/api.js";
 import { getWechatIpadLoginSession } from "../infra/runtime.js";
 import type {

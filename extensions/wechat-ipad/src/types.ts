@@ -1,4 +1,4 @@
-import type { MarkdownConfig } from "openclaw/plugin-sdk";
+import type { MarkdownConfig } from "openclaw/plugin-sdk/wechat-ipad";
 
 export type WechatIpadInboundMode = "polling" | "webhook";
 

@@ -2,8 +2,8 @@ import type {
   GatewayRequestHandler,
   GatewayRequestHandlerOptions,
   OpenClawPluginApi,
-} from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat-ipad";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk/wechat-ipad";
 import {
   startWechatIpadLoginGatewayMethod,
   submitWechatIpadVerificationGatewayMethod,

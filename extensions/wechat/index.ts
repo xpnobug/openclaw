@@ -2,8 +2,8 @@
  * WeChat channel plugin entry point.
  * 微信通道插件入口文件
  */
-import type { MoltbotPluginApi } from "openclaw/plugin-sdk";
-import { emptyPluginConfigSchema } from "openclaw/plugin-sdk";
+import type { MoltbotPluginApi } from "openclaw/plugin-sdk/wechat";
+import { emptyPluginConfigSchema } from "openclaw/plugin-sdk/wechat";
 import { wechatDock, wechatPlugin } from "./src/channel.js";
 import { setWeChatRuntime } from "./src/runtime.js";
 

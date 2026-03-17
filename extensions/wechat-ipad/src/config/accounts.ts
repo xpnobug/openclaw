@@ -1,5 +1,5 @@
-import type { OpenClawConfig } from "openclaw/plugin-sdk";
-import { normalizeAccountId } from "openclaw/plugin-sdk";
+import type { OpenClawConfig } from "openclaw/plugin-sdk/wechat-ipad";
+import { normalizeAccountId } from "openclaw/plugin-sdk/wechat-ipad";
 import type {
   ResolvedWechatIpadAccount,
   WechatIpadAccountConfig,

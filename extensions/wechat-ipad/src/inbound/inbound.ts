@@ -1,7 +1,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { AgentMediaPayload, OpenClawConfig, PluginRuntime } from "openclaw/plugin-sdk";
-import { buildAgentMediaPayload, detectMime, extensionForMime } from "openclaw/plugin-sdk";
+import type {
+  AgentMediaPayload,
+  OpenClawConfig,
+  PluginRuntime,
+} from "openclaw/plugin-sdk/wechat-ipad";
+import {
+  buildAgentMediaPayload,
+  detectMime,
+  extensionForMime,
+} from "openclaw/plugin-sdk/wechat-ipad";
 import {
   downloadFileViaApi,
   downloadImageViaApi,

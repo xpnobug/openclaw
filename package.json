@@ -182,6 +182,14 @@
       "types": "./dist/plugin-sdk/line.d.ts",
       "default": "./dist/plugin-sdk/line.js"
     },
+    "./plugin-sdk/wechat": {
+      "types": "./dist/plugin-sdk/wechat.d.ts",
+      "default": "./dist/plugin-sdk/wechat.js"
+    },
+    "./plugin-sdk/wechat-ipad": {
+      "types": "./dist/plugin-sdk/wechat-ipad.d.ts",
+      "default": "./dist/plugin-sdk/wechat-ipad.js"
+    },
     "./plugin-sdk/msteams": {
       "types": "./dist/plugin-sdk/msteams.d.ts",
       "default": "./dist/plugin-sdk/msteams.js"

@@ -4,7 +4,7 @@
  *
  * 使用 Zod 进行配置验证
  */
-import { MarkdownConfigSchema } from "openclaw/plugin-sdk";
+import { MarkdownConfigSchema } from "openclaw/plugin-sdk/wechat";
 import { z } from "zod";
 
 /** 轮询配置模式 */

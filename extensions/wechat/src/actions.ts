@@ -8,8 +8,8 @@ import type {
   ChannelMessageActionAdapter,
   ChannelMessageActionName,
   MoltbotConfig,
-} from "openclaw/plugin-sdk";
-import { jsonResult, readNumberParam, readStringParam } from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat";
+import { jsonResult, readNumberParam, readStringParam } from "openclaw/plugin-sdk/wechat";
 import { listEnabledWeChatAccounts } from "./accounts.js";
 import { revokeMessageWeChat, sendMessageWeChat } from "./send.js";
 

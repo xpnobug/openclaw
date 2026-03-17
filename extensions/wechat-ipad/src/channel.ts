@@ -5,7 +5,7 @@ import type {
   ChannelGatewayContext,
   ChannelPlugin,
   OpenClawConfig,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat-ipad";
 import {
   applyAccountNameToChannelSection,
   buildChannelConfigSchema,
@@ -16,7 +16,7 @@ import {
   PAIRING_APPROVED_MESSAGE,
   requireNodeSqlite,
   setAccountEnabledInConfigSection,
-} from "openclaw/plugin-sdk";
+} from "openclaw/plugin-sdk/wechat-ipad";
 import {
   checkLoginQr,
   enableAutoHeartbeat,

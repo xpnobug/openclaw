@@ -7,7 +7,7 @@
 import * as crypto from "node:crypto";
 import * as fs from "node:fs";
 import * as path from "node:path";
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
+import type { MoltbotConfig } from "openclaw/plugin-sdk/wechat";
 import { resolveWeChatAccount } from "./accounts.js";
 import {
   revokeMessage,

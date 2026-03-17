@@ -5,8 +5,7 @@
  * 处理收到的消息并分发到自动回复系统
  */
 
-import type { MoltbotConfig } from "openclaw/plugin-sdk";
-import type { PluginRuntime } from "openclaw/plugin-sdk";
+import type { MoltbotConfig, PluginRuntime } from "openclaw/plugin-sdk/wechat";
 import type { WeChatInboundMessage, WeChatInboundQuotedMessage } from "./polling.js";
 import { sendMessageWeChat } from "./send.js";
 
