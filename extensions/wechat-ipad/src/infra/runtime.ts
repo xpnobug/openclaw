@@ -14,10 +14,11 @@ export type WechatIpadWebhookRegistration = {
 let runtime: PluginRuntime | null = null;
 
 /**
- * 插件初始化时捕获的 plugin registry 引用。
- * 必须在 register() 回调中设置，以确保与网关使用的是同一个实例。
+ * 插件初始化时捕获的 plugin registry 引用（后备）。
+ * 优先使用 globalThis 上动态读取的 httpRouteRegistry（网关 pin 住的实例）。
  */
 let capturedPluginRegistry: unknown = null;
+const PLUGIN_REGISTRY_STATE_KEY = Symbol.for("openclaw.pluginRegistryState");
 
 const loginSessions = new Map<string, WechatIpadLoginSession>();
 const pollers = new Map<string, WechatIpadMessagePoller>();
@@ -42,7 +43,12 @@ export function setWechatIpadPluginRegistry(registry: unknown): void {
 }
 
 export function getWechatIpadPluginRegistry(): unknown {
-  return capturedPluginRegistry;
+  // 动态读取 globalThis 上的 httpRouteRegistry（网关 pin 住的实例），
+  // 确保即使插件重载后 state.registry 变了，路由仍注册到网关实际使用的 registry 上。
+  const globalState = (
+    globalThis as Record<symbol, { httpRouteRegistry?: unknown; registry?: unknown } | undefined>
+  )[PLUGIN_REGISTRY_STATE_KEY];
+  return globalState?.httpRouteRegistry ?? globalState?.registry ?? capturedPluginRegistry;
 }
 
 export function getWechatIpadRuntime(): PluginRuntime {
