@@ -801,10 +801,6 @@
       "destination": "/install/azure"
     },
     {
-      "source": "/install/azure/azure",
-      "destination": "/install/azure"
-    },
-    {
       "source": "/platforms/fly",
       "destination": "/install/fly"
     },
@@ -1001,7 +997,11 @@
               },
               {
                 "group": "Multi-agent",
-                "pages": ["concepts/multi-agent", "concepts/presence"]
+                "pages": [
+                  "concepts/multi-agent",
+                  "concepts/presence",
+                  "concepts/delegate-architecture"
+                ]
               },
               {
                 "group": "Messages and delivery",
@@ -1032,6 +1032,7 @@
                   "tools/exec",
                   "tools/exec-approvals",
                   "tools/firecrawl",
+                  "tools/tavily",
                   "tools/llm-task",
                   "tools/lobster",
                   "tools/loop-detection",
@@ -1090,6 +1091,7 @@
                 "group": "Automation",
                 "pages": [
                   "automation/hooks",
+                  "automation/standing-orders",
                   "automation/cron-jobs",
                   "automation/cron-vs-heartbeat",
                   "automation/troubleshooting",
