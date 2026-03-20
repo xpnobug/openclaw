@@ -1,4 +1,4 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
 import {
   loadModelConfig,
   saveModelConfig,
@@ -18,11 +18,11 @@ import {
   showAddProviderModal,
   updateAddProviderForm,
   confirmAddProvider,
-} from "../model-config";
+} from "../model-config.js";
 /**
  * 配置/供应商/Gateway/Agent默认设置 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 type Pick_ = Pick<
   AgentsConfigProps,

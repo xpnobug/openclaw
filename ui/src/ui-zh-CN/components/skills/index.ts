@@ -12,16 +12,16 @@ export {
   highlightText,
   calculateStats,
   type SkillStats,
-} from "./utils";
+} from "./utils.js";
 
 // 统计栏
-export { renderStatsBar } from "./stats-bar";
+export { renderStatsBar } from "./stats-bar.js";
 
 // 全局设置
-export { renderGlobalSettings } from "./global-settings";
+export { renderGlobalSettings } from "./global-settings.js";
 
 // 筛选栏
-export { renderFilterBar } from "./filter-bar";
+export { renderFilterBar } from "./filter-bar.js";
 
 // 技能列表
 export {
@@ -31,19 +31,19 @@ export {
   renderSkillItem,
   renderSkillMessage,
   renderInstallProgress,
-} from "./skill-list";
+} from "./skill-list.js";
 
 // 技能详情弹窗
-export { renderSkillDetailModal } from "./skill-detail-modal";
+export { renderSkillDetailModal } from "./skill-detail-modal.js";
 
 // 编辑器弹窗
-export { renderEditorModal, renderMarkdownPreview } from "./editor-modal";
+export { renderEditorModal, renderMarkdownPreview } from "./editor-modal.js";
 
 // 创建弹窗
-export { renderCreateModal } from "./create-modal";
+export { renderCreateModal } from "./create-modal.js";
 
 // 预览弹窗
-export { renderPreviewModal, renderMarkdownPreviewContent } from "./preview-modal";
+export { renderPreviewModal, renderMarkdownPreviewContent } from "./preview-modal.js";
 
 // 删除弹窗
-export { renderDeleteModal } from "./delete-modal";
+export { renderDeleteModal } from "./delete-modal.js";

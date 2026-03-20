@@ -8,8 +8,8 @@ import type {
   CronRunLogEntry,
   ChannelUiMetaEntry,
   GatewayAgentRow,
-} from "../../ui/types";
-import type { CronFormState } from "../../ui/ui-types";
+} from "../../ui/types.js";
+import type { CronFormState } from "../../ui/ui-types.js";
 
 export type { CronFormState };
 

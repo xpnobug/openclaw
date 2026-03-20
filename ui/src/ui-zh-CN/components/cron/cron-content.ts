@@ -3,13 +3,13 @@
  * Cron scheduled task content component - Main entry
  */
 import { html, nothing } from "lit";
-import type { CronContentProps } from "../../types/cron-config";
-import { LABELS, icons } from "./constants";
-import { renderCreateModal } from "./form-fields";
-import { renderJobsList } from "./job-card";
-import { renderRunHistory } from "./run-history";
-import { renderStatusCard } from "./status-card";
-import { getSafeCallbacks } from "./utils";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { LABELS, icons } from "./constants.js";
+import { renderCreateModal } from "./form-fields.js";
+import { renderJobsList } from "./job-card.js";
+import { renderRunHistory } from "./run-history.js";
+import { renderStatusCard } from "./status-card.js";
+import { getSafeCallbacks } from "./utils.js";
 
 /**
  * 渲染删除确认弹窗

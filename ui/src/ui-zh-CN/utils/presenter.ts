@@ -6,7 +6,7 @@
  * Local copy to reduce dependency on ../../ui/presenter
  */
 
-import { formatMs, formatAgo, formatDurationMs } from "./format";
+import { formatMs, formatAgo, formatDurationMs } from "./format.js";
 
 // 定义本地 CronJob 类型（避免依赖 ../../ui/types）
 export type CronJobLocal = {

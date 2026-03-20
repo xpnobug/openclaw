@@ -2,8 +2,9 @@
  * 定时任务控制器
  * Cron job controller
  */
-import type { CronJob, CronRunLogEntry, GatewayBrowserClient } from "../../ui/types";
-import type { CronFormState } from "../types/cron-config";
+import type { CronJob, CronRunLogEntry } from "../../ui/types.js";
+import type { GatewayBrowserClient } from "../../ui/gateway.js";
+import type { CronFormState } from "../types/cron-config.js";
 
 /**
  * Cron 状态类型

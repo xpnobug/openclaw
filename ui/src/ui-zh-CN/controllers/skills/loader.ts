@@ -1,9 +1,9 @@
-import { getErrorMessage } from "./state";
+import { getErrorMessage } from "./state.js";
 /**
  * 技能配置控制器 - 数据加载和保存
  * Skills config controller - Data loading and saving
  */
-import type { SkillsConfigState, SkillsConfig, SkillStatusReport } from "./types";
+import type { SkillsConfigState, SkillsConfig, SkillStatusReport } from "./types.js";
 
 // ─── 加载技能状态 / Load skills status ──────────────────────────────────────
 

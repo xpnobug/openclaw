@@ -2,7 +2,7 @@
  * 供应商配置常量和类型
  * Provider config constants and types
  */
-import type { ModelApi, AuthMode } from "../../views/model-config";
+import type { ModelApi, AuthMode } from "../../views/model-config.js";
 import {
   providerIcon,
   plusIcon,
@@ -11,7 +11,7 @@ import {
   settingsIcon,
   infoIcon,
   xIcon,
-} from "../icons";
+} from "../icons/index.js";
 
 // ─── 图标映射 / Icon mapping ────────────────────────────────────────────────
 
@@ -121,4 +121,4 @@ export const DEFAULT_PROVIDER_FORM: ProviderFormState = {
 
 // ─── 重新导出依赖类型 / Re-export dependent types ───────────────────────────
 
-export type { ProviderConfig, ModelConfig, ModelApi, AuthMode } from "../../views/model-config";
+export type { ProviderConfig, ModelConfig, ModelApi, AuthMode } from "../../views/model-config.js";

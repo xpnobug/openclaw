@@ -6,8 +6,8 @@
  * Display agent emoji, name, ID and badge
  */
 import { html, nothing } from "lit";
-import type { AgentsListResult, AgentIdentityResult } from "../../../ui/types";
-import { LABELS } from "../../types/agents-config";
+import type { AgentsListResult, AgentIdentityResult } from "../../../ui/types.js";
+import { LABELS } from "../../types/agents-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions
@@ -52,7 +52,7 @@ function resolveAgentEmoji(
  */
 function isLikelyEmoji(value: string): boolean {
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 16) return false;
+  if (!trimmed || trimmed.length > 16) {return false;}
 
   let hasNonAscii = false;
   for (let i = 0; i < trimmed.length; i++) {
@@ -61,7 +61,7 @@ function isLikelyEmoji(value: string): boolean {
       break;
     }
   }
-  if (!hasNonAscii) return false;
+  if (!hasNonAscii) {return false;}
   if (trimmed.includes("://") || trimmed.includes("/") || trimmed.includes(".")) {
     return false;
   }

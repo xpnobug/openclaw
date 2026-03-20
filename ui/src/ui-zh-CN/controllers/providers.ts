@@ -1,5 +1,5 @@
-import type { ProviderFormState } from "../components/providers-content";
-import type { ProviderConfig, ModelConfig } from "../views/model-config";
+import type { ProviderFormState } from "../components/providers-content.js";
+import type { ProviderConfig, ModelConfig } from "../views/model-config.js";
 /**
  * 模型供应商管理控制器
  * Model provider management controller
@@ -7,7 +7,7 @@ import type { ProviderConfig, ModelConfig } from "../views/model-config";
  * 处理供应商的增删改查操作
  * Handles provider CRUD operations
  */
-import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state";
+import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state.js";
 
 /**
  * 默认添加供应商表单

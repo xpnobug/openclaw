@@ -3,7 +3,7 @@
  * Skills statistics bar component
  */
 import { html } from "lit";
-import type { SkillStats } from "./utils";
+import type { SkillStats } from "./utils.js";
 
 /**
  * 渲染技能统计摘要

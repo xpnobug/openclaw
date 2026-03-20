@@ -2,7 +2,7 @@
  * 通道配置字段渲染器
  */
 import { html, nothing } from "lit";
-import type { ChannelMeta, ChannelConfigField } from "../../types/channel-config";
+import type { ChannelMeta, ChannelConfigField } from "../../types/channel-config.js";
 
 /**
  * 解析嵌套路径值，支持 "polling.pollingIntervalMs" 形式的 key
@@ -11,7 +11,7 @@ export function resolveNestedValue(obj: Record<string, unknown>, path: string): 
   const parts = path.split(".");
   let current: unknown = obj;
   for (const part of parts) {
-    if (current == null || typeof current !== "object") return undefined;
+    if (current == null || typeof current !== "object") {return undefined;}
     current = (current as Record<string, unknown>)[part];
   }
   return current;

@@ -5,7 +5,7 @@
  * 提取公共字段定义，减少 CHANNEL_METADATA 中的重复配置
  * Extract common field definitions to reduce duplication in CHANNEL_METADATA
  */
-import type { ChannelConfigField } from "./channel-config";
+import type { ChannelConfigField } from "./channel-config.js";
 
 // ============================================
 // 策略选项定义

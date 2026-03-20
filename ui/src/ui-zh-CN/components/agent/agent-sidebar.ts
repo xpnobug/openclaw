@@ -6,8 +6,8 @@
  * Left navigation: Agent list + global config entry
  */
 import { html, nothing } from "lit";
-import type { AgentsListResult, AgentIdentityResult } from "../../../ui/types";
-import { LABELS } from "../../types/agents-config";
+import type { AgentsListResult, AgentIdentityResult } from "../../../ui/types.js";
+import { LABELS } from "../../types/agents-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SVG 图标 / SVG Icons
@@ -176,7 +176,7 @@ function resolveAgentEmoji(
  */
 function isLikelyEmoji(value: string): boolean {
   const trimmed = value.trim();
-  if (!trimmed || trimmed.length > 16) return false;
+  if (!trimmed || trimmed.length > 16) {return false;}
 
   let hasNonAscii = false;
   for (let i = 0; i < trimmed.length; i++) {
@@ -185,7 +185,7 @@ function isLikelyEmoji(value: string): boolean {
       break;
     }
   }
-  if (!hasNonAscii) return false;
+  if (!hasNonAscii) {return false;}
   if (trimmed.includes("://") || trimmed.includes("/") || trimmed.includes(".")) {
     return false;
   }
@@ -385,7 +385,7 @@ function renderGlobalConfigLinks(
  * Render search bar
  */
 function renderSearchBar(props: AgentSidebarProps) {
-  if (!props.onSearchChange) return nothing;
+  if (!props.onSearchChange) {return nothing;}
   const handleInput = (e: Event) => {
     props.onSearchChange?.((e.target as HTMLInputElement).value);
   };
@@ -418,7 +418,7 @@ function renderGroupedAgentList(
   filteredAgents: AgentsListResult["agents"],
 ) {
   const { groups, collapsedGroups, onToggleGroup } = props;
-  if (!groups || groups.length === 0) return nothing;
+  if (!groups || groups.length === 0) {return nothing;}
 
   const agentMap = new Map(filteredAgents.map((a) => [a.id, a]));
   const groupedIds = new Set(groups.flatMap((g) => g.agentIds));
@@ -441,7 +441,7 @@ function renderGroupedAgentList(
       const groupAgents = group.agentIds
         .map((id) => agentMap.get(id))
         .filter((a): a is AgentsListResult["agents"][number] => !!a);
-      if (groupAgents.length === 0) return nothing;
+      if (groupAgents.length === 0) {return nothing;}
 
       const isCollapsed = collapsedGroups?.has(group.id) ?? false;
       return html`

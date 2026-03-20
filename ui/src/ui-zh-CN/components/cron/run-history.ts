@@ -3,9 +3,9 @@
  * Cron run history components
  */
 import { html, nothing } from "lit";
-import { formatMs } from "../../../ui/format";
-import type { CronContentProps } from "../../types/cron-config";
-import { LABELS, icons } from "./constants";
+import { formatMs } from "../../../ui/format.js";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { LABELS, icons } from "./constants.js";
 
 /**
  * 渲染运行记录项

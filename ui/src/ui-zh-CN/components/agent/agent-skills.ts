@@ -20,8 +20,8 @@ import type {
   SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
-} from "../../types/skills-config";
-import { renderSkillsContent } from "../skills-content";
+} from "../../types/skills-config.js";
+import { renderSkillsContent } from "../skills-content.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions

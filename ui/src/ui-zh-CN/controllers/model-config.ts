@@ -35,7 +35,7 @@ export {
   createInitialModelConfigState,
   createInitialWechatIpadAccountUiState,
   getDefaultCronState,
-} from "./state";
+} from "./state.js";
 
 // ============================================
 // 配置加载和保存
@@ -47,7 +47,7 @@ export {
   applyModelConfig,
   hasModelConfigChanges,
   buildEffectiveConfigSnapshot,
-} from "./config-loader";
+} from "./config-loader.js";
 
 // ============================================
 // 供应商管理
@@ -66,7 +66,7 @@ export {
   removeModel,
   updateModelField,
   getAvailableModels,
-} from "./providers";
+} from "./providers.js";
 
 // ============================================
 // Agent 管理
@@ -85,13 +85,13 @@ export {
   duplicateAgent,
   exportAgent,
   deleteAgent,
-} from "./agents";
+} from "./agents.js";
 
 // ============================================
 // 会话管理
 // Session management
 // ============================================
-export { loadAgentSessions, patchSessionModel, createSession, deleteSession } from "./sessions";
+export { loadAgentSessions, patchSessionModel, createSession, deleteSession } from "./sessions.js";
 
 // ============================================
 // 工作区文件管理
@@ -107,7 +107,7 @@ export {
   hasWorkspaceChanges,
   resetWorkspaceFile,
   switchWorkspaceAgent,
-} from "./workspace";
+} from "./workspace.js";
 
 // ============================================
 // 权限管理
@@ -128,7 +128,7 @@ export {
   removePermissionsFormValue,
   addPermissionsAllowlistEntry,
   removePermissionsAllowlistEntry,
-} from "./permissions";
+} from "./permissions.js";
 
 // ============================================
 // 工具权限配置
@@ -147,7 +147,7 @@ export {
   removeAgentToolsDenyEntry,
   extractToolsConfig,
   extractAgentToolsConfigs,
-} from "./tools-config";
+} from "./tools-config.js";
 
 // ============================================
 // 定时任务管理
@@ -164,4 +164,4 @@ export {
   expandCronJob,
   setCronDeleteConfirm,
   updateCronChannels,
-} from "./cron";
+} from "./cron.js";

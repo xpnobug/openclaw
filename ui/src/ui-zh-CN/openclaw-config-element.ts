@@ -11,8 +11,8 @@
 
 import { LitElement, html } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { GatewayBrowserClient } from "../ui/gateway";
-import type { AgentsListResult, AgentIdentityResult, GatewayAgentRow } from "../ui/types";
+import type { GatewayBrowserClient } from "../ui/gateway.js";
+import type { AgentsListResult, AgentIdentityResult, GatewayAgentRow } from "../ui/types.js";
 // 回调工厂
 import {
   createAgentCallbacks,
@@ -23,12 +23,13 @@ import {
   createCronCallbacks,
   createChannelCallbacks,
   createSessionCallbacks,
-} from "./controllers/callbacks";
+} from "./controllers/callbacks/index.js";
+
 import {
   loadCronJobs,
   createInitialCronState,
   type CronConfigState,
-} from "./controllers/cron-config";
+} from "./controllers/cron-config.js";
 // 控制器
 import {
   loadModelConfig,
@@ -37,17 +38,17 @@ import {
   createInitialModelConfigState,
   createInitialWechatIpadAccountUiState,
   type ModelConfigState,
-} from "./controllers/model-config";
+} from "./controllers/model-config.js";
 // Props 构建器
-import { buildPropsData } from "./controllers/props-builder";
+import { buildPropsData } from "./controllers/props-builder.js";
 import {
   loadSkillsStatus as _loadSkillsStatus,
   createInitialSkillsConfigState,
   type SkillsConfigState,
-} from "./controllers/skills-config";
-import type { AgentPanel, GlobalPanel } from "./types/agents-config";
+} from "./controllers/skills-config.js";
+import type { AgentPanel, GlobalPanel } from "./types/agents-config.js";
 // 渲染
-import { renderAgentsConfig, type AgentsConfigProps } from "./views/agents-config";
+import { renderAgentsConfig, type AgentsConfigProps } from "./views/agents-config.js";
 
 // 内部状态类型
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */

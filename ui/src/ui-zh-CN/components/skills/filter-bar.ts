@@ -7,7 +7,7 @@ import type {
   SkillsContentProps,
   SkillSourceFilter,
   SkillStatusFilter,
-} from "../../types/skills-config";
+} from "../../types/skills-config.js";
 
 /**
  * 渲染筛选栏

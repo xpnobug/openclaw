@@ -3,8 +3,8 @@
  * Headers editor component
  */
 import { html } from "lit";
-import { icons, LABELS } from "./constants";
-import type { ProvidersContentProps } from "./types";
+import { icons, LABELS } from "./constants.js";
+import type { ProvidersContentProps } from "./types.js";
 
 /**
  * 渲染 Headers 编辑器

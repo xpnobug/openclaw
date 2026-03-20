@@ -9,8 +9,8 @@ import type {
   SkillGroup,
   SkillMessage,
   EditableSkillSource,
-} from "../../types/skills-config";
-import { clampText, highlightText, toShortSource } from "./utils";
+} from "../../types/skills-config.js";
+import { clampText, highlightText, toShortSource } from "./utils.js";
 
 // ─── 技能标签页 / Skill tabs ─────────────────────────────────────────────────
 

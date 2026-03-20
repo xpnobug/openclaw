@@ -1,6 +1,6 @@
 import { html, nothing } from "lit";
 // ui-zh-CN 模块入口（副作用导入：注册 <openclaw-config-zh> 等自定义元素）
-import "../ui-zh-CN";
+import "../ui-zh-CN/index.js";
 import {
   buildAgentMainSessionKey,
   parseAgentSessionKey,
@@ -16,6 +16,7 @@ import {
   renderTab,
   renderSidebarConnectionStatus,
   renderTopbarThemeModeToggle,
+  switchChatSession,
 } from "./app-render.helpers.ts";
 import type { AppViewState } from "./app-view-state.ts";
 import { loadAgentFileContent, loadAgentFiles, saveAgentFile } from "./controllers/agent-files.ts";
@@ -540,6 +541,9 @@ export function renderApp(state: AppViewState) {
                       : nothing
                   }
                 </a>
+                <div class="sidebar-mode-switch">
+                  ${renderTopbarThemeModeToggle(state)}
+                </div>
                 ${(() => {
                   const version = state.hello?.server?.version ?? "";
                   return version
@@ -764,6 +768,10 @@ export function renderApp(state: AppViewState) {
                   onRefresh: () => loadSessions(state),
                   onPatch: (key, patch) => patchSession(state, key, patch),
                   onDelete: (key) => deleteSessionAndRefresh(state, key),
+                  onNavigateToChat: (sessionKey) => {
+                    switchChatSession(state, sessionKey);
+                    state.setTab("chat" as import("./navigation.ts").Tab);
+                  },
                 }),
               )
             : nothing
@@ -889,6 +897,10 @@ export function renderApp(state: AppViewState) {
                       return;
                     }
                     await loadCronRuns(state, state.cronRunsJobId);
+                  },
+                  onNavigateToChat: (sessionKey) => {
+                    switchChatSession(state, sessionKey);
+                    state.setTab("chat" as import("./navigation.ts").Tab);
                   },
                 }),
               )
@@ -1457,10 +1469,7 @@ export function renderApp(state: AppViewState) {
                   state.setTab("agents" as import("./navigation.ts").Tab);
                 },
                 onSessionSelect: (key: string) => {
-                  state.setSessionKey(key);
-                  state.chatMessages = [];
-                  void loadChatHistory(state);
-                  void state.loadAssistantIdentity();
+                  switchChatSession(state, key);
                 },
                 showNewMessages: state.chatNewMessagesBelow && !state.chatManualRefreshInFlight,
                 onScrollToBottom: () => state.scrollToBottom(),
@@ -1540,6 +1549,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.configFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.configSearchQuery = query),
@@ -1558,6 +1568,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,
@@ -1610,6 +1622,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.communicationsFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.communicationsSearchQuery = query),
@@ -1628,6 +1641,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,
@@ -1674,6 +1689,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.appearanceFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.appearanceSearchQuery = query),
@@ -1692,6 +1708,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,
@@ -1738,6 +1756,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.automationFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.automationSearchQuery = query),
@@ -1756,6 +1775,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,
@@ -1802,6 +1823,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.infrastructureFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.infrastructureSearchQuery = query),
@@ -1820,6 +1842,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,
@@ -1866,6 +1890,7 @@ export function renderApp(state: AppViewState) {
                 onRawChange: (next) => {
                   state.configRaw = next;
                 },
+                onRequestUpdate: requestHostUpdate,
                 onFormModeChange: (mode) => (state.aiAgentsFormMode = mode),
                 onFormPatch: (path, value) => updateConfigFormValue(state, path, value),
                 onSearchChange: (query) => (state.aiAgentsSearchQuery = query),
@@ -1884,6 +1909,8 @@ export function renderApp(state: AppViewState) {
                 themeMode: state.themeMode,
                 setTheme: (t, ctx) => state.setTheme(t, ctx),
                 setThemeMode: (m, ctx) => state.setThemeMode(m, ctx),
+                borderRadius: state.settings.borderRadius,
+                setBorderRadius: (v) => state.setBorderRadius(v),
                 gatewayUrl: state.settings.gatewayUrl,
                 assistantName: state.assistantName,
                 configPath: state.configSnapshot?.path ?? null,

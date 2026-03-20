@@ -1,11 +1,11 @@
-import { openSkillEditor } from "./editor";
-import { loadSkillsStatus } from "./loader";
-import { getErrorMessage } from "./state";
+import { openSkillEditor } from "./editor.js";
+import { loadSkillsStatus } from "./loader.js";
+import { getErrorMessage } from "./state.js";
 /**
  * 技能配置控制器 - 创建/删除/预览操作
  * Skills config controller - Create/Delete/Preview operations
  */
-import type { SkillsConfigState, EditableSkillSource } from "./types";
+import type { SkillsConfigState, EditableSkillSource } from "./types.js";
 
 // ─── 常量 / Constants ───────────────────────────────────────────────────────
 

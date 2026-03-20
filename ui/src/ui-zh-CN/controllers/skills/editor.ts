@@ -1,10 +1,10 @@
-import { loadSkillsStatus } from "./loader";
-import { getErrorMessage } from "./state";
+import { loadSkillsStatus } from "./loader.js";
+import { getErrorMessage } from "./state.js";
 /**
  * 技能配置控制器 - 编辑器操作
  * Skills config controller - Editor operations
  */
-import type { SkillsConfigState, EditableSkillSource, SkillEditorMode } from "./types";
+import type { SkillsConfigState, EditableSkillSource, SkillEditorMode } from "./types.js";
 
 // ─── 编辑器操作 / Editor operations ──────────────────────────────────────────
 

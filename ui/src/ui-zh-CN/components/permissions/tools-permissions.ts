@@ -7,7 +7,7 @@
  */
 import { html, nothing } from "lit";
 import { renderToolsList, renderProfileSection } from "../tools/index.js";
-import type { PermissionsContentProps, ToolPolicyConfig, ToolProfileId } from "./types";
+import type { PermissionsContentProps, ToolPolicyConfig, ToolProfileId } from "./types.js";
 
 /**
  * 工具权限默认作用域

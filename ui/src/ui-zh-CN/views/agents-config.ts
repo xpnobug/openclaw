@@ -15,4 +15,4 @@ export {
   renderGlobalPanel,
   // 类型
   type AgentsConfigProps,
-} from "./agents";
+} from "./agents/index.js";

@@ -3,9 +3,9 @@
  * Permissions content component - main entry
  */
 import { html } from "lit";
-import { renderExecPermissionsContent } from "./exec-permissions";
-import { renderToolsPermissionsSection } from "./tools-permissions";
-import type { PermissionsContentProps } from "./types";
+import { renderExecPermissionsContent } from "./exec-permissions.js";
+import { renderToolsPermissionsSection } from "./tools-permissions.js";
+import type { PermissionsContentProps } from "./types.js";
 
 // 重新导出类型供外部使用
 export type {
@@ -18,7 +18,7 @@ export type {
   ExecApprovalsFile,
   ExecApprovalsSnapshot,
   AgentOption,
-} from "./types";
+} from "./types.js";
 
 /**
  * 渲染权限管理内容

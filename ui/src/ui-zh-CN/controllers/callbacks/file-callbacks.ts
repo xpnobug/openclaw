@@ -1,14 +1,14 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
 import {
   loadWorkspaceFiles,
   selectWorkspaceFile,
   saveWorkspaceFile,
   createWorkspaceFile,
-} from "../model-config";
+} from "../model-config.js";
 /**
  * 文件编辑器 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 type Pick_ = Pick<
   AgentsConfigProps,

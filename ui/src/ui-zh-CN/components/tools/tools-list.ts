@@ -10,8 +10,8 @@ import {
   getTotalToolsCount,
   isToolDenied,
   isGroupDenied,
-} from "./constants";
-import type { ToolsListProps } from "./types";
+} from "./constants.js";
+import type { ToolsListProps } from "./types.js";
 
 /**
  * 渲染工具列表区块

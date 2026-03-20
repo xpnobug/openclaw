@@ -4,7 +4,7 @@
  *
  * 包含: telegram, discord, slack, whatsapp, signal, line
  */
-import type { ChannelMeta } from "../../../types/channel-config";
+import type { ChannelMeta } from "../../../types/channel-config.js";
 import {
   DM_POLICY_OPTIONS,
   GROUP_POLICY_OPTIONS,
@@ -12,7 +12,7 @@ import {
   REACTION_LEVEL_OPTIONS,
   SELF_CHAT_MODE_OPTIONS,
   SLACK_MODE_OPTIONS,
-} from "../../../types/channel-fields";
+} from "../../../types/channel-fields.js";
 
 export const MESSAGING_APPS_CHANNELS: ChannelMeta[] = [
   {

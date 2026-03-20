@@ -1,4 +1,4 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
 import {
   loadSkillsStatus,
   saveSkillsConfig,
@@ -29,11 +29,11 @@ import {
   openSkillPreview,
   closeSkillPreview,
   updateSkillApiKeyEdit,
-} from "../skills-config";
+} from "../skills-config.js";
 /**
  * 技能面板 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 type Pick_ = Pick<
   AgentsConfigProps,

@@ -5,7 +5,7 @@
  * 处理工作区文件的读取、保存操作
  * Handles workspace file read and save operations
  */
-import type { ModelConfigState } from "./state";
+import type { ModelConfigState } from "./state.js";
 
 type WorkspaceListResult = {
   workspaceDir: string;
@@ -45,7 +45,7 @@ async function requestWorkspaceFilesList(state: ModelConfigState): Promise<Works
   try {
     return (await state.client!.request("workspace.files.list", {
       agentId: state.workspaceAgentId || undefined,
-    })) as WorkspaceListResult;
+    }));
   } catch (err) {
     if (!isWorkspaceMethodUnavailableError(err)) {
       throw err;
@@ -58,17 +58,7 @@ async function requestWorkspaceFilesList(state: ModelConfigState): Promise<Works
 
     const res = (await state.client!.request("agents.files.list", {
       agentId,
-    })) as {
-      agentId: string;
-      workspace: string;
-      files: Array<{
-        name: string;
-        path: string;
-        missing: boolean;
-        size?: number;
-        updatedAtMs?: number;
-      }>;
-    };
+    }));
 
     return {
       workspaceDir: res.workspace,
@@ -92,7 +82,7 @@ async function requestWorkspaceFileRead(
     return (await state.client!.request("workspace.file.read", {
       fileName,
       agentId: state.workspaceAgentId || undefined,
-    })) as WorkspaceReadResult;
+    }));
   } catch (err) {
     if (!isWorkspaceMethodUnavailableError(err)) {
       throw err;
@@ -106,15 +96,7 @@ async function requestWorkspaceFileRead(
     const res = (await state.client!.request("agents.files.get", {
       agentId,
       name: fileName,
-    })) as {
-      workspace: string;
-      file: {
-        name: string;
-        path: string;
-        missing: boolean;
-        content?: string;
-      };
-    };
+    }));
 
     return {
       name: res.file.name,
@@ -152,9 +134,7 @@ async function requestWorkspaceFileWrite(
       agentId,
       name: fileName,
       content,
-    })) as {
-      workspace: string;
-    };
+    }));
 
     return { workspaceDir: res.workspace };
   }

@@ -3,9 +3,9 @@
  * Add provider modal component
  */
 import { html, nothing } from "lit";
-import type { ModelApi, AuthMode } from "./constants";
-import { icons, LABELS, API_PROTOCOLS, AUTH_MODES, DEFAULT_PROVIDER_FORM } from "./constants";
-import type { ProvidersContentProps } from "./types";
+import type { ModelApi, AuthMode } from "./constants.js";
+import { icons, LABELS, API_PROTOCOLS, AUTH_MODES, DEFAULT_PROVIDER_FORM } from "./constants.js";
+import type { ProvidersContentProps } from "./types.js";
 
 /**
  * 渲染添加供应商弹窗

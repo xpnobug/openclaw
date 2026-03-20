@@ -1,4 +1,4 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
 import {
   loadPermissions,
   savePermissions,
@@ -9,11 +9,11 @@ import {
   removeGlobalToolsDenyEntry,
   addAgentToolsDenyEntry,
   removeAgentToolsDenyEntry,
-} from "../model-config";
+} from "../model-config.js";
 /**
  * 工具权限 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 type Pick_ = Pick<
   AgentsConfigProps,

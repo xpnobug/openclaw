@@ -3,7 +3,7 @@
  * Unified error handling utility functions
  */
 
-import { GatewayRequestError } from "../../ui/gateway";
+import { GatewayRequestError } from "../../ui/gateway.js";
 
 /**
  * 错误上下文类型

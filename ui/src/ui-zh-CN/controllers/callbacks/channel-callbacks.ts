@@ -1,14 +1,14 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
-import { loadModelConfig } from "../model-config";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
+import { loadModelConfig } from "../model-config.js";
 import {
   createInitialWechatIpadAccountUiState,
   invalidateModelConfigDerivedState,
   type WechatIpadAccountUiState,
-} from "../state";
+} from "../state.js";
 /**
  * 通道配置 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 const DEFAULT_WECHAT_IPAD_LOGIN_TYPE = "ipad" as const;
 const DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID = "main";

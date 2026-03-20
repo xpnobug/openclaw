@@ -2,7 +2,7 @@
  * 技能配置控制器 - 初始状态和辅助函数
  * Skills config controller - Initial state and helper functions
  */
-import type { SkillsConfigState, SkillMessage } from "./types";
+import type { SkillsConfigState, SkillMessage } from "./types.js";
 
 // ─── 初始状态 / Initial state ───────────────────────────────────────────────
 

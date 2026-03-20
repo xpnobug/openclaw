@@ -3,9 +3,9 @@
  * Model advanced config component
  */
 import { html } from "lit";
-import type { ModelConfig } from "./constants";
-import { icons, LABELS } from "./constants";
-import type { ProvidersContentProps } from "./types";
+import type { ModelConfig } from "./constants.js";
+import { icons, LABELS } from "./constants.js";
+import type { ProvidersContentProps } from "./types.js";
 
 /**
  * 渲染模型高级配置（成本和兼容性）

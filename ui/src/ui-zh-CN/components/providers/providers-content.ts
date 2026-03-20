@@ -3,10 +3,10 @@
  * Provider config content component - Main entry
  */
 import { html } from "lit";
-import { renderAddProviderModal } from "./add-modal";
-import { icons, LABELS } from "./constants";
-import { renderProviderCard } from "./provider-card";
-import type { ProvidersContentProps } from "./types";
+import { renderAddProviderModal } from "./add-modal.js";
+import { icons, LABELS } from "./constants.js";
+import { renderProviderCard } from "./provider-card.js";
+import type { ProvidersContentProps } from "./types.js";
 
 /**
  * 渲染供应商配置内容

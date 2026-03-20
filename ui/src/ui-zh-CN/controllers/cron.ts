@@ -7,7 +7,7 @@ import {
   removeCronJob as removeCronJobBase,
   loadCronRuns as loadCronRunsBase,
   type CronState,
-} from "../../ui/controllers/cron";
+} from "../../ui/controllers/cron.js";
 /**
  * 定时任务控制器
  * Cron job controller
@@ -15,9 +15,9 @@ import {
  * 处理定时任务的加载、创建、更新操作
  * Handles cron job loading, creation, and update operations
  */
-import type { CronJob, ChannelUiMetaEntry } from "../../ui/types";
-import type { CronFormState } from "../../ui/ui-types";
-import type { ModelConfigState } from "./state";
+import type { CronJob, ChannelUiMetaEntry } from "../../ui/types.js";
+import type { CronFormState } from "../../ui/ui-types.js";
+import type { ModelConfigState } from "./state.js";
 
 /**
  * 获取 CronState 适配器（将 ModelConfigState 映射到 CronState）

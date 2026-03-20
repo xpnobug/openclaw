@@ -2,9 +2,9 @@
  * 通道列表组件
  */
 import { html } from "lit";
-import type { ChannelsConfigData } from "../../types/channel-config";
-import { getChannelIcon, icons } from "./channel-icons";
-import { CHANNEL_METADATA } from "./channel-metadata";
+import type { ChannelsConfigData } from "../../types/channel-config.js";
+import { getChannelIcon, icons } from "./channel-icons.js";
+import { CHANNEL_METADATA } from "./channel-metadata.js";
 
 export type ChannelListProps = {
   channelsConfig: ChannelsConfigData;

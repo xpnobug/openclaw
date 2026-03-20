@@ -25,4 +25,4 @@ export {
   API_PROTOCOLS,
   AUTH_MODES,
   DEFAULT_PROVIDER_FORM,
-} from "./providers";
+} from "./providers/index.js";

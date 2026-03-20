@@ -14,7 +14,7 @@ import type {
   CronJob,
   CronStatus,
   SkillStatusReport,
-} from "../../ui/types";
+} from "../../ui/types.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 面板类型 / Panel Types

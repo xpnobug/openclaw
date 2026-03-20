@@ -38,4 +38,4 @@ export {
   normalizeAsk,
   resolveDefaults,
   formatAgo,
-} from "./permissions";
+} from "./permissions/index.js";

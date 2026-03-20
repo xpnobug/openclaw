@@ -4,17 +4,17 @@
  */
 
 // 格式化工具
-export { formatMs, formatAgo, formatDurationMs } from "./format";
+export { formatMs, formatAgo, formatDurationMs } from "./format.js";
 export {
   formatNextRun,
   formatCronState,
   formatCronSchedule,
   formatCronPayload,
   type CronJobLocal,
-} from "./presenter";
+} from "./presenter.js";
 
 // 深度合并工具
-export { deepMerge } from "./deep-merge";
+export { deepMerge } from "./deep-merge.js";
 
 // 数据清理工具
 export {
@@ -23,7 +23,7 @@ export {
   sanitizeCost,
   sanitizeEmptyObject,
   sanitizeStringArray,
-} from "./sanitize";
+} from "./sanitize.js";
 
 // 错误处理工具
 export {
@@ -32,4 +32,4 @@ export {
   extractErrorDetails,
   formatErrorWithDetails,
   type ErrorContext,
-} from "./error-handler";
+} from "./error-handler.js";

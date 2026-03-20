@@ -12,10 +12,10 @@ import type {
   CronRunLogEntry,
   ChannelUiMetaEntry,
   GatewayAgentRow,
-} from "../../../ui/types";
-import type { CronFormState } from "../../../ui/ui-types";
-import type { CronContentProps } from "../../types/cron-config";
-import { renderCronContent } from "../cron-content";
+} from "../../../ui/types.js";
+import type { CronFormState } from "../../../ui/ui-types.js";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { renderCronContent } from "../cron-content.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions

@@ -4,16 +4,16 @@
  */
 
 // 主组件
-export { renderCronContent, renderDeleteConfirmModal } from "./cron-content";
+export { renderCronContent, renderDeleteConfirmModal } from "./cron-content.js";
 
 // 子组件
-export { renderStatusCard } from "./status-card";
-export { renderScheduleFields, renderCreateModal } from "./form-fields";
-export { renderJobCard, renderJobsList } from "./job-card";
-export { renderRunHistory } from "./run-history";
+export { renderStatusCard } from "./status-card.js";
+export { renderScheduleFields, renderCreateModal } from "./form-fields.js";
+export { renderJobCard, renderJobsList } from "./job-card.js";
+export { renderRunHistory } from "./run-history.js";
 
 // 常量
-export { LABELS, icons, DEFAULT_FORM } from "./constants";
+export { LABELS, icons, DEFAULT_FORM } from "./constants.js";
 
 // 工具函数
-export { getSafeCallbacks, buildChannelOptions, resolveChannelLabel } from "./utils";
+export { getSafeCallbacks, buildChannelOptions, resolveChannelLabel } from "./utils.js";

@@ -3,7 +3,7 @@
  * Skill editor modal component
  */
 import { html, nothing } from "lit";
-import type { SkillsContentProps } from "../../types/skills-config";
+import type { SkillsContentProps } from "../../types/skills-config.js";
 
 /**
  * 渲染技能编辑器弹窗

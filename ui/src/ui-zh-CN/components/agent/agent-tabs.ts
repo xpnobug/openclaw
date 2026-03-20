@@ -6,8 +6,8 @@
  * Provides 5 tabs: Overview, Files, Tools, Skills, Cron
  */
 import { html } from "lit";
-import type { AgentPanel } from "../../types/agents-config";
-import { LABELS } from "../../types/agents-config";
+import type { AgentPanel } from "../../types/agents-config.js";
+import { LABELS } from "../../types/agents-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions

@@ -5,10 +5,10 @@
 import { html } from "lit";
 import type { WechatIpadAccountUiState, WechatIpadUiLoginPhase } from "../controllers/state.js";
 import type { ChannelsConfigData } from "../types/channel-config.js";
-import { renderChannelList, renderChannelDetail } from "./channels";
+import { renderChannelList, renderChannelDetail } from "./channels/index.js";
 
 // 重新导出元数据供外部使用
-export { CHANNEL_METADATA } from "./channels";
+export { CHANNEL_METADATA } from "./channels/index.js";
 
 export type ChannelsContentProps = {
   channelsConfig: ChannelsConfigData;

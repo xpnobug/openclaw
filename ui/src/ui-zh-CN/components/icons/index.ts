@@ -4,7 +4,7 @@
  */
 
 // UI 通用图标
-export * from "./ui-icons";
+export * from "./ui-icons.js";
 
 // 通道/平台图标
-export * from "./channel-icons";
+export * from "./channel-icons.js";

@@ -1,4 +1,4 @@
-import type { AgentsConfigProps } from "../../views/agents/types";
+import type { AgentsConfigProps } from "../../views/agents/types.js";
 import {
   loadAgentSessions,
   loadWorkspaceFiles,
@@ -8,11 +8,11 @@ import {
   exportAgent,
   deleteAgent,
   syncAgentSnapshotState,
-} from "../model-config";
+} from "../model-config.js";
 /**
  * Agent 选择/侧边栏/向导 回调
  */
-import type { CallbackContext } from "./types";
+import type { CallbackContext } from "./types.js";
 
 type Pick_ = Pick<
   AgentsConfigProps,

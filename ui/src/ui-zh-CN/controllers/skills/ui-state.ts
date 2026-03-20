@@ -2,7 +2,7 @@
  * 技能配置控制器 - UI 状态更新
  * Skills config controller - UI state updates
  */
-import type { SkillsConfigState, SkillSourceFilter, SkillStatusFilter } from "./types";
+import type { SkillsConfigState, SkillSourceFilter, SkillStatusFilter } from "./types.js";
 
 // ─── 筛选器更新 / Filter updates ────────────────────────────────────────────
 

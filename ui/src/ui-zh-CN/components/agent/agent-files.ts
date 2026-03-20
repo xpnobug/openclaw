@@ -6,8 +6,8 @@
  * Reuses workspace file layout: folder grouping, edit/preview/split modes, Markdown preview
  */
 import { html, nothing } from "lit";
-import type { AgentsFilesListResult } from "../../../ui/types";
-import { renderWorkspaceContent, type WorkspaceFileInfo } from "../workspace-content";
+import type { AgentsFilesListResult } from "../../../ui/types.js";
+import { renderWorkspaceContent, type WorkspaceFileInfo } from "../workspace-content.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 类型定义 / Type Definitions

@@ -2,7 +2,7 @@
  * 工具权限共享常量
  * Shared constants for tools permissions
  */
-import type { ToolGroupDef, StandaloneToolDef, ToolProfileOption } from "./types";
+import type { ToolGroupDef, StandaloneToolDef, ToolProfileOption } from "./types.js";
 
 /**
  * 工具描述定义

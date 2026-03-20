@@ -12,7 +12,7 @@ import {
   type ToolProfileId,
   type AgentOption,
   type AgentWithTools,
-} from "./state";
+} from "./state.js";
 
 /**
  * 检查工具配置是否有更改

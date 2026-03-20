@@ -3,12 +3,12 @@
  * Cron job card component
  */
 import { html, nothing } from "lit";
-import { formatMs } from "../../../ui/format";
-import { formatCronPayload, formatCronSchedule } from "../../../ui/presenter";
-import type { CronJob } from "../../../ui/types";
-import type { CronContentProps } from "../../types/cron-config";
-import { LABELS, icons } from "./constants";
-import { getSafeCallbacks } from "./utils";
+import { formatMs } from "../../../ui/format.js";
+import { formatCronPayload, formatCronSchedule } from "../../../ui/presenter.js";
+import type { CronJob } from "../../../ui/types.js";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { LABELS, icons } from "./constants.js";
+import { getSafeCallbacks } from "./utils.js";
 
 /**
  * 渲染任务状态徽章

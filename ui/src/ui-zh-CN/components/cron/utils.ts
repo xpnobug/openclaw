@@ -2,8 +2,8 @@
  * Cron 组件辅助函数
  * Cron component utility functions
  */
-import type { CronContentProps } from "../../types/cron-config";
-import { DEFAULT_FORM, LABELS } from "./constants";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { DEFAULT_FORM, LABELS } from "./constants.js";
 
 // 空函数，用于回调默认值
 const noop = () => {};
@@ -43,7 +43,7 @@ export function buildChannelOptions(props: CronContentProps): string[] {
   }
   const seen = new Set<string>();
   return options.filter((value) => {
-    if (seen.has(value)) return false;
+    if (seen.has(value)) {return false;}
     seen.add(value);
     return true;
   });
@@ -54,8 +54,8 @@ export function buildChannelOptions(props: CronContentProps): string[] {
  * Resolve channel display label
  */
 export function resolveChannelLabel(props: CronContentProps, channel: string): string {
-  if (channel === "last") return LABELS.channelLast;
+  if (channel === "last") {return LABELS.channelLast;}
   const meta = props.channelMeta?.find((entry) => entry.id === channel);
-  if (meta?.label) return meta.label;
+  if (meta?.label) {return meta.label;}
   return props.channelLabels?.[channel] ?? channel;
 }

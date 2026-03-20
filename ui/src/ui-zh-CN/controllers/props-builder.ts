@@ -1,17 +1,17 @@
-import type { CronJob } from "../../ui/types";
+import type { CronJob } from "../../ui/types.js";
 /**
  * Props 数据构建器
  * 从 InternalState 构建 AgentsConfigProps 的数据部分（不含回调）
  */
-import type { AgentsConfigProps } from "../views/agents/types";
-import type { WorkspaceFileInfo } from "./model-config";
+import type { AgentsConfigProps } from "../views/agents/types.js";
+import type { WorkspaceFileInfo } from "./model-config.js";
 import {
   buildEffectiveConfigSnapshot,
   createInitialWechatIpadAccountUiState,
   getAvailableModels,
   hasModelConfigChanges,
-} from "./model-config";
-import { hasSkillsConfigChanges } from "./skills-config";
+} from "./model-config.js";
+import { hasSkillsConfigChanges } from "./skills-config.js";
 
 const DEFAULT_WECHAT_IPAD_DRAFT_ACCOUNT_ID = "main";
 

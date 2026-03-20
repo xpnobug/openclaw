@@ -8,7 +8,7 @@ import {
   checkIcon,
   xIcon,
   externalLinkIcon,
-} from "../icons";
+} from "../icons/index.js";
 
 // 图标映射
 export const icons = {

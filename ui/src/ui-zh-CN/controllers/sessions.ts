@@ -5,8 +5,8 @@
  * 处理会话的加载、创建、更新操作
  * Handles session loading, creation, and update operations
  */
-import { hasModelConfigChanges } from "./config-loader";
-import type { ModelConfigState } from "./state";
+import { hasModelConfigChanges } from "./config-loader.js";
+import type { ModelConfigState } from "./state.js";
 
 function normalizeModelId(model?: string | null): string | null {
   if (typeof model !== "string") {

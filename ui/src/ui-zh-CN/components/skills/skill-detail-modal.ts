@@ -3,8 +3,8 @@
  * Skill detail modal component
  */
 import { html, nothing } from "lit";
-import type { SkillsContentProps, EditableSkillSource } from "../../types/skills-config";
-import { clampText, toShortSource } from "./utils";
+import type { SkillsContentProps, EditableSkillSource } from "../../types/skills-config.js";
+import { clampText, toShortSource } from "./utils.js";
 
 /**
  * 获取来源的简短标签

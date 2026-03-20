@@ -2,7 +2,7 @@
  * 技能配置控制器 - 类型定义
  * Skills config controller - Type definitions
  */
-import type { GatewayBrowserClient } from "../../../ui/gateway";
+import type { GatewayBrowserClient } from "../../../ui/gateway.js";
 import type {
   SkillStatusReport,
   SkillsConfig,
@@ -14,7 +14,7 @@ import type {
   SkillCreateState,
   SkillDeleteState,
   SkillPreviewState,
-} from "../../types/skills-config";
+} from "../../types/skills-config.js";
 
 // ─── 状态类型 / State type ──────────────────────────────────────────────────
 
@@ -69,6 +69,6 @@ export type {
   SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
-} from "../../types/skills-config";
+} from "../../types/skills-config.js";
 
-export type { GatewayBrowserClient } from "../../../ui/gateway";
+export type { GatewayBrowserClient } from "../../../ui/gateway.js";

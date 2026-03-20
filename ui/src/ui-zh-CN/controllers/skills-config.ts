@@ -22,7 +22,7 @@ export type {
   EditableSkillSource,
   SkillEditorMode,
   LoadSkillsOptions,
-} from "./skills";
+} from "./skills/index.js";
 
 export {
   // 状态和辅助函数
@@ -67,4 +67,4 @@ export {
   confirmDeleteSkill,
   openSkillPreview,
   closeSkillPreview,
-} from "./skills";
+} from "./skills/index.js";

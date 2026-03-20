@@ -4,11 +4,11 @@
  */
 
 // 主组件
-export { renderPermissionsContent } from "./permissions-content";
+export { renderPermissionsContent } from "./permissions-content.js";
 
 // 子组件
-export { renderExecPermissionsContent, renderExecTargetSection } from "./exec-permissions";
-export { renderToolsPermissionsSection } from "./tools-permissions";
+export { renderExecPermissionsContent, renderExecTargetSection } from "./exec-permissions.js";
+export { renderToolsPermissionsSection } from "./tools-permissions.js";
 
 // 类型
 export type {
@@ -28,7 +28,7 @@ export type {
   PermissionsTabId,
   ExecApprovalsTarget,
   ExecApprovalsTargetNode,
-} from "./types";
+} from "./types.js";
 
 // 常量
 export {
@@ -40,7 +40,7 @@ export {
   TOOL_GROUPS,
   STANDALONE_TOOLS,
   TOOL_PROFILES,
-} from "./constants";
+} from "./constants.js";
 
 // 工具函数
-export { normalizeSecurity, normalizeAsk, resolveDefaults, formatAgo } from "./utils";
+export { normalizeSecurity, normalizeAsk, resolveDefaults, formatAgo } from "./utils.js";

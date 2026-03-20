@@ -3,9 +3,9 @@
  * Cron form fields components
  */
 import { html, nothing } from "lit";
-import type { CronContentProps, CronFormState } from "../../types/cron-config";
-import { DEFAULT_FORM, LABELS, icons } from "./constants";
-import { getSafeCallbacks, buildChannelOptions, resolveChannelLabel } from "./utils";
+import type { CronContentProps, CronFormState } from "../../types/cron-config.js";
+import { DEFAULT_FORM, LABELS, icons } from "./constants.js";
+import { getSafeCallbacks, buildChannelOptions, resolveChannelLabel } from "./utils.js";
 
 /**
  * 渲染调度类型字段

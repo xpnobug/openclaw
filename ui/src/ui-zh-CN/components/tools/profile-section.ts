@@ -4,8 +4,8 @@
  */
 import { html } from "lit";
 import { live } from "lit/directives/live.js";
-import { TOOL_PROFILES } from "./constants";
-import type { ProfileSectionProps, ToolProfileId } from "./types";
+import { TOOL_PROFILES } from "./constants.js";
+import type { ProfileSectionProps, ToolProfileId } from "./types.js";
 
 /**
  * 渲染档案选择区块

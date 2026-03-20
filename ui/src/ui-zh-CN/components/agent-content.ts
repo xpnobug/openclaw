@@ -6,7 +6,7 @@
  * Right panel - Agent global default parameters
  */
 import { html } from "lit";
-import type { AgentDefaults } from "../views/model-config";
+import type { AgentDefaults } from "../views/model-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SVG 图标 / SVG Icons

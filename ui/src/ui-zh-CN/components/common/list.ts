@@ -2,7 +2,7 @@
  * 通用列表组件
  */
 import { html, nothing, type TemplateResult } from "lit";
-import { renderEmptyState } from "./state";
+import { renderEmptyState } from "./state.js";
 
 // ============================================
 // 类型定义

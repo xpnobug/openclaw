@@ -10,7 +10,7 @@ import type {
   PermissionsTabId,
   ExecApprovalsTarget,
   ExecApprovalsTargetNode,
-} from "../../controllers/model-config";
+} from "../../controllers/model-config.js";
 
 // ─── Exec Approvals 类型 ────────────────────────────────────────────────────
 

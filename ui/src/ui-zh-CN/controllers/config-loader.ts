@@ -1,14 +1,14 @@
-import type { ChannelsConfigData } from "../types/channel-config";
-import { deepMerge } from "../utils/deep-merge";
-import { toNumberOrUndefined, sanitizeCompat } from "../utils/sanitize";
+import type { ChannelsConfigData } from "../types/channel-config.js";
+import { deepMerge } from "../utils/deep-merge.js";
+import { toNumberOrUndefined, sanitizeCompat } from "../utils/sanitize.js";
 import type {
   ProviderConfig,
   AgentDefaults,
   GatewayConfig,
   ModelConfig,
-} from "../views/model-config";
-import { extractAgentsList } from "./agents";
-import { loadPermissions } from "./permissions";
+} from "../views/model-config.js";
+import { extractAgentsList } from "./agents.js";
+import { loadPermissions } from "./permissions.js";
 /**
  * 配置加载和保存控制器
  * Config loading and saving controller
@@ -16,12 +16,12 @@ import { loadPermissions } from "./permissions";
  * 处理配置的加载、保存、应用操作
  * Handles config loading, saving, and applying operations
  */
-import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state";
+import { invalidateModelConfigDerivedState, type ModelConfigState } from "./state.js";
 import {
   extractToolsConfig,
   extractAgentToolsConfigs,
   hasToolsConfigChanges,
-} from "./tools-config";
+} from "./tools-config.js";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -325,10 +325,7 @@ export async function loadModelConfig(state: ModelConfigState): Promise<void> {
   state.lastError = null;
 
   try {
-    const res = (await state.client.request("config.get", {})) as {
-      config?: Record<string, unknown>;
-      hash?: string;
-    };
+    const res = (await state.client.request("config.get", {}));
 
     const config = res.config ?? {};
 

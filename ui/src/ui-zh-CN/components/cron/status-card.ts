@@ -3,9 +3,9 @@
  * Cron status card component
  */
 import { html } from "lit";
-import { formatNextRun } from "../../../ui/presenter";
-import type { CronContentProps } from "../../types/cron-config";
-import { LABELS } from "./constants";
+import { formatNextRun } from "../../../ui/presenter.js";
+import type { CronContentProps } from "../../types/cron-config.js";
+import { LABELS } from "./constants.js";
 
 /**
  * 渲染调度器状态卡片

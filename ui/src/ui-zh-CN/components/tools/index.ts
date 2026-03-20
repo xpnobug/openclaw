@@ -14,7 +14,7 @@ export type {
   ToolProfileOption,
   ToolsListProps,
   ProfileSectionProps,
-} from "./types";
+} from "./types.js";
 
 // 常量导出
 export {
@@ -25,8 +25,8 @@ export {
   getTotalToolsCount,
   isToolDenied,
   isGroupDenied,
-} from "./constants";
+} from "./constants.js";
 
 // 组件导出
-export { renderToolsList } from "./tools-list";
-export { renderProfileSection } from "./profile-section";
+export { renderToolsList } from "./tools-list.js";
+export { renderProfileSection } from "./profile-section.js";

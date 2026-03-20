@@ -10,7 +10,7 @@ import {
   type ModelConfigState,
   type AgentIdentityConfig,
   type AgentIdentityEntry,
-} from "./state";
+} from "./state.js";
 
 type AgentConfigRecord = Record<string, unknown>;
 type AgentConfigList = AgentConfigRecord[];
@@ -391,7 +391,7 @@ export function exportAgent(state: ModelConfigState, agentId: string): void {
     return;
   }
 
-  const config = state.modelConfigFullSnapshot as Record<string, unknown>;
+  const config = state.modelConfigFullSnapshot;
   const { list } = getAgentsConfigParts(config);
 
   const agent = list.find((a) => a.id === agentId);

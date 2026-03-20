@@ -16,7 +16,7 @@ export {
   type SelectOption,
   type FormFieldConfig,
   type FormFieldProps,
-} from "./form-field";
+} from "./form-field.js";
 
 // 状态组件
 export {
@@ -30,7 +30,7 @@ export {
   type EmptyStateProps,
   type InfoStateProps,
   type ConnectionStateProps,
-} from "./state";
+} from "./state.js";
 
 // 弹窗组件
 export {
@@ -41,7 +41,7 @@ export {
   type ModalSize,
   type ModalProps,
   type ConfirmModalProps,
-} from "./modal";
+} from "./modal.js";
 
 // 列表组件
 export {
@@ -51,7 +51,7 @@ export {
   renderGroupedList,
   type ListItemProps,
   type ListProps,
-} from "./list";
+} from "./list.js";
 
 // 按钮组件
 export {
@@ -61,4 +61,4 @@ export {
   type ButtonVariant,
   type ButtonSize,
   type ButtonProps,
-} from "./button";
+} from "./button.js";

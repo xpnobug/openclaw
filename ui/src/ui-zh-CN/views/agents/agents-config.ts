@@ -3,14 +3,18 @@
  * Agent configuration page view - Main entry
  */
 import { html, nothing } from "lit";
-import { renderAgentSidebar, renderAgentHeader, renderAgentTabs } from "../../components/agent";
-import { AGENT_TEMPLATES, AGENT_CATEGORIES } from "../../templates/index";
-import type { GlobalPanel } from "../../types/agents-config";
-import { LABELS } from "../../types/agents-config";
-import { AgentWizard, type AgentData } from "../../wizards/agent-wizard";
-import { renderStepIndicator, renderWizardFooter, renderField } from "../../wizards/wizard-base";
-import { renderActivePanel, renderGlobalPanel } from "./panel-renderer";
-import type { AgentsConfigProps } from "./types";
+import {
+  renderAgentSidebar,
+  renderAgentHeader,
+  renderAgentTabs,
+} from "../../components/agent/index.js";
+import { AGENT_TEMPLATES, AGENT_CATEGORIES } from "../../templates/index.js";
+import type { GlobalPanel } from "../../types/agents-config.js";
+import { LABELS } from "../../types/agents-config.js";
+import type { AgentData } from "../../wizards/agent-wizard.js";
+import { renderStepIndicator, renderWizardFooter, renderField } from "../../wizards/wizard-base.js";
+import { renderActivePanel, renderGlobalPanel } from "./panel-renderer.js";
+import type { AgentsConfigProps } from "./types.js";
 
 // 扩展 AgentData 类型，添加 workspace
 type WizardAgentData = AgentData & { workspace?: string };
@@ -60,12 +64,15 @@ function resetWizardState() {
  */
 function renderAgentWizard(props: AgentsConfigProps) {
   const { step, data, selectedCategory, errors } = wizardState;
-  const existingIds = new Set((props.agentsList?.agents ?? []).map((a) => a.id));
-  const models = props.agentAvailableModels?.map((m) => m.id) ?? DEFAULT_MODELS;
+  const existingIds = new Set((props.agentsList?.agents ?? []).map((a: { id: string }) => a.id));
+  const models = props.agentAvailableModels?.map((m: { id: string }) => m.id) ?? DEFAULT_MODELS;
 
   const updateAndRefresh = () => {
     // 触发 Lit 重新渲染
-    props.onAgentWizardComplete?.({ ...data, _refresh: true });
+    props.onAgentWizardComplete?.({
+      ...data,
+      _refresh: true,
+    } as AgentsConfigProps["onAgentWizardComplete"] extends (data: infer T) => void ? T : never);
   };
 
   const setStep = (s: number) => {
@@ -129,7 +136,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
     props.onAgentWizardCancel?.();
   };
 
-  const selectTemplate = (t: (typeof AGENT_TEMPLATES)[0] | null) => {
+  const selectTemplate = (t: (typeof AGENT_TEMPLATES)[number] | null) => {
     if (t) {
       wizardState.data = {
         emoji: t.icon,
@@ -156,7 +163,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
           <button class="wizard__category ${selectedCategory === "all" ? "wizard__category--active" : ""}" 
             @click=${() => setCategory("all")}>全部</button>
           ${AGENT_CATEGORIES.map(
-            (cat) => html`
+            (cat: (typeof AGENT_CATEGORIES)[number]) => html`
             <button class="wizard__category ${selectedCategory === cat.id ? "wizard__category--active" : ""}"
               @click=${() => setCategory(cat.id)}>${cat.icon} ${cat.label}</button>
           `,
@@ -168,7 +175,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
             <span class="wizard__template-name">从零开始</span>
           </button>
           ${templates.map(
-            (t) => html`
+            (t: (typeof AGENT_TEMPLATES)[number]) => html`
             <button class="wizard__template-card" @click=${() => selectTemplate(t)}>
               <span class="wizard__template-icon">${t.icon}</span>
               <span class="wizard__template-name">${t.name}</span>
@@ -226,7 +233,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
           content: html`<select class="wizard__select" .value=${data.model ?? ""} 
             @change=${(e: Event) => setData("model", (e.target as HTMLSelectElement).value)}>
             <option value="">请选择模型</option>
-            ${models.map((m) => html`<option value=${m} ?selected=${data.model === m}>${m}</option>`)}
+            ${models.map((m: string) => html`<option value=${m} ?selected=${data.model === m}>${m}</option>`)}
           </select>`,
         })}
         ${renderField({
@@ -294,7 +301,7 @@ function renderAgentWizard(props: AgentsConfigProps) {
       <div class="agents-wizard-modal">
         <div class="wizard">
           <div class="wizard__header"><h2 class="wizard__title">创建 Agent</h2></div>
-          ${renderStepIndicator(WIZARD_STEPS, step, (i) => {
+          ${renderStepIndicator(WIZARD_STEPS, step, (i: number) => {
             if (i < step && !wizardState.saving) {
               setStep(i);
             }
@@ -339,7 +346,7 @@ function renderAgentDetails(props: AgentsConfigProps) {
   const { agentsList, selectedAgentId, activePanel, agentIdentity, defaultAgentId } = props;
 
   const agents = agentsList?.agents ?? [];
-  const selectedAgent = agents.find((a) => a.id === selectedAgentId);
+  const selectedAgent = agents.find((a: { id: string }) => a.id === selectedAgentId);
 
   if (!selectedAgent) {
     return html`
@@ -484,7 +491,7 @@ export function renderAgentsConfig(props: AgentsConfigProps) {
             : undefined,
         groups: props.sidebarGroups,
         collapsedGroups: props.sidebarCollapsedGroups,
-        onSelectAgent: (agentId) => {
+        onSelectAgent: (agentId: string) => {
           onGlobalPanelChange(null);
           onAgentSelect(agentId);
         },

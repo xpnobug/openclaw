@@ -3,15 +3,15 @@
  * Exec permissions components
  */
 import { html, nothing } from "lit";
-import { EXEC_APPROVALS_DEFAULT_SCOPE, SECURITY_OPTIONS, ASK_OPTIONS } from "./constants";
+import { EXEC_APPROVALS_DEFAULT_SCOPE, SECURITY_OPTIONS, ASK_OPTIONS } from "./constants.js";
 import type {
   PermissionsContentProps,
   ExecApprovalsFile,
   ExecApprovalsAgent,
   ExecApprovalsAllowlistEntry,
   ExecSecurity,
-} from "./types";
-import { resolveDefaults, formatAgo } from "./utils";
+} from "./types.js";
+import { resolveDefaults, formatAgo } from "./utils.js";
 
 /**
  * 渲染执行目标选择器

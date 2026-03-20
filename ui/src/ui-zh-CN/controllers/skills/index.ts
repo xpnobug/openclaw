@@ -4,7 +4,7 @@
  */
 
 // 类型
-export type { SkillsConfigState } from "./types";
+export type { SkillsConfigState } from "./types.js";
 export type {
   SkillStatusReport,
   SkillsConfig,
@@ -18,7 +18,7 @@ export type {
   SkillPreviewState,
   EditableSkillSource,
   SkillEditorMode,
-} from "./types";
+} from "./types.js";
 
 // 状态和辅助函数
 export {
@@ -27,20 +27,20 @@ export {
   setSkillMessage,
   hasSkillsConfigChanges,
   hasEditorChanges,
-} from "./state";
+} from "./state.js";
 
 // 数据加载/保存
-export type { LoadSkillsOptions } from "./loader";
+export type { LoadSkillsOptions } from "./loader.js";
 export {
   loadSkillsStatus,
   saveSkillsConfig,
   updateSkillsConfigField,
   updateGlobalSetting,
   updateExtraDirs,
-} from "./loader";
+} from "./loader.js";
 
 // 技能操作
-export { updateSkillEnabled, saveSkillApiKey, installSkillDependency } from "./actions";
+export { updateSkillEnabled, saveSkillApiKey, installSkillDependency } from "./actions.js";
 
 // UI 状态
 export {
@@ -56,7 +56,7 @@ export {
   updateSkillConfig,
   setAllowlistMode,
   toggleAllowlistEntry,
-} from "./ui-state";
+} from "./ui-state.js";
 
 // 编辑器操作
 export {
@@ -65,7 +65,7 @@ export {
   updateEditorContent,
   updateEditorMode,
   saveSkillFile,
-} from "./editor";
+} from "./editor.js";
 
 // 创建/删除/预览操作
 export {
@@ -79,4 +79,4 @@ export {
   confirmDeleteSkill,
   openSkillPreview,
   closeSkillPreview,
-} from "./crud";
+} from "./crud.js";

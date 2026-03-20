@@ -3,11 +3,11 @@
  * Provider card component
  */
 import { html, nothing } from "lit";
-import type { ProviderConfig, ModelApi } from "./constants";
-import { icons, LABELS, API_PROTOCOLS, AUTH_MODES } from "./constants";
-import { renderHeadersEditor } from "./headers-editor";
-import { renderModelRow } from "./model-row";
-import type { ProvidersContentProps } from "./types";
+import type { ProviderConfig, ModelApi } from "./constants.js";
+import { icons, LABELS, API_PROTOCOLS, AUTH_MODES } from "./constants.js";
+import { renderHeadersEditor } from "./headers-editor.js";
+import { renderModelRow } from "./model-row.js";
+import type { ProvidersContentProps } from "./types.js";
 
 /**
  * 获取协议标签

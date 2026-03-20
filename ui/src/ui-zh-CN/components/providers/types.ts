@@ -2,7 +2,7 @@
  * 供应商配置 Props 类型
  * Provider config props types
  */
-import type { ProviderConfig, ProviderFormState } from "./constants";
+import type { ProviderConfig, ProviderFormState } from "./constants.js";
 
 export type ProvidersContentProps = {
   providers: Record<string, ProviderConfig>;

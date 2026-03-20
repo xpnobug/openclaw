@@ -10,11 +10,6 @@ import type {
   ValidationContext,
 } from "./types.js";
 
-/** 获取嵌套路径的值 */
-function getPath(obj: Record<string, unknown>, path: string): unknown {
-  return path.split(".").reduce((o, k) => o?.[k], obj);
-}
-
 /** 运行单个规则 */
 function runRule<T>(
   rule: ValidationRule<T>,
@@ -50,7 +45,7 @@ const CHANNEL_RULES: Record<string, ValidationRule[]> = {
 /** 验证对象 */
 function validateObject(
   data: Record<string, unknown>,
-  fieldRules: Record<string, ValidationRule[]>,
+  fieldRules: Record<string, ValidationRule<any>[]>,
   basePath: string,
   context?: ValidationContext,
 ): ValidationResult {

@@ -6,9 +6,9 @@
  * External files should import from this file instead of internal modules
  *
  * 使用方式 / Usage:
- *   import { OpenClawConfigElement } from "../ui-zh-CN";
- *   import type { ProviderConfig, ... } from "../ui-zh-CN";
- *   import { loadModelConfig, ... } from "../ui-zh-CN";
+ *   import { OpenClawConfigElement } from "../ui-zh-CN.js";
+ *   import type { ProviderConfig, ... } from "../ui-zh-CN.js";
+ *   import { loadModelConfig, ... } from "../ui-zh-CN.js";
  */
 
 // ============================================
@@ -16,10 +16,10 @@
 // ============================================
 
 // 导入 Web Component（副作用导入，注册自定义元素）
-import "./openclaw-config-element";
+import "./openclaw-config-element.js";
 
 // 导出 Web Component 类（可选，用于类型检查）
-export { OpenClawConfigElement } from "./openclaw-config-element";
+export { OpenClawConfigElement } from "./openclaw-config-element.js";
 
 // ============================================
 // 类型导出 / Type Exports
@@ -36,10 +36,10 @@ export type {
   SessionsListResult as AgentSessionsListResult,
   AgentIdentityEntry,
   WorkspaceFileInfo,
-} from "./controllers/model-config";
+} from "./controllers/model-config.js";
 
 // 从 components/providers-content 导出类型
-export type { ProviderFormState } from "./components/providers-content";
+export type { ProviderFormState } from "./components/providers-content.js";
 
 // 从 types/skills-config 导出类型
 export type {
@@ -51,11 +51,11 @@ export type {
   SkillEditorState,
   SkillCreateState,
   SkillDeleteState,
-} from "./types/skills-config";
+} from "./types/skills-config.js";
 
 // ============================================
 // 函数导出 / Function Exports
 // ============================================
 
 // 从 controllers/model-config 导出函数
-export { loadModelConfig, loadAgentSessions } from "./controllers/model-config";
+export { loadModelConfig, loadAgentSessions } from "./controllers/model-config.js";

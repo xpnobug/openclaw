@@ -3,7 +3,7 @@
  * Delete confirmation modal component
  */
 import { html, nothing } from "lit";
-import type { SkillsContentProps } from "../../types/skills-config";
+import type { SkillsContentProps } from "../../types/skills-config.js";
 
 /**
  * 渲染删除确认弹窗

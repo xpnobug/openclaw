@@ -10,9 +10,9 @@ import type {
   AgentsListResult,
   AgentIdentityResult,
   AgentsFilesListResult,
-} from "../../../ui/types";
-import type { SessionRow, SessionsListResult } from "../../controllers/model-config";
-import { LABELS, type ConfigSnapshot } from "../../types/agents-config";
+} from "../../../ui/types.js";
+import type { SessionRow, SessionsListResult } from "../../controllers/model-config.js";
+import { LABELS, type ConfigSnapshot } from "../../types/agents-config.js";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SVG 图标 / SVG Icons

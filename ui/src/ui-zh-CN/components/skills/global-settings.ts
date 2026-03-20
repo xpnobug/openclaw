@@ -3,7 +3,7 @@
  * Skills global settings component
  */
 import { html } from "lit";
-import type { SkillsContentProps } from "../../types/skills-config";
+import type { SkillsContentProps } from "../../types/skills-config.js";
 
 /**
  * 渲染全局设置

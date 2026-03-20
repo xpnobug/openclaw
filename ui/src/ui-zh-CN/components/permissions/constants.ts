@@ -4,7 +4,7 @@
  *
  * 工具相关常量从 ../tools/constants.ts 重新导出
  */
-import type { ExecSecurity, ExecAsk } from "./types";
+import type { ExecSecurity, ExecAsk } from "./types.js";
 
 // ─── 作用域常量 ─────────────────────────────────────────────────────────────
 

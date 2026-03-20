@@ -4,10 +4,10 @@
  */
 
 // 主组件
-export { renderAgentsConfig } from "./agents-config";
+export { renderAgentsConfig } from "./agents-config.js";
 
 // 面板渲染器
-export { renderActivePanel, renderGlobalPanel } from "./panel-renderer";
+export { renderActivePanel, renderGlobalPanel } from "./panel-renderer.js";
 
 // 类型
-export type { AgentsConfigProps } from "./types";
+export type { AgentsConfigProps } from "./types.js";

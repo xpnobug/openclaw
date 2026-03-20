@@ -5,7 +5,7 @@
  * 管理技能白名单、启用/禁用、API Key 配置等
  */
 import { html, nothing } from "lit";
-import type { SkillsContentProps } from "../types/skills-config";
+import type { SkillsContentProps } from "../types/skills-config.js";
 // 从 skills/ 模块导入组件
 import {
   groupSkillsBySource,
@@ -20,7 +20,7 @@ import {
   renderCreateModal,
   renderPreviewModal,
   renderDeleteModal,
-} from "./skills";
+} from "./skills/index.js";
 
 // ─── 技能优先级说明 / Skill priority explanation ────────────────────────────
 

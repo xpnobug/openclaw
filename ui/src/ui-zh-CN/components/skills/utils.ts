@@ -9,7 +9,7 @@ import type {
   SkillStatusFilter,
   SkillGroup,
   EditableSkillSource,
-} from "../../types/skills-config";
+} from "../../types/skills-config.js";
 
 /**
  * 按来源分组技能

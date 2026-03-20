@@ -1,10 +1,10 @@
-import { loadSkillsStatus } from "./loader";
-import { getErrorMessage, setSkillMessage } from "./state";
+import { loadSkillsStatus } from "./loader.js";
+import { getErrorMessage, setSkillMessage } from "./state.js";
 /**
  * 技能配置控制器 - 技能操作
  * Skills config controller - Skill actions
  */
-import type { SkillsConfigState } from "./types";
+import type { SkillsConfigState } from "./types.js";
 
 // ─── 切换技能启用状态 / Toggle skill enabled ────────────────────────────────
 

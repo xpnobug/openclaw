@@ -3,7 +3,7 @@
  * 右侧面板 - 网关模式、网络、Control UI、认证与 Tailscale
  */
 import { html } from "lit";
-import type { GatewayConfig } from "../views/model-config";
+import type { GatewayConfig } from "../views/model-config.js";
 
 const icons = {
   gateway: html`

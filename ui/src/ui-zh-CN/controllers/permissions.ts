@@ -11,7 +11,7 @@ import type {
   ExecApprovalsFile,
   AgentOption,
   PermissionsTabId,
-} from "./state";
+} from "./state.js";
 
 /**
  * Exec Approvals 目标类型
@@ -138,7 +138,7 @@ export async function loadPermissions(
         ? { method: "exec.approvals.node.get", params: { nodeId: target.nodeId } }
         : { method: "exec.approvals.get", params: {} };
 
-    const res = (await state.client.request(rpc.method, rpc.params)) as ExecApprovalsSnapshot;
+    const res = (await state.client.request(rpc.method, rpc.params));
     state.execApprovalsSnapshot = res;
     if (!state.permissionsDirty) {
       state.execApprovalsForm = JSON.parse(JSON.stringify(res.file ?? {}));
@@ -345,7 +345,7 @@ export function addPermissionsAllowlistEntry(state: ModelConfigState, agentId: s
     base.agents[agentId].allowlist = [];
   }
 
-  base.agents[agentId].allowlist!.push({ pattern: "" });
+  base.agents[agentId].allowlist.push({ pattern: "" });
 
   state.execApprovalsForm = base;
   state.permissionsDirty = true;

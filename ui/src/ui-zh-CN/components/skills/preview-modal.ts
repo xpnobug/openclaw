@@ -3,7 +3,7 @@
  * File preview modal component
  */
 import { html, nothing } from "lit";
-import type { SkillsContentProps } from "../../types/skills-config";
+import type { SkillsContentProps } from "../../types/skills-config.js";
 
 /**
  * 渲染文件预览弹窗

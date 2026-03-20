@@ -2,7 +2,7 @@
  * Cron 组件常量和标签
  * Cron component constants and labels
  */
-import type { CronFormState } from "../../types/cron-config";
+import type { CronFormState } from "../../types/cron-config.js";
 import {
   clockIcon,
   plusIcon,
@@ -14,7 +14,7 @@ import {
   xIcon,
   alertCircleIcon,
   refreshIcon,
-} from "../icons";
+} from "../icons/index.js";
 
 // ─── 中文标签 / Chinese labels ──────────────────────────────────────────────
 
