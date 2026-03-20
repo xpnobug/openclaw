@@ -5,7 +5,7 @@
  * 复用工作区文件布局：文件夹分组、编辑/预览/分屏模式、Markdown 预览
  * Reuses workspace file layout: folder grouping, edit/preview/split modes, Markdown preview
  */
-import { html, nothing } from "lit";
+import { html } from "lit";
 import type { AgentsFilesListResult } from "../../../ui/types.js";
 import { renderWorkspaceContent, type WorkspaceFileInfo } from "../workspace-content.js";
 
@@ -100,7 +100,6 @@ export function renderAgentFiles(props: AgentFilesProps) {
     onLoadFiles,
     onSelectFile,
     onFileDraftChange,
-    onFileReset,
     onFileSave,
     onModeChange,
     onFolderToggle,

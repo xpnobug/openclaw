@@ -27,10 +27,10 @@ export function createSessionCallbacks(ctx: CallbackContext): Pick_ {
 
   return {
     onAgentSessionsRefresh: () => {
-      loadAgentSessions(s, s.selectedAgentId ?? undefined).then(update);
+      void loadAgentSessions(s, s.selectedAgentId ?? undefined).then(update);
     },
     onAgentSessionModelChange: (sessionKey, model) => {
-      patchSessionModel(s, sessionKey, model, s.selectedAgentId ?? undefined).then(update);
+      void patchSessionModel(s, sessionKey, model, s.selectedAgentId ?? undefined).then(update);
     },
     onAgentSessionNavigate: (sessionKey) => {
       const el = document.querySelector("openclaw-config-zh");
@@ -43,7 +43,7 @@ export function createSessionCallbacks(ctx: CallbackContext): Pick_ {
       );
     },
     onAgentSessionDelete: (sessionKey) => {
-      deleteSession(s, sessionKey, s.selectedAgentId ?? undefined).then(update);
+      void deleteSession(s, sessionKey, s.selectedAgentId ?? undefined).then(update);
     },
     onAgentSessionCreateShow: (show) => {
       s.sessionCreateShow = show;

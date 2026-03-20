@@ -29,6 +29,10 @@ export function renderConfigField(
   const handleChange = (newValue: unknown) => {
     onUpdate(channel.id, field.key, newValue);
   };
+  const stringValue =
+    typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+      ? String(value)
+      : "";
 
   switch (field.type) {
     case "toggle":
@@ -82,7 +86,7 @@ export function renderConfigField(
             <option value="" ?selected=${!value}>-- 选择 --</option>
             ${field.options?.map(
               (opt: { value: string; label: string }) =>
-                html`<option value=${opt.value} ?selected=${String(value) === opt.value}>${opt.label}</option>`,
+                html`<option value=${opt.value} ?selected=${stringValue === opt.value}>${opt.label}</option>`,
             )}
           </select>
         </label>
@@ -95,7 +99,7 @@ export function renderConfigField(
           <input
             type="password"
             class="mc-input"
-            .value=${String(value ?? "")}
+            .value=${stringValue}
             placeholder=${field.placeholder ?? ""}
             @input=${(e: Event) => handleChange((e.target as HTMLInputElement).value)}
           />
@@ -109,7 +113,7 @@ export function renderConfigField(
           <input
             type="number"
             class="mc-input"
-            .value=${String(value ?? "")}
+            .value=${stringValue}
             placeholder=${field.placeholder ?? ""}
             @input=${(e: Event) => handleChange(Number((e.target as HTMLInputElement).value) || undefined)}
           />
@@ -125,7 +129,7 @@ export function renderConfigField(
             class="mc-textarea"
             rows="5"
             placeholder=${field.placeholder ?? ""}
-            .value=${String(value ?? "")}
+            .value=${stringValue}
             @input=${(e: Event) => {
               const text = (e.target as HTMLTextAreaElement).value;
               handleChange(text || undefined);
@@ -141,7 +145,7 @@ export function renderConfigField(
           <input
             type="text"
             class="mc-input"
-            .value=${String(value ?? "")}
+            .value=${stringValue}
             placeholder=${field.placeholder ?? ""}
             @input=${(e: Event) => handleChange((e.target as HTMLInputElement).value)}
           />

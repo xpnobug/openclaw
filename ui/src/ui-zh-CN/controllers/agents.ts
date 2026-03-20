@@ -365,10 +365,11 @@ export function duplicateAgent(state: ModelConfigState, agentId: string): string
 
   const source = list[sourceIndex];
   const newId = `${agentId}-copy-${Date.now().toString(36)}`;
+  const sourceName = typeof source.name === "string" && source.name.trim() ? source.name : agentId;
   const newAgent = {
     ...cloneJson(source),
     id: newId,
-    name: `${source.name || agentId} (副本)`,
+    name: `${sourceName} (副本)`,
   };
   delete newAgent.default;
 

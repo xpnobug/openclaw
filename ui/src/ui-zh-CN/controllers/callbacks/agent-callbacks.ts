@@ -57,21 +57,21 @@ export function createAgentCallbacks(
         s.workspaceAgentId = agentId;
         s.workspaceFiles = undefined;
         s.workspaceDir = undefined;
-        loadWorkspaceFiles(s).then(update);
+        void loadWorkspaceFiles(s).then(update);
       }
 
       extra.loadAgentIdentity(agentId);
-      loadAgentSessions(s, agentId).then(update);
+      void loadAgentSessions(s, agentId).then(update);
       update();
     },
 
     onPanelChange: (panel) => {
       s.activePanel = panel;
       if (panel === "overview" && s.selectedAgentId) {
-        loadAgentSessions(s, s.selectedAgentId).then(update);
+        void loadAgentSessions(s, s.selectedAgentId).then(update);
       } else if (panel === "files" && s.selectedAgentId) {
         s.workspaceAgentId = s.selectedAgentId;
-        loadWorkspaceFiles(s).then(update);
+        void loadWorkspaceFiles(s).then(update);
       } else if (panel === "skills" && s.selectedAgentId) {
         void extra.loadSkillsStatus().then(update);
       } else if (panel === "cron") {
@@ -120,7 +120,7 @@ export function createAgentCallbacks(
       s.sidebarOpenMenuId = null;
       if (newId) {
         s.selectedAgentId = newId;
-        saveModelConfig(s).then(update);
+        void saveModelConfig(s).then(update);
       } else {
         update();
       }
@@ -142,7 +142,7 @@ export function createAgentCallbacks(
         if (s.selectedAgentId === agentId) {
           s.selectedAgentId = s.modelConfigAgentsList[0]?.id ?? null;
         }
-        saveModelConfig(s).then(update);
+        void saveModelConfig(s).then(update);
       } else {
         update();
       }

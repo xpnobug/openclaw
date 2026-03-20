@@ -2,8 +2,6 @@
  * 工具权限共享类型定义
  * Shared types for tools permissions
  */
-import type { TemplateResult } from "lit";
-
 /**
  * 工具配置档案 ID
  */

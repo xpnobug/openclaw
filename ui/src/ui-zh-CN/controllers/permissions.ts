@@ -5,13 +5,7 @@
  * 处理执行权限的加载、保存操作
  * Handles exec approvals loading and saving operations
  */
-import type {
-  ModelConfigState,
-  ExecApprovalsSnapshot,
-  ExecApprovalsFile,
-  AgentOption,
-  PermissionsTabId,
-} from "./state.js";
+import type { ModelConfigState, ExecApprovalsFile, AgentOption, PermissionsTabId } from "./state.js";
 
 /**
  * Exec Approvals 目标类型
@@ -38,7 +32,11 @@ export function resolveExecApprovalsNodes(
       return EXEC_APPROVALS_COMMANDS.some((cmd) => commands.includes(cmd));
     })
     .map((node) => {
-      const nodeId = String(node.nodeId ?? "");
+      const rawNodeId = node.nodeId;
+      const nodeId =
+        typeof rawNodeId === "string" || typeof rawNodeId === "number"
+          ? String(rawNodeId)
+          : "";
       const displayName = node.displayName as string | undefined;
       const label = displayName && displayName !== nodeId ? displayName + " · " + nodeId : nodeId;
       return { id: nodeId, label };

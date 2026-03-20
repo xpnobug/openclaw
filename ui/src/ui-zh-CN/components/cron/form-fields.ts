@@ -133,11 +133,11 @@ export function renderCreateModal(props: CronContentProps) {
     onShowCreateModal(false);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (isEditMode) {
-      await onUpdate();
+      onUpdate();
     } else {
-      await onAdd();
+      onAdd();
     }
     if (!props.error) {
       onShowCreateModal(false);

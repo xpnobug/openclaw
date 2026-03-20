@@ -51,13 +51,13 @@ export function createConfigCallbacks(ctx: CallbackContext): Pick_ {
 
   return {
     onConfigReload: () => {
-      loadModelConfig(s).then(update);
+      void loadModelConfig(s).then(update);
     },
     onConfigSave: () => {
-      saveModelConfig(s).then(update);
+      void saveModelConfig(s).then(update);
     },
     onConfigApply: () => {
-      applyModelConfig(s).then(update);
+      void applyModelConfig(s).then(update);
     },
 
     onModelChange: (agentId, modelId) => {

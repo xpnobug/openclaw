@@ -45,6 +45,12 @@ export type FormFieldProps = {
   className?: string;
 };
 
+function coerceTextValue(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
+    ? String(value)
+    : "";
+}
+
 // ============================================
 // 渲染函数
 // ============================================
@@ -385,7 +391,7 @@ export function renderFormField(props: FormFieldProps): TemplateResult {
       });
 
     default:
-      return renderTextField(field.label, String(value ?? ""), (v) => onChange(v || undefined), {
+      return renderTextField(field.label, coerceTextValue(value), (v) => onChange(v || undefined), {
         placeholder: field.placeholder,
         required: field.required,
         disabled: field.disabled,

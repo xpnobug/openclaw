@@ -39,13 +39,13 @@ export function setErrors<T>(
 
 /** 下一步 */
 export function nextStep<T>(state: WizardState<T>, totalSteps: number): WizardState<T> {
-  if (state.currentStep >= totalSteps - 1) return state;
+  if (state.currentStep >= totalSteps - 1) {return state;}
   return { ...state, currentStep: state.currentStep + 1 };
 }
 
 /** 上一步 */
 export function prevStep<T>(state: WizardState<T>): WizardState<T> {
-  if (state.currentStep <= 0) return state;
+  if (state.currentStep <= 0) {return state;}
   return { ...state, currentStep: state.currentStep - 1 };
 }
 
@@ -55,7 +55,7 @@ export function goToStep<T>(
   step: number,
   totalSteps: number,
 ): WizardState<T> {
-  if (step < 0 || step >= totalSteps) return state;
+  if (step < 0 || step >= totalSteps) {return state;}
   return { ...state, currentStep: step };
 }
 

@@ -29,10 +29,10 @@ export function createFileCallbacks(ctx: CallbackContext): Pick_ {
   return {
     onLoadFiles: (agentId) => {
       s.workspaceAgentId = agentId;
-      loadWorkspaceFiles(s).then(update);
+      void loadWorkspaceFiles(s).then(update);
     },
     onSelectFile: (name) => {
-      selectWorkspaceFile(s, name).then(update);
+      void selectWorkspaceFile(s, name).then(update);
       s.filesMobileView = "editor";
     },
     onFileDraftChange: (_name, content) => {
@@ -44,7 +44,7 @@ export function createFileCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onFileSave: (_name) => {
-      saveWorkspaceFile(s).then(update);
+      void saveWorkspaceFile(s).then(update);
     },
     onFilesEditorModeChange: (mode) => {
       s.filesEditorMode = mode;

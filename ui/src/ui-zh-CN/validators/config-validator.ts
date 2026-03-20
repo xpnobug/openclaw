@@ -45,7 +45,7 @@ const CHANNEL_RULES: Record<string, ValidationRule[]> = {
 /** 验证对象 */
 function validateObject(
   data: Record<string, unknown>,
-  fieldRules: Record<string, ValidationRule<any>[]>,
+  fieldRules: Record<string, ValidationRule<unknown>[]>,
   basePath: string,
   context?: ValidationContext,
 ): ValidationResult {

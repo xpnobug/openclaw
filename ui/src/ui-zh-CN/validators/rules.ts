@@ -72,7 +72,7 @@ export const validUrl = (field: string): ValidationRule<string> => ({
   code: "INVALID_URL",
   message: `${field} 不是有效的 URL`,
   validate: (v) => {
-    if (!v) return true;
+    if (!v) {return true;}
     try {
       new URL(v);
       return true;

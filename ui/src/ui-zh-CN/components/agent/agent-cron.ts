@@ -5,7 +5,6 @@
  * 复用定时任务管理布局：任务列表 + 表单 + 运行历史
  * Reuses cron management layout: job list + form + run history
  */
-import { html, nothing } from "lit";
 import type {
   CronJob,
   CronStatus,
@@ -86,8 +85,6 @@ export type AgentCronProps = {
  */
 export function renderAgentCron(props: AgentCronProps) {
   const {
-    agentId,
-    agentName,
     loading,
     busy,
     error,

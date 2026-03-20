@@ -1,7 +1,7 @@
 /**
  * Agent 创建向导
  */
-import { html, nothing, type TemplateResult } from "lit";
+import { html, type TemplateResult } from "lit";
 import { AGENT_TEMPLATES, AGENT_CATEGORIES, type AgentTemplate } from "../templates/index.js";
 import { validator } from "../validators/index.js";
 import type { WizardStep, WizardState, WizardBaseProps } from "./types.js";

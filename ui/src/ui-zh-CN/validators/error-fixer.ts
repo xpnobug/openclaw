@@ -5,6 +5,20 @@ import type { ValidationError, ValidationContext, FixSuggestion } from "./types.
 
 type FixGenerator = (error: ValidationError, context?: ValidationContext) => FixSuggestion;
 
+function stringifyErrorValue(value: unknown): string {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  if (value == null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "[复杂值]";
+  }
+}
+
 /** 修复建议映射 */
 const FIX_MAP: Record<string, FixGenerator> = {
   REQUIRED_FIELD: (error) => ({
@@ -28,7 +42,7 @@ const FIX_MAP: Record<string, FixGenerator> = {
   DUPLICATE_VALUE: (error) => ({
     errorCode: error.code,
     description: `${error.path} 值重复`,
-    manualSteps: [`将 "${error.value}" 改为其他唯一值`],
+    manualSteps: [`将 "${stringifyErrorValue(error.value)}" 改为其他唯一值`],
   }),
 
   MAX_LENGTH_EXCEEDED: (error) => ({
@@ -39,7 +53,7 @@ const FIX_MAP: Record<string, FixGenerator> = {
 
   MODEL_NOT_FOUND: (error) => ({
     errorCode: error.code,
-    description: `模型 ${error.value} 不存在或未配置`,
+    description: `模型 ${stringifyErrorValue(error.value)} 不存在或未配置`,
     manualSteps: [
       "1. 检查模型名称是否正确",
       "2. 确认已配置对应的 Provider",

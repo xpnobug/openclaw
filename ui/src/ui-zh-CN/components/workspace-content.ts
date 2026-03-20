@@ -666,7 +666,7 @@ function renderMarkdownPreview(content: string) {
  * 渲染 Agent 选择器
  * Render agent selector
  */
-function renderAgentSelector(props: WorkspaceContentProps) {
+export function renderAgentSelector(props: WorkspaceContentProps) {
   // 如果没有多个 agent 或没有回调，不显示选择器
   if (!props.agents || props.agents.length <= 1 || !props.onAgentChange) {
     return nothing;

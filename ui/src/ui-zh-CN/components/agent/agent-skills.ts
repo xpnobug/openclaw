@@ -5,7 +5,6 @@
  * 复用技能管理的布局
  * Reuses the skills management layout
  */
-import { html, nothing } from "lit";
 import type {
   SkillsContentProps,
   SkillStatusReport,
@@ -124,8 +123,6 @@ export type AgentSkillsProps = {
  */
 export function renderAgentSkills(props: AgentSkillsProps) {
   const {
-    agentId,
-    agentName,
     loading,
     saving,
     error,

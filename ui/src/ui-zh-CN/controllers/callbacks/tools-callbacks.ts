@@ -61,10 +61,10 @@ export function createToolsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onToolsReload: () => {
-      loadPermissions(s, { kind: "gateway" }).then(update);
+      void loadPermissions(s, { kind: "gateway" }).then(update);
     },
     onToolsSave: () => {
-      savePermissions(s, { kind: "gateway" }).then(update);
+      void savePermissions(s, { kind: "gateway" }).then(update);
     },
   };
 }

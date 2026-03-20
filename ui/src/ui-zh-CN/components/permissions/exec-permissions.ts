@@ -7,9 +7,7 @@ import { EXEC_APPROVALS_DEFAULT_SCOPE, SECURITY_OPTIONS, ASK_OPTIONS } from "./c
 import type {
   PermissionsContentProps,
   ExecApprovalsFile,
-  ExecApprovalsAgent,
   ExecApprovalsAllowlistEntry,
-  ExecSecurity,
 } from "./types.js";
 import { resolveDefaults, formatAgo } from "./utils.js";
 

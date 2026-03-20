@@ -77,10 +77,10 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
 
   return {
     onSkillsRefresh: () => {
-      loadSkillsStatus(s).then(update);
+      void loadSkillsStatus(s).then(update);
     },
     onSkillsSave: () => {
-      saveSkillsConfig(s).then(update);
+      void saveSkillsConfig(s).then(update);
     },
     onSkillsFilterChange: (filter) => {
       s.skillsConfigFilter = filter;
@@ -103,7 +103,7 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsSkillToggle: (skillKey, enabled) => {
-      updateSkillEnabled(s, skillKey, enabled);
+      void updateSkillEnabled(s, skillKey, enabled);
       update();
     },
     onSkillsApiKeyChange: (skillKey, apiKey) => {
@@ -111,7 +111,7 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsApiKeySave: (skillKey) => {
-      saveSkillApiKey(s, skillKey).then(update);
+      void saveSkillApiKey(s, skillKey).then(update);
     },
     onSkillsAllowlistModeChange: (mode) => {
       setAllowlistMode(s, mode);
@@ -122,10 +122,10 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsInstall: (skillKey, name, installId) => {
-      installSkillDependency(s, skillKey, name, installId).then(update);
+      void installSkillDependency(s, skillKey, name, installId).then(update);
     },
     onSkillsGlobalSettingChange: (field, value) => {
-      updateGlobalSetting(s, field, value);
+      void updateGlobalSetting(s, field, value);
       update();
     },
     onSkillsEnvChange: (skillKey, envKey, value) => {
@@ -141,11 +141,11 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsExtraDirsChange: (dirs) => {
-      updateExtraDirs(s, dirs);
+      void updateExtraDirs(s, dirs);
       update();
     },
     onSkillsEditorOpen: (skillKey, skillName, source) => {
-      openSkillEditor(s, skillKey, skillName, source).then(update);
+      void openSkillEditor(s, skillKey, skillName, source).then(update);
     },
     onSkillsEditorClose: () => {
       closeSkillEditor(s);
@@ -160,7 +160,7 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsEditorSave: () => {
-      saveSkillFile(s).then(update);
+      void saveSkillFile(s).then(update);
     },
     onSkillsCreateOpen: (source) => {
       openCreateSkill(s, source);
@@ -179,7 +179,7 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsCreateConfirm: () => {
-      confirmCreateSkill(s).then(update);
+      void confirmCreateSkill(s).then(update);
     },
     onSkillsDeleteOpen: (skillKey, skillName, source) => {
       openDeleteSkill(s, skillKey, skillName, source);
@@ -190,10 +190,10 @@ export function createSkillsCallbacks(ctx: CallbackContext): Pick_ {
       update();
     },
     onSkillsDeleteConfirm: () => {
-      confirmDeleteSkill(s).then(update);
+      void confirmDeleteSkill(s).then(update);
     },
     onSkillsPreviewOpen: (skillKey, skillName) => {
-      openSkillPreview(s, skillKey, skillName).then(update);
+      void openSkillPreview(s, skillKey, skillName).then(update);
     },
     onSkillsPreviewClose: () => {
       closeSkillPreview(s);
